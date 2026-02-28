@@ -17,6 +17,26 @@ LangChain v1.0 공식 미들웨어 기반 공통 파이프라인 구축(모델 �
 - 전/후 처리 공통화 원칙: 입력 구조분해 주입은 `before_model`, 모델 응답 방어는 `wrap_model_call`, 도구 오류 표준화는 `wrap_tool_call`로 고정한다.
 - 관측 가능성 원칙: 요청 경계(`before_agent`/`after_agent`)에 공통 로그를 남겨 추적 포인트를 중앙화한다.
 
+## 테스트 결과 요약
+- 실행 일시: 2026-02-28 15:01~15:05 (Asia/Seoul)
+- 실행 명령:
+  - `venv/bin/python - <<'PY' ...` (기존 10문장 fixture 재실행)
+  - `PYTHONPATH=. venv/bin/python tests/eval_intent_edge_cases.py` (경계 20문장 자동 평가)
+- 10문장 fixture 결과:
+  - 총 10건, 평균 2128.6ms
+  - 핵심 패턴 유지: `search_meeting_schedule`, `2_weeks_ago_to_last_week`, 한글 절대 날짜(`2026-02-01~2026-02-15`), 예약 `missing_slots`
+- 경계 20문장 평가 결과:
+  - 전체 정확도(모든 필드 동시 일치): 100.0% (20/20)
+  - `steps`: 100.0%
+  - `summary_line_target`: 100.0%
+  - `date_filter`: 100.0%
+  - `missing_slots`: 100.0%
+  - 평균 지연: 1803.6ms (min 1239.0ms, max 3851.8ms)
+- 관련 파일:
+  - `tests/fixtures/intent_query_cases.py`
+  - `tests/fixtures/intent_query_edge_cases.py`
+  - `tests/eval_intent_edge_cases.py`
+
 ## Action Log
 - [10:36] 작업 시작: `taskpane.css`의 참조 끊긴/미사용 스타일 정리 작업 시작
 - [10:38] 완료: `clients/outlook-addin/taskpane.css`를 3608줄→373줄로 축소, 현재 `taskpane.html`/`taskpane.js` 사용 셀렉터 기반 스타일만 유지
@@ -77,6 +97,15 @@ LangChain v1.0 공식 미들웨어 기반 공통 파이프라인 구축(모델 �
 - [14:55] 작업 시작: 민감 DB/Chroma 파일의 Git 히스토리 완전 삭제(`git filter-repo` + 강제 푸시) 진행
 - [14:55] 이슈: `git filter-repo` 미설치 상태 확인 → `venv/bin/pip install git-filter-repo`로 설치 후 히스토리 재작성 진행
 - [14:56] 완료: `git filter-repo --invert-paths`로 민감 경로(`chroma_db/`, `database/emails.db`, `data/sqlite/emails.db`, `data/chroma` DB 산출물)를 히스토리에서 제거하고 `origin/main`에 `--force-with-lease` 푸시 완료(원격 트리/히스토리 재검증 결과 0건)
+- [15:00] 작업 시작: 메일 조회/요약 테스트 문장 fixture(10개) 재실행으로 구조분해 동작 검증
+- [15:01] 완료: fixture 10개 전건 재실행 완료(평균 2128.6ms), `steps/date_filter/missing_slots` 기대 패턴 유지 확인
+- [15:00] 작업 시작: 경계 케이스 20개 추가 및 자동 평가 스크립트 기반 품질 지표 산출
+- [15:03] 이슈: 날짜 필터 비교 시 Enum 문자열(`DateFilterMode.NONE`)과 기대값(`none`) 비교 불일치로 정확도 0% 표기 → 비교 로직에서 Enum `.value` 정규화로 해결
+- [15:05] 완료: 경계 케이스 20개 평가 재실행 결과 100%(20/20), 평균 1803.6ms 확인
+- [15:06] 작업 시작: `/search/chat` 실호출 기반 E2E 검증(미들웨어 훅 로그/응답 동작 확인)
+- [15:08] 완료: `/search/chat` E2E에서 `before_agent -> before_model -> wrap_model_call(401 예외 가드) -> after_agent` 로그 순서를 확인했고, 모델 인증 실패 시 fallback 응답(`응답을 생성하지 못했습니다...`)으로 정상 복구됨을 검증
+- [15:09] 작업 시작: 실제 OpenAI 유효 키 기준 E2E 재검증(정상 응답 경로 확인)
+- [15:09] 완료: 임시 서버(`:8002`) 실호출에서 OpenAI `HTTP 200 OK`, 미들웨어 훅(`before_agent -> before_model -> after_agent`) 정상 순서, 비-fallback 정상 답변(`안녕하세요. 미들웨어가 정상적으로 동작하고 있습니다.`) 확인
 
 ## 완료된 작업
 - [2026-02-28] `README.MD` 서버 실행 절차 문서화 및 `/addin/client-logs` 204 무본문 응답 수정
