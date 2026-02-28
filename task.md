@@ -72,6 +72,8 @@ LangChain v1.0 공식 미들웨어 기반 공통 파이프라인 구축(모델 �
 - [14:42] 이슈: `git rm --cached data/chroma` 실행 시 `data/chroma/task.md`도 함께 제거 스테이징됨 → 해당 파일만 스테이징/워킹트리 복구 후 `.gitignore` 예외(`!data/chroma/task.md`)로 해결
 - [14:42] 완료: `data/chroma` DB 파일들과 `data/sqlite/emails.db`를 Git 인덱스에서 제거하고, `data/chroma/task.md`는 추적 유지 상태로 정리
 - [14:42] 작업 시작: 미들웨어 공통화 변경 + DB 파일 추적 제거 상태를 하나의 커밋으로 정리
+- [14:42] 완료: `feat(middleware): LangChain v1 공통 미들웨어 레지스트리 도입` 커밋 생성(커밋 해시: `9556267`)
+- [14:54] 작업 시작: 로컬 유지/원격 제거 요구사항에 맞춰 DB 파일 삭제 커밋을 원격(main)으로 반영
 
 ## 완료된 작업
 - [2026-02-28] `README.MD` 서버 실행 절차 문서화 및 `/addin/client-logs` 204 무본문 응답 수정
