@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Promise 실행예산 Mockup</title>
+    <style>
+        :root {
+            --bg: #f4f6fa;
+            --panel: #ffffff;
+            --line: #d8e0ed;
+            --head: #eef3fb;
+            --text: #1b2432;
+            --sub: #5f6f86;
+            --primary: #3d63dd;
+            --primary-hover: #2f4fbe;
+            --muted: #f8fafc;
+            --ok: #15803d;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        .wrap {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 14px;
+        }
+
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(18, 27, 43, 0.08);
+        }
+
+        .head {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--line);
+            background: linear-gradient(135deg, #edf3ff, #e8f7ff);
+        }
+
+        .title {
+            margin: 0;
+            font-size: 22px;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+        }
+
+        .desc {
+            margin: 6px 0 0;
+            font-size: 13px;
+            color: var(--sub);
+        }
+
+        .mode-chip {
+            display: inline-block;
+            margin-top: 8px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+            border: 1px solid #bcd0f9;
+            background: #f3f7ff;
+            color: #3456c0;
+        }
+
+        .body {
+            padding: 14px 16px 20px;
+            display: grid;
+            gap: 12px;
+        }
+
+        .row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        label {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            font-size: 13px;
+            font-weight: 700;
+            color: #334155;
+        }
+
+        input, select, textarea {
+            border: 1px solid #c9d3e2;
+            border-radius: 8px;
+            padding: 10px 12px;
+            font-size: 14px;
+            font-family: inherit;
+            background: #fff;
+        }
+
+        input[readonly] {
+            background: #f8fafc;
+            color: #64748b;
+        }
+
+        textarea {
+            min-height: 88px;
+            resize: vertical;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .summary-card {
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            background: var(--muted);
+            padding: 10px 12px;
+        }
+
+        .summary-label {
+            font-size: 12px;
+            color: var(--sub);
+            margin-bottom: 4px;
+        }
+
+        .summary-value {
+            font-size: 20px;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            color: #1e293b;
+        }
+
+        .summary-input {
+            margin-top: 8px;
+        }
+
+        .summary-input input {
+            width: 100%;
+            border: 1px solid #c9d3e2;
+            border-radius: 8px;
+            padding: 8px 10px;
+            font-size: 13px;
+        }
+
+        .table-wrap {
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            overflow: auto;
+            background: #fff;
+        }
+
+        table {
+            width: 100%;
+            min-width: 960px;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            border-bottom: 1px solid #e6ebf3;
+            padding: 8px 10px;
+            text-align: left;
+            font-size: 13px;
+            white-space: nowrap;
+        }
+
+        th {
+            background: #f7f9fd;
+            color: #3f4c61;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+
+        td input {
+            width: 100%;
+            min-width: 120px;
+            padding: 8px 10px;
+            font-size: 13px;
+        }
+
+        .cell-total {
+            font-weight: 700;
+            color: #1d4ed8;
+            background: #f3f7ff;
+        }
+
+        .hint {
+            font-size: 12px;
+            color: var(--sub);
+        }
+
+        .actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            padding-top: 2px;
+        }
+
+        button {
+            border: 1px solid #cfd7e6;
+            border-radius: 8px;
+            background: #fff;
+            color: #334155;
+            font-size: 13px;
+            font-weight: 700;
+            padding: 9px 14px;
+            cursor: pointer;
+        }
+
+        button.primary {
+            border-color: #b8c7f5;
+            color: #fff;
+            background: var(--primary);
+        }
+
+        button.primary:hover { background: var(--primary-hover); }
+
+        .notice {
+            display: none;
+            padding: 10px 12px;
+            border-radius: 8px;
+            border: 1px solid #bbf7d0;
+            background: #f0fdf4;
+            color: var(--ok);
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        @media (max-width: 900px) {
+            .row { grid-template-columns: 1fr; }
+            .summary-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <section class="panel">
+            <header class="head">
+                <h1 class="title" id="pageTitle">Promise 실행예산 신규 작성</h1>
+                <p class="desc" id="pageDesc">PoC Mockup 화면입니다. 신규 프로젝트 실행예산을 월별로 입력해 기안할 수 있습니다.</p>
+                <span class="mode-chip" id="modeChip">신규 작성 모드</span>
+            </header>
+
+            <div class="body">
+                <div class="row">
+                    <label>
+                        프로젝트번호
+                        <input id="projectNumber" type="text" placeholder="예: 30132215-D014">
+                    </label>
+                    <label>
+                        프로젝트명
+                        <input id="projectName" type="text" placeholder="예: SKB 26년 IT Application 위탁운영 계약_DW">
+                    </label>
+                </div>
+
+                <div class="row">
+                    <label>
+                        프로젝트유형
+                        <input id="projectType" type="text" placeholder="예: SI-MA">
+                    </label>
+                    <label>
+                        상태
+                        <select id="projectStatus">
+                            <option value="수행">수행</option>
+                            <option value="수행(임시종료)">수행(임시종료)</option>
+                            <option value="착수완료">착수완료</option>
+                            <option value="종료">종료</option>
+                        </select>
+                    </label>
+                </div>
+
+                <div class="summary-grid">
+                    <div class="summary-card">
+                        <div class="summary-label">Cost총액 (집행예산)</div>
+                        <div class="summary-value" id="finalCostTotal">0원</div>
+                        <div class="summary-input">
+                            <input id="finalCostInput" type="text" inputmode="numeric" placeholder="집행예산 총액 입력">
+                        </div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-label">프로젝트 총 실행비용 (매입금액 합계)</div>
+                        <div class="summary-value" id="executionTotal">0원</div>
+                    </div>
+                </div>
+
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>월</th>
+                                <th>인건비</th>
+                                <th>외주비</th>
+                                <th>재료비</th>
+                                <th>경비</th>
+                                <th>월 합계 (실행비용)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="monthlyTableBody"></tbody>
+                    </table>
+                </div>
+
+                <div class="hint">
+                    실행예산 데이터는 매입/집행 기준입니다. 매출/이익률 계산 항목은 포함하지 않습니다.
+                </div>
+
+                <label>
+                    실행/수정 사유
+                    <textarea id="reason" placeholder="실행예산 신규 작성 또는 수정 사유를 입력하세요."></textarea>
+                </label>
+
+                <div id="notice" class="notice">Mock 저장이 완료되었습니다.</div>
+
+                <div class="actions">
+                    <button type="button" id="cancelBtn">취소</button>
+                    <button type="button" class="primary" id="submitBtn">기안하기 (Mock)</button>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        (function() {
+            const qs = new URLSearchParams(window.location.search);
+            const mode = (qs.get('mode') || 'create').toLowerCase() === 'edit' ? 'edit' : 'create';
+            const threadId = qs.get('thread_id') || '';
+            const openerOrigin = qs.get('opener_origin') || '';
+            const projectNumberParam = (qs.get('project_number') || '').trim();
+            const projectNameParam = (qs.get('project_name') || '').trim();
+            const projectTypeParam = (qs.get('project_type') || '').trim();
+            const projectStatusParam = (qs.get('project_status') || '').trim();
+
+            const refs = {
+                pageTitle: document.getElementById('pageTitle'),
+                pageDesc: document.getElementById('pageDesc'),
+                modeChip: document.getElementById('modeChip'),
+                projectNumber: document.getElementById('projectNumber'),
+                projectName: document.getElementById('projectName'),
+                projectType: document.getElementById('projectType'),
+                projectStatus: document.getElementById('projectStatus'),
+                monthlyTableBody: document.getElementById('monthlyTableBody'),
+                finalCostTotal: document.getElementById('finalCostTotal'),
+                finalCostInput: document.getElementById('finalCostInput'),
+                executionTotal: document.getElementById('executionTotal'),
+                reason: document.getElementById('reason'),
+                notice: document.getElementById('notice'),
+                cancelBtn: document.getElementById('cancelBtn'),
+                submitBtn: document.getElementById('submitBtn'),
+            };
+
+            const MONEY_FIELDS = ['labor_cost', 'outsourcing_cost', 'material_cost', 'expense_cost'];
+            let manualFinalCost = false;
+            let monthlyRows = Array.from({ length: 12 }, (_, idx) => ({
+                month: idx + 1,
+                labor_cost: 0,
+                outsourcing_cost: 0,
+                material_cost: 0,
+                expense_cost: 0,
+                execution_total: 0,
+            }));
+
+            function toInt(value) {
+                const cleaned = String(value == null ? '' : value).replace(/[^0-9-]/g, '');
+                const parsed = Number.parseInt(cleaned, 10);
+                return Number.isFinite(parsed) ? parsed : 0;
+            }
+
+            function formatKRW(value) {
+                const amount = Number.isFinite(value) ? value : 0;
+                return `${amount.toLocaleString('ko-KR')}원`;
+            }
+
+            function calculateRowTotal(row) {
+                row.execution_total = MONEY_FIELDS.reduce((acc, key) => acc + toInt(row[key]), 0);
+                return row.execution_total;
+            }
+
+            function buildMonthlyTable() {
+                refs.monthlyTableBody.innerHTML = monthlyRows.map((row, idx) => {
+                    calculateRowTotal(row);
+                    return `
+                        <tr data-index="${idx}">
+                            <td>${row.month}월</td>
+                            <td><input type="text" inputmode="numeric" data-field="labor_cost" value="${toInt(row.labor_cost).toLocaleString('ko-KR')}"></td>
+                            <td><input type="text" inputmode="numeric" data-field="outsourcing_cost" value="${toInt(row.outsourcing_cost).toLocaleString('ko-KR')}"></td>
+                            <td><input type="text" inputmode="numeric" data-field="material_cost" value="${toInt(row.material_cost).toLocaleString('ko-KR')}"></td>
+                            <td><input type="text" inputmode="numeric" data-field="expense_cost" value="${toInt(row.expense_cost).toLocaleString('ko-KR')}"></td>
+                            <td class="cell-total" data-field="execution_total">${toInt(row.execution_total).toLocaleString('ko-KR')}원</td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+
+            function syncTotals() {
+                const executionTotal = monthlyRows.reduce((acc, row) => acc + calculateRowTotal(row), 0);
+                refs.executionTotal.textContent = formatKRW(executionTotal);
+                if (!manualFinalCost) {
+                    refs.finalCostInput.value = executionTotal.toLocaleString('ko-KR');
+                }
+                refs.finalCostTotal.textContent = formatKRW(toInt(refs.finalCostInput.value || executionTotal));
+
+                refs.monthlyTableBody.querySelectorAll('tr').forEach((tr, idx) => {
+                    const cell = tr.querySelector('[data-field="execution_total"]');
+                    if (!cell) return;
+                    cell.textContent = `${toInt(monthlyRows[idx].execution_total).toLocaleString('ko-KR')}원`;
+                });
+            }
+
+            function bindMonthlyInputEvents() {
+                refs.monthlyTableBody.addEventListener('input', (event) => {
+                    const target = event.target;
+                    if (!(target instanceof HTMLInputElement)) return;
+                    const tr = target.closest('tr');
+                    if (!tr) return;
+                    const idx = toInt(tr.dataset.index);
+                    if (!Number.isFinite(idx) || idx < 0 || idx >= monthlyRows.length) return;
+
+                    const field = target.dataset.field;
+                    if (!MONEY_FIELDS.includes(field)) return;
+
+                    const value = toInt(target.value);
+                    monthlyRows[idx][field] = value;
+                    target.value = value.toLocaleString('ko-KR');
+                    syncTotals();
+                });
+            }
+
+            async function fetchJson(url) {
+                const res = await fetch(url, { cache: 'no-store' });
+                if (!res.ok) throw new Error(`fetch failed: ${url}`);
+                return res.json();
+            }
+
+            function applyProjectMeta(meta) {
+                refs.projectNumber.value = (meta.project_number || projectNumberParam || '').trim();
+                refs.projectName.value = (meta.project_name || projectNameParam || '').trim();
+                refs.projectType.value = (meta.project_type || projectTypeParam || '').trim();
+                const status = (meta.status || projectStatusParam || '').trim();
+                if (status) refs.projectStatus.value = status;
+            }
+
+            function applyMonthlyBreakdown(data) {
+                const source = Array.isArray(data) ? data : [];
+                monthlyRows = Array.from({ length: 12 }, (_, idx) => {
+                    const raw = source.find((item) => toInt(item?.month) === idx + 1) || {};
+                    return {
+                        month: idx + 1,
+                        labor_cost: toInt(raw.labor_cost),
+                        outsourcing_cost: toInt(raw.outsourcing_cost),
+                        material_cost: toInt(raw.material_cost),
+                        expense_cost: toInt(raw.expense_cost),
+                        execution_total: toInt(raw.execution_total),
+                    };
+                });
+            }
+
+            function applyFinalCostTotal(value) {
+                const amount = toInt(value);
+                if (amount > 0) {
+                    refs.finalCostInput.value = amount.toLocaleString('ko-KR');
+                    manualFinalCost = true;
+                } else {
+                    refs.finalCostInput.value = '';
+                    manualFinalCost = false;
+                }
+            }
+
+            async function initializeData() {
+                if (mode === 'edit') {
+                    refs.pageTitle.textContent = 'Promise 실행예산 수정';
+                    refs.pageDesc.textContent = '조회한 프로젝트의 현재 비용 데이터를 불러와 수정하는 Mockup 화면입니다.';
+                    refs.modeChip.textContent = '수정 모드';
+                    refs.submitBtn.textContent = '수정 기안하기 (Mock)';
+                }
+
+                let projects = [];
+                let costs = [];
+                try {
+                    [projects, costs] = await Promise.all([
+                        fetchJson('./projects.json'),
+                        fetchJson('./project_costs.json'),
+                    ]);
+                } catch (error) {
+                    console.warn('[Promise Mockup] local json load failed:', error);
+                }
+
+                const project = Array.isArray(projects)
+                    ? projects.find((item) => String(item?.project_number || '').trim() === projectNumberParam)
+                    : null;
+                const cost = Array.isArray(costs)
+                    ? costs.find((item) => String(item?.project_number || '').trim() === projectNumberParam)
+                    : null;
+
+                if (mode === 'edit') {
+                    applyProjectMeta(project || {
+                        project_number: projectNumberParam,
+                        project_name: projectNameParam,
+                        project_type: projectTypeParam,
+                        status: projectStatusParam,
+                    });
+                    applyMonthlyBreakdown(cost?.monthly_breakdown || []);
+                    applyFinalCostTotal(cost?.final_cost_total || 0);
+                    refs.projectNumber.readOnly = true;
+                    refs.reason.placeholder = '실행예산 수정 사유를 입력하세요.';
+                } else {
+                    applyProjectMeta({
+                        project_number: projectNumberParam,
+                        project_name: projectNameParam,
+                        project_type: projectTypeParam,
+                        status: projectStatusParam || '수행',
+                    });
+                    applyMonthlyBreakdown([]);
+                    applyFinalCostTotal(0);
+                    refs.reason.placeholder = '실행예산 신규 작성 사유를 입력하세요.';
+                }
+
+                buildMonthlyTable();
+                syncTotals();
+            }
+
+            function buildPayload() {
+                const rows = monthlyRows.map((row) => ({
+                    month: row.month,
+                    labor_cost: toInt(row.labor_cost),
+                    outsourcing_cost: toInt(row.outsourcing_cost),
+                    material_cost: toInt(row.material_cost),
+                    expense_cost: toInt(row.expense_cost),
+                    execution_total: toInt(row.execution_total),
+                }));
+                const executionTotal = rows.reduce((acc, row) => acc + toInt(row.execution_total), 0);
+                const finalCostTotal = toInt(refs.finalCostInput.value || executionTotal);
+
+                return {
+                    mode,
+                    project_number: refs.projectNumber.value.trim(),
+                    project_name: refs.projectName.value.trim(),
+                    project_type: refs.projectType.value.trim(),
+                    status: refs.projectStatus.value.trim(),
+                    final_cost_total: finalCostTotal,
+                    execution_total: executionTotal,
+                    monthly_breakdown: rows,
+                    reason: refs.reason.value.trim(),
+                };
+            }
+
+            function postToParent(payload) {
+                const eventPayload = {
+                    type: 'PROMISE_BUDGET_SAVED',
+                    thread_id: threadId,
+                    payload,
+                };
+
+                try {
+                    if (window.parent && window.parent !== window) {
+                        if (openerOrigin) window.parent.postMessage(eventPayload, openerOrigin);
+                        else window.parent.postMessage(eventPayload, '*');
+                    }
+                } catch (error) {
+                    console.warn('[Promise Mockup] parent postMessage failed', error);
+                }
+
+                try {
+                    if (window.opener) {
+                        if (openerOrigin) window.opener.postMessage(eventPayload, openerOrigin);
+                        else window.opener.postMessage(eventPayload, '*');
+                    }
+                } catch (error) {
+                    console.warn('[Promise Mockup] opener postMessage failed', error);
+                }
+            }
+
+            function handleSubmit() {
+                const payload = buildPayload();
+                if (!payload.project_number || !payload.project_name) {
+                    alert('프로젝트번호와 프로젝트명을 입력해주세요.');
+                    return;
+                }
+                refs.notice.style.display = 'block';
+                refs.notice.textContent = mode === 'edit'
+                    ? '실행예산 수정 Mock 저장이 완료되었습니다.'
+                    : '실행예산 신규 작성 Mock 저장이 완료되었습니다.';
+                postToParent(payload);
+            }
+
+            function handleCancel() {
+                const eventPayload = {
+                    type: 'PROMISE_BUDGET_CANCELLED',
+                    thread_id: threadId,
+                    payload: { mode },
+                };
+                try {
+                    if (window.parent && window.parent !== window) {
+                        if (openerOrigin) window.parent.postMessage(eventPayload, openerOrigin);
+                        else window.parent.postMessage(eventPayload, '*');
+                    }
+                } catch (error) {
+                    console.warn('[Promise Mockup] cancel postMessage failed', error);
+                }
+                window.close();
+            }
+
+            refs.submitBtn.addEventListener('click', handleSubmit);
+            refs.cancelBtn.addEventListener('click', handleCancel);
+            refs.finalCostInput.addEventListener('input', () => {
+                const value = toInt(refs.finalCostInput.value);
+                refs.finalCostInput.value = value.toLocaleString('ko-KR');
+                manualFinalCost = value > 0;
+                refs.finalCostTotal.textContent = formatKRW(value);
+            });
+
+            initializeData();
+            bindMonthlyInputEvents();
+        })();
+    </script>
+</body>
+</html>

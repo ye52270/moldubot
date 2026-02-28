@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0"
+           xmlns:mailappor="http://schemas.microsoft.com/office/mailappversionoverrides/1.0"
+           xsi:type="MailApp">
+  <Id>78e30e22-180f-4d27-9a8d-7a133155a88b</Id>
+  <Version>1.0.2.2</Version>
+  <ProviderName>MolduBot</ProviderName>
+  <DefaultLocale>ko-KR</DefaultLocale>
+  <DisplayName DefaultValue="몰두봇" />
+  <Description DefaultValue="Microsoft 365 메일/업무 어시스턴트 몰두봇" />
+  <IconUrl DefaultValue="https://brendon-unboding-maliciously.ngrok-free.dev/addin/icon.png?v=20260216-2" />
+  <HighResolutionIconUrl DefaultValue="https://brendon-unboding-maliciously.ngrok-free.dev/addin/icon.png?v=20260216-2" />
+  <SupportUrl DefaultValue="https://brendon-unboding-maliciously.ngrok-free.dev" />
+
+  <AppDomains>
+    <AppDomain>https://localhost</AppDomain>
+    <AppDomain>https://brendon-unboding-maliciously.ngrok-free.dev</AppDomain>
+  </AppDomains>
+
+  <Hosts>
+    <Host Name="Mailbox" />
+  </Hosts>
+
+  <Requirements>
+    <Sets>
+      <Set Name="Mailbox" MinVersion="1.5" />
+    </Sets>
+  </Requirements>
+
+  <FormSettings>
+    <Form xsi:type="ItemRead">
+      <DesktopSettings>
+        <SourceLocation DefaultValue="https://brendon-unboding-maliciously.ngrok-free.dev/addin/taskpane.html?v=20260226-21" />
+        <RequestedHeight>450</RequestedHeight>
+      </DesktopSettings>
+    </Form>
+  </FormSettings>
+
+  <Permissions>ReadWriteMailbox</Permissions>
+
+  <Rule xsi:type="RuleCollection" Mode="Or">
+    <Rule xsi:type="ItemIs" ItemType="Message" FormType="Read" />
+  </Rule>
+
+  <VersionOverrides xmlns="http://schemas.microsoft.com/office/mailappversionoverrides" xsi:type="VersionOverridesV1_0">
+    <VersionOverrides xmlns="http://schemas.microsoft.com/office/mailappversionoverrides/1.1" xsi:type="VersionOverridesV1_1">
+      <Requirements>
+        <bt:Sets DefaultMinVersion="1.5">
+          <bt:Set Name="Mailbox" />
+        </bt:Sets>
+      </Requirements>
+      <Hosts>
+        <Host xsi:type="MailHost">
+          <DesktopFormFactor>
+            <FunctionFile resid="FunctionFile" />
+            <ExtensionPoint xsi:type="MessageReadCommandSurface">
+              <OfficeTab id="TabDefault">
+                <Group id="msgReadGroup">
+                  <Label resid="GroupLabel" />
+                  <Control xsi:type="Button" id="TaskpaneButton">
+                    <Label resid="TaskpaneButton.Label" />
+                    <Supertip>
+                      <Title resid="TaskpaneButton.Label" />
+                      <Description resid="TaskpaneButton.Tooltip" />
+                    </Supertip>
+                    <Icon>
+                      <bt:Image size="16" resid="Icon16x16" />
+                      <bt:Image size="32" resid="Icon32x32" />
+                      <bt:Image size="80" resid="Icon80x80" />
+                    </Icon>
+                    <Action xsi:type="ShowTaskpane">
+                      <SourceLocation resid="TaskpaneUrl" />
+                      <SupportsPinning>true</SupportsPinning>
+                    </Action>
+                  </Control>
+                </Group>
+              </OfficeTab>
+            </ExtensionPoint>
+          </DesktopFormFactor>
+        </Host>
+      </Hosts>
+      <Resources>
+        <bt:Images>
+          <bt:Image id="Icon16x16" DefaultValue="https://brendon-unboding-maliciously.ngrok-free.dev/addin/icon.png?v=20260216-2" />
+          <bt:Image id="Icon32x32" DefaultValue="https://brendon-unboding-maliciously.ngrok-free.dev/addin/icon.png?v=20260216-2" />
+          <bt:Image id="Icon80x80" DefaultValue="https://brendon-unboding-maliciously.ngrok-free.dev/addin/icon.png?v=20260216-2" />
+        </bt:Images>
+        <bt:Urls>
+          <bt:Url id="FunctionFile" DefaultValue="https://brendon-unboding-maliciously.ngrok-free.dev/addin/commands.html" />
+          <bt:Url id="TaskpaneUrl" DefaultValue="https://brendon-unboding-maliciously.ngrok-free.dev/addin/taskpane.html?v=20260226-21" />
+        </bt:Urls>
+        <bt:ShortStrings>
+          <bt:String id="GroupLabel" DefaultValue="몰두봇" />
+          <bt:String id="TaskpaneButton.Label" DefaultValue="몰두봇" />
+        </bt:ShortStrings>
+        <bt:LongStrings>
+          <bt:String id="TaskpaneButton.Tooltip" DefaultValue="몰두봇을 엽니다" />
+        </bt:LongStrings>
+      </Resources>
+    </VersionOverrides>
+  </VersionOverrides>
+</OfficeApp>

@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finance 비용정산 Mockup</title>
+    <style>
+        :root {
+            --bg: #f4f6fb;
+            --panel: #fff;
+            --line: #d8deea;
+            --head: #edf3ff;
+            --text: #1b2538;
+            --sub: #63748d;
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --danger: #b91c1c;
+            --ok: #166534;
+            --warn: #92400e;
+            --warn-bg: #fffbeb;
+        }
+
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+            background: var(--bg);
+            color: var(--text);
+        }
+        .wrap {
+            max-width: 980px;
+            margin: 0 auto;
+            padding: 16px;
+        }
+        .panel {
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            overflow: hidden;
+            background: var(--panel);
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+        }
+        .head {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--line);
+            background: linear-gradient(135deg, #f0f7ff, #eefdf7);
+        }
+        .title {
+            margin: 0;
+            font-size: 22px;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+        }
+        .desc {
+            margin: 6px 0 0;
+            font-size: 13px;
+            color: var(--sub);
+        }
+        .body {
+            padding: 14px 16px 18px;
+            display: grid;
+            gap: 12px;
+        }
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .label {
+            font-size: 13px;
+            font-weight: 700;
+            color: #334155;
+        }
+        .control, .textarea {
+            border: 1px solid #c9d2e2;
+            border-radius: 8px;
+            padding: 10px 12px;
+            font-size: 14px;
+            background: #fff;
+            color: #0f172a;
+            width: 100%;
+        }
+        .textarea {
+            min-height: 86px;
+            resize: vertical;
+        }
+        .meta-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 8px;
+        }
+        .meta-item {
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            background: #f8fafc;
+            padding: 10px 12px;
+        }
+        .meta-k {
+            font-size: 12px;
+            color: var(--sub);
+            margin-bottom: 4px;
+        }
+        .meta-v {
+            font-size: 14px;
+            font-weight: 700;
+            color: #0f172a;
+            word-break: break-word;
+        }
+        .budget-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 8px;
+        }
+        .budget {
+            border: 1px solid #d9e0ef;
+            border-radius: 10px;
+            background: #f8fbff;
+            padding: 10px 12px;
+        }
+        .budget-label {
+            font-size: 12px;
+            color: #64748b;
+            margin-bottom: 4px;
+        }
+        .budget-value {
+            font-size: 18px;
+            font-weight: 800;
+            color: #1e293b;
+            letter-spacing: -0.01em;
+        }
+        .budget-value.remain-ok { color: #166534; }
+        .budget-value.remain-warn { color: #b45309; }
+        .file-list {
+            border: 1px dashed #c8d2e3;
+            border-radius: 8px;
+            padding: 10px 12px;
+            background: #fafcff;
+            font-size: 12px;
+            color: #475569;
+            min-height: 44px;
+            line-height: 1.5;
+        }
+        .warn-box {
+            display: none;
+            border: 1px solid #fcd34d;
+            background: var(--warn-bg);
+            color: var(--warn);
+            border-radius: 8px;
+            padding: 10px 12px;
+            font-size: 13px;
+            font-weight: 700;
+        }
+        .notice {
+            display: none;
+            border: 1px solid #bbf7d0;
+            background: #f0fdf4;
+            color: var(--ok);
+            border-radius: 8px;
+            padding: 10px 12px;
+            font-size: 13px;
+            font-weight: 700;
+        }
+        .actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            padding-top: 2px;
+        }
+        button {
+            border: 1px solid #cfd7e7;
+            border-radius: 8px;
+            background: #fff;
+            color: #334155;
+            padding: 9px 14px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        button.primary {
+            border-color: #b8bdf6;
+            color: #fff;
+            background: var(--primary);
+        }
+        button.primary:hover { background: var(--primary-hover); }
+        button:disabled {
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+        @media (max-width: 860px) {
+            .meta-grid, .budget-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <section class="panel">
+            <header class="head">
+                <h1 class="title">Finance 비용정산 작성</h1>
+                <p class="desc">프로젝트 경비 예산 내에서 비용정산 Mock 기안을 작성합니다.</p>
+            </header>
+
+            <div class="body">
+                <label class="field">
+                    <span class="label">프로젝트명</span>
+                    <select id="projectSelect" class="control"></select>
+                </label>
+
+                <div class="meta-grid">
+                    <div class="meta-item">
+                        <div class="meta-k">프로젝트번호</div>
+                        <div id="projectNumber" class="meta-v">-</div>
+                    </div>
+                    <div class="meta-item">
+                        <div class="meta-k">프로젝트유형</div>
+                        <div id="projectType" class="meta-v">-</div>
+                    </div>
+                    <div class="meta-item">
+                        <div class="meta-k">상태</div>
+                        <div id="projectStatus" class="meta-v">-</div>
+                    </div>
+                </div>
+
+                <div class="budget-grid">
+                    <div class="budget">
+                        <div class="budget-label">경비 총 예산</div>
+                        <div id="budgetTotal" class="budget-value">0원</div>
+                    </div>
+                    <div class="budget">
+                        <div class="budget-label">사용 누계</div>
+                        <div id="budgetUsed" class="budget-value">0원</div>
+                    </div>
+                    <div class="budget">
+                        <div class="budget-label">잔여 가능</div>
+                        <div id="budgetRemain" class="budget-value remain-ok">0원</div>
+                    </div>
+                </div>
+
+                <label class="field">
+                    <span class="label">경비 항목</span>
+                    <select id="expenseCategory" class="control">
+                        <option value="">항목 선택</option>
+                        <option value="의욕관리비">의욕관리비</option>
+                        <option value="PJT운영비">PJT운영비</option>
+                        <option value="석식대">석식대</option>
+                    </select>
+                </label>
+
+                <label class="field">
+                    <span class="label">정산 금액 (원)</span>
+                    <input id="amountInput" class="control" type="text" inputmode="numeric" placeholder="예: 120000">
+                </label>
+
+                <label class="field">
+                    <span class="label">증빙 파일 첨부</span>
+                    <input id="evidenceInput" class="control" type="file" multiple>
+                </label>
+                <div id="fileList" class="file-list">첨부된 파일이 없습니다.</div>
+
+                <label class="field">
+                    <span class="label">비고 (선택)</span>
+                    <textarea id="descriptionInput" class="textarea" placeholder="비용정산 사유/메모"></textarea>
+                </label>
+
+                <div id="warnBox" class="warn-box"></div>
+                <div id="notice" class="notice"></div>
+
+                <div class="actions">
+                    <button type="button" id="cancelBtn">취소</button>
+                    <button type="button" id="submitBtn" class="primary">기안하기 (Mock)</button>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        (function() {
+            const qs = new URLSearchParams(window.location.search);
+            const threadId = qs.get('thread_id') || '';
+            const openerOrigin = qs.get('opener_origin') || '';
+            const preselectedProject = (qs.get('project_number') || '').trim();
+
+            const refs = {
+                projectSelect: document.getElementById('projectSelect'),
+                projectNumber: document.getElementById('projectNumber'),
+                projectType: document.getElementById('projectType'),
+                projectStatus: document.getElementById('projectStatus'),
+                budgetTotal: document.getElementById('budgetTotal'),
+                budgetUsed: document.getElementById('budgetUsed'),
+                budgetRemain: document.getElementById('budgetRemain'),
+                expenseCategory: document.getElementById('expenseCategory'),
+                amountInput: document.getElementById('amountInput'),
+                evidenceInput: document.getElementById('evidenceInput'),
+                fileList: document.getElementById('fileList'),
+                descriptionInput: document.getElementById('descriptionInput'),
+                warnBox: document.getElementById('warnBox'),
+                notice: document.getElementById('notice'),
+                cancelBtn: document.getElementById('cancelBtn'),
+                submitBtn: document.getElementById('submitBtn'),
+            };
+
+            let projects = [];
+            let budget = {
+                expense_budget_total: 0,
+                used_amount: 0,
+                remaining_amount: 0,
+            };
+            let selectedFiles = [];
+
+            function toInt(value) {
+                const cleaned = String(value == null ? '' : value).replace(/[^0-9-]/g, '');
+                const parsed = Number.parseInt(cleaned, 10);
+                return Number.isFinite(parsed) ? parsed : 0;
+            }
+
+            function formatKrw(value) {
+                const amount = Number.isFinite(value) ? value : 0;
+                return `${amount.toLocaleString('ko-KR')}원`;
+            }
+
+            function showWarn(message) {
+                refs.warnBox.style.display = message ? 'block' : 'none';
+                refs.warnBox.textContent = message || '';
+            }
+
+            function showNotice(message) {
+                refs.notice.style.display = message ? 'block' : 'none';
+                refs.notice.textContent = message || '';
+            }
+
+            function renderBudget() {
+                refs.budgetTotal.textContent = formatKrw(toInt(budget.expense_budget_total));
+                refs.budgetUsed.textContent = formatKrw(toInt(budget.used_amount));
+                refs.budgetRemain.textContent = formatKrw(toInt(budget.remaining_amount));
+                refs.budgetRemain.className =
+                    `budget-value ${toInt(budget.remaining_amount) <= 0 ? 'remain-warn' : 'remain-ok'}`;
+            }
+
+            function renderProjectMeta(project, budgetData) {
+                refs.projectNumber.textContent = project?.project_number || '-';
+                refs.projectType.textContent = project?.project_type || '-';
+                refs.projectStatus.textContent = project?.status || '-';
+                budget = {
+                    expense_budget_total: toInt(budgetData?.expense_budget_total),
+                    used_amount: toInt(budgetData?.used_amount),
+                    remaining_amount: toInt(budgetData?.remaining_amount),
+                };
+                renderBudget();
+            }
+
+            function renderFiles() {
+                if (!selectedFiles.length) {
+                    refs.fileList.textContent = '첨부된 파일이 없습니다.';
+                    return;
+                }
+                refs.fileList.innerHTML = selectedFiles
+                    .map((file, idx) => `${idx + 1}. ${file.name}`)
+                    .join('<br>');
+            }
+
+            async function fetchJson(url, options) {
+                const response = await fetch(url, options);
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    throw new Error(data?.detail || '요청 처리 중 오류가 발생했습니다.');
+                }
+                return data;
+            }
+
+            async function loadProjects() {
+                const data = await fetchJson('/api/finance/projects', { cache: 'no-store' });
+                projects = Array.isArray(data.projects) ? data.projects : [];
+                refs.projectSelect.innerHTML = [
+                    '<option value="">프로젝트 선택</option>',
+                    ...projects.map((item) => {
+                        const number = item?.project_number || '';
+                        const name = item?.project_name || number;
+                        return `<option value="${number}">${name}</option>`;
+                    }),
+                ].join('');
+
+                const initialNumber =
+                    (projects.find((item) => item.project_number === preselectedProject)?.project_number || '')
+                    || (projects[0]?.project_number || '');
+                if (initialNumber) {
+                    refs.projectSelect.value = initialNumber;
+                    await loadProjectBudget(initialNumber);
+                }
+            }
+
+            async function loadProjectBudget(projectNumber) {
+                if (!projectNumber) return;
+                const data = await fetchJson(
+                    `/api/finance/projects/${encodeURIComponent(projectNumber)}/budget`,
+                    { cache: 'no-store' }
+                );
+                const project = projects.find((item) => item.project_number === projectNumber) || data;
+                renderProjectMeta(project, data);
+                validateAmount(false);
+            }
+
+            function validateAmount(showMessage = true) {
+                const amount = toInt(refs.amountInput.value);
+                refs.amountInput.value = amount > 0 ? amount.toLocaleString('ko-KR') : '';
+                if (amount <= 0) {
+                    if (showMessage) showWarn('정산 금액을 입력해주세요.');
+                    return false;
+                }
+                if (amount > toInt(budget.remaining_amount)) {
+                    if (showMessage) {
+                        showWarn(`요청 금액이 잔여 가능 금액을 초과했습니다. (잔여: ${formatKrw(toInt(budget.remaining_amount))})`);
+                    }
+                    return false;
+                }
+                showWarn('');
+                return true;
+            }
+
+            function postToParent(eventPayload) {
+                try {
+                    if (window.parent && window.parent !== window) {
+                        if (openerOrigin) window.parent.postMessage(eventPayload, openerOrigin);
+                        else window.parent.postMessage(eventPayload, '*');
+                    }
+                } catch (error) {
+                    console.warn('[Finance Mockup] parent postMessage failed', error);
+                }
+                try {
+                    if (window.opener) {
+                        if (openerOrigin) window.opener.postMessage(eventPayload, openerOrigin);
+                        else window.opener.postMessage(eventPayload, '*');
+                    }
+                } catch (error) {
+                    console.warn('[Finance Mockup] opener postMessage failed', error);
+                }
+            }
+
+            async function handleSubmit() {
+                showNotice('');
+                showWarn('');
+
+                const projectNumber = (refs.projectSelect.value || '').trim();
+                const category = (refs.expenseCategory.value || '').trim();
+                const amount = toInt(refs.amountInput.value);
+                const description = (refs.descriptionInput.value || '').trim();
+
+                if (!projectNumber) {
+                    showWarn('프로젝트를 선택해주세요.');
+                    return;
+                }
+                if (!category) {
+                    showWarn('경비 항목을 선택해주세요.');
+                    return;
+                }
+                if (!validateAmount(true)) {
+                    return;
+                }
+                if (!selectedFiles.length) {
+                    showWarn('증빙 파일을 1개 이상 첨부해주세요.');
+                    return;
+                }
+
+                refs.submitBtn.disabled = true;
+                refs.submitBtn.textContent = '기안 중...';
+                try {
+                    const payload = await fetchJson('/api/finance/claims', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            project_number: projectNumber,
+                            expense_category: category,
+                            amount: amount,
+                            description: description,
+                            evidence_files: selectedFiles.map((file) => file.name),
+                            thread_id: threadId,
+                        }),
+                    });
+
+                    showNotice('비용정산 Mock 기안이 저장되었습니다.');
+                    budget = payload?.budget || budget;
+                    renderBudget();
+                    refs.amountInput.value = '';
+                    refs.descriptionInput.value = '';
+                    refs.evidenceInput.value = '';
+                    selectedFiles = [];
+                    renderFiles();
+
+                    postToParent({
+                        type: 'FINANCE_SETTLEMENT_SAVED',
+                        thread_id: threadId,
+                        payload,
+                    });
+                } catch (error) {
+                    showWarn(error?.message || '기안 처리 중 오류가 발생했습니다.');
+                } finally {
+                    refs.submitBtn.disabled = false;
+                    refs.submitBtn.textContent = '기안하기 (Mock)';
+                }
+            }
+
+            function handleCancel() {
+                postToParent({
+                    type: 'FINANCE_SETTLEMENT_CANCELLED',
+                    thread_id: threadId,
+                    payload: {},
+                });
+                window.close();
+            }
+
+            refs.projectSelect.addEventListener('change', async () => {
+                showWarn('');
+                showNotice('');
+                const projectNumber = (refs.projectSelect.value || '').trim();
+                if (projectNumber) {
+                    await loadProjectBudget(projectNumber);
+                }
+            });
+
+            refs.amountInput.addEventListener('input', () => validateAmount(false));
+            refs.amountInput.addEventListener('blur', () => validateAmount(false));
+
+            refs.evidenceInput.addEventListener('change', () => {
+                selectedFiles = Array.from(refs.evidenceInput.files || []);
+                renderFiles();
+            });
+
+            refs.submitBtn.addEventListener('click', handleSubmit);
+            refs.cancelBtn.addEventListener('click', handleCancel);
+
+            renderBudget();
+            renderFiles();
+            loadProjects().catch((error) => {
+                showWarn(error?.message || '프로젝트 정보를 불러오지 못했습니다.');
+            });
+        })();
+    </script>
+</body>
+</html>

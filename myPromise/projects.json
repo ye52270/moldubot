@@ -1,0 +1,57 @@
+[
+  {
+    "project_number": "30132215-D014",
+    "project_name": "SKB 26년 IT Application 위탁운영 계약_DW",
+    "project_type": "SI-MA",
+    "status": "수행"
+  },
+  {
+    "project_number": "30129850-D001",
+    "project_name": "SKB 25년 broadnet.com 메일 통합",
+    "project_type": "SI-AD",
+    "status": "수행(임시종료)"
+  },
+  {
+    "project_number": "30129612-D017",
+    "project_name": "SKB 25년 시스템 개선개발 용역_DW",
+    "project_type": "SI-MA",
+    "status": "수행(임시종료)"
+  },
+  {
+    "project_number": "30127458-A017",
+    "project_name": "[무상 AS]SKB 24년 시스템 개선개발용역_DW",
+    "project_type": "SI-A/S",
+    "status": "착수완료"
+  },
+  {
+    "project_number": "30129746-D014",
+    "project_name": "SKB 25년 IT Application 위탁운영 계약_DW",
+    "project_type": "SI-MA",
+    "status": "수행(임시종료)"
+  },
+  {
+    "project_number": "30127872-A001",
+    "project_name": "[무상 AS]SKB 24년 Domino Upgrade",
+    "project_type": "SI-A/S",
+    "status": "착수완료"
+  },
+  {
+    "project_number": "30127872-D001",
+    "project_name": "SKB 24년 Domino Upgrade",
+    "project_type": "SI-AD",
+    "status": "종료"
+  },
+  {
+    "project_number": "30127458-D017",
+    "project_name": "SKB 24년 시스템 개선개발용역_DW",
+    "project_type": "SI-MA",
+    "status": "종료"
+  },
+  {
+    "project_number": "30124738-A014",
+    "project_name": "[무상 AS]SKB 23년 IT Application 위탁운영 계약_DW",
+    "project_type": "SI-A/S",
+    "status": "착수완료"
+  }
+]
+

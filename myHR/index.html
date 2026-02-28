@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>[자기주도 Refresh Plan 신청] 결재 Mock</title>
+    <style>
+        :root {
+            --page-bg: #cfd3d8;
+            --panel-bg: #e6e8ec;
+            --table-head: #c7cdd6;
+            --table-line: #b2b8c1;
+            --text-main: #0f1725;
+            --text-sub: #445164;
+            --nav-bg: #3a4048;
+            --nav-hover: #4a515b;
+            --blue-btn: #1457c8;
+            --blue-btn-hover: #0f469f;
+            --gray-btn: #697280;
+            --gray-btn-hover: #545e6d;
+            --warn: #d93025;
+            --ok: #0f9d58;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+            background: var(--page-bg);
+            color: var(--text-main);
+        }
+
+        .shell {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .toolbar {
+            background: var(--nav-bg);
+            border-bottom: 1px solid #2e333a;
+            padding: 12px 18px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .tool-btn {
+            border: 1px solid transparent;
+            background: transparent;
+            color: #dde3ea;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .tool-btn:hover {
+            background: var(--nav-hover);
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 16px 14px 88px;
+        }
+
+        .doc-panel {
+            background: var(--panel-bg);
+            border: 1px solid #bcc2cb;
+            box-shadow: 0 10px 28px rgba(18, 27, 43, 0.08);
+        }
+
+        .doc-scroll {
+            overflow-x: auto;
+        }
+
+        .doc {
+            min-width: 920px;
+            padding: 18px 18px 22px;
+        }
+
+        .doc-title-wrap {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 14px;
+        }
+
+        .doc-title {
+            margin: 0;
+            font-size: 50px;
+            line-height: 1.05;
+            letter-spacing: -0.02em;
+            font-weight: 800;
+            color: #111827;
+        }
+
+        .doc-title small {
+            display: block;
+            font-size: 16px;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 4px;
+        }
+
+        .status-inline {
+            font-size: 13px;
+            font-weight: 700;
+            color: #5f6d82;
+            border: 1px solid #b8bec8;
+            background: #eef1f5;
+            border-radius: 99px;
+            padding: 6px 10px;
+        }
+
+        .status-inline.drafted {
+            color: #8a5a00;
+            border-color: #e5c47f;
+            background: #fff6df;
+        }
+
+        .status-inline.approved {
+            color: #0b6a3d;
+            border-color: #8ad0ae;
+            background: #e7f8ef;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+            margin-bottom: 12px;
+            background: #e9ebef;
+        }
+
+        th,
+        td {
+            border: 1px solid var(--table-line);
+            padding: 10px 12px;
+            font-size: 15px;
+            color: #1b2434;
+            vertical-align: middle;
+            word-break: break-word;
+        }
+
+        th {
+            background: var(--table-head);
+            font-weight: 700;
+            text-align: left;
+            color: #172131;
+        }
+
+        .center {
+            text-align: center;
+        }
+
+        .approval-grid th,
+        .approval-grid td {
+            text-align: center;
+        }
+
+        .approval-cell {
+            line-height: 1.5;
+            min-height: 102px;
+        }
+
+        .approval-role {
+            display: block;
+            font-weight: 700;
+            color: #4a5b73;
+            margin-bottom: 6px;
+        }
+
+        .approval-name {
+            display: block;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .approval-state {
+            display: block;
+            color: #2f4d78;
+            font-weight: 700;
+        }
+
+        .approval-time {
+            color: #54657e;
+            font-size: 13px;
+            margin-top: 8px;
+        }
+
+        .section-title {
+            margin: 20px 0 8px;
+            font-size: 34px;
+            font-weight: 800;
+            color: #172131;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-title::before {
+            content: "▸";
+            color: #e24b4b;
+            font-size: 24px;
+            line-height: 1;
+            transform: translateY(-1px);
+        }
+
+        .field-input,
+        .field-select,
+        .field-textarea {
+            width: 100%;
+            border: 1px solid #9ba5b3;
+            background: #f4f6f8;
+            color: #1b2434;
+            border-radius: 2px;
+            padding: 7px 8px;
+            font-size: 14px;
+            line-height: 1.3;
+        }
+
+        .field-input:focus,
+        .field-select:focus,
+        .field-textarea:focus {
+            outline: none;
+            border-color: #4c84dd;
+            box-shadow: inset 0 0 0 1px #4c84dd;
+            background: #fff;
+        }
+
+        .field-textarea {
+            min-height: 92px;
+            resize: vertical;
+        }
+
+        .attach-btn {
+            border: 1px solid #7e8795;
+            background: var(--gray-btn);
+            color: #fff;
+            border-radius: 4px;
+            padding: 6px 12px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .attach-btn:hover {
+            background: var(--gray-btn-hover);
+        }
+
+        .event-message {
+            margin-top: 8px;
+            font-size: 13px;
+            font-weight: 700;
+            display: none;
+            line-height: 1.4;
+            padding: 8px 10px;
+            border-radius: 4px;
+        }
+
+        .event-message.error {
+            color: #7d2121;
+            background: rgba(217, 48, 37, 0.12);
+            border: 1px solid rgba(217, 48, 37, 0.35);
+        }
+
+        .event-message.success {
+            color: #0c5d37;
+            background: rgba(15, 157, 88, 0.11);
+            border: 1px solid rgba(15, 157, 88, 0.3);
+        }
+
+        .bottom-actions {
+            position: fixed;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 40;
+            background: rgba(44, 50, 58, 0.96);
+            border-top: 1px solid #23282e;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 16px;
+        }
+
+        .bottom-note {
+            color: #c9d1dc;
+            font-size: 13px;
+            font-weight: 600;
+            margin-right: auto;
+            line-height: 1.4;
+        }
+
+        .action-btn {
+            border: 1px solid transparent;
+            color: #fff;
+            border-radius: 6px;
+            padding: 9px 14px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            min-width: 96px;
+        }
+
+        .action-btn:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+
+        .action-btn.draft {
+            background: #8b6b2d;
+            border-color: #9f8248;
+        }
+
+        .action-btn.draft:hover:not(:disabled) {
+            background: #765923;
+        }
+
+        .action-btn.approve {
+            background: var(--blue-btn);
+            border-color: #1f63d4;
+        }
+
+        .action-btn.approve:hover:not(:disabled) {
+            background: var(--blue-btn-hover);
+        }
+
+        @media (max-width: 900px) {
+            .doc-title {
+                font-size: 32px;
+            }
+
+            th,
+            td,
+            .field-input,
+            .field-select,
+            .field-textarea {
+                font-size: 14px;
+            }
+
+            .section-title {
+                font-size: 22px;
+            }
+
+            .approval-time {
+                font-size: 14px;
+            }
+
+            .attach-btn {
+                font-size: 14px;
+            }
+        }
+
+        @media (max-width: 1200px) {
+            .container {
+                padding: 10px 8px 88px;
+            }
+
+            .doc {
+                min-width: 0;
+                padding: 12px 10px 18px;
+            }
+
+            .doc-title {
+                font-size: 30px;
+            }
+
+            .doc-title small {
+                font-size: 14px;
+            }
+
+            th,
+            td,
+            .field-input,
+            .field-select,
+            .field-textarea {
+                font-size: 13px;
+                padding: 8px 8px;
+            }
+
+            .section-title {
+                margin: 14px 0 8px;
+                font-size: 22px;
+            }
+
+            .bottom-actions {
+                gap: 8px;
+                padding: 8px 10px;
+                flex-wrap: wrap;
+            }
+
+            .bottom-note {
+                order: 3;
+                width: 100%;
+                margin-right: 0;
+                font-size: 12px;
+            }
+
+            .action-btn {
+                flex: 1;
+                min-width: 0;
+            }
+        }
+
+        @media (max-width: 760px) {
+            .toolbar {
+                padding: 8px 10px;
+                gap: 6px;
+                overflow-x: auto;
+            }
+
+            .tool-btn {
+                padding: 6px 8px;
+                font-size: 12px;
+            }
+
+            .doc-title {
+                font-size: 26px;
+            }
+
+            th,
+            td,
+            .field-input,
+            .field-select,
+            .field-textarea {
+                font-size: 12px;
+                padding: 7px 6px;
+            }
+
+            .section-title {
+                font-size: 19px;
+            }
+
+            .approval-role,
+            .approval-name,
+            .approval-state,
+            .approval-time {
+                font-size: 11px;
+            }
+
+            .field-textarea {
+                min-height: 74px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="shell">
+        <div class="toolbar">
+            <button class="tool-btn" type="button">회람</button>
+            <button class="tool-btn" type="button" id="closeBtn">닫기</button>
+            <button class="tool-btn" type="button" id="printBtn">인쇄</button>
+        </div>
+
+        <div class="container">
+            <div class="doc-panel">
+                <div class="doc-scroll">
+                    <div class="doc">
+                        <div class="doc-title-wrap">
+                            <h1 class="doc-title">
+                                <small>자기주도</small>
+                                Refresh Plan
+                            </h1>
+                            <span id="statusInline" class="status-inline">대기</span>
+                        </div>
+
+                        <table>
+                            <tr>
+                                <th style="width:16%;">소속</th>
+                                <td colspan="3" id="orgCell">AX Solution서비스5팀</td>
+                            </tr>
+                            <tr>
+                                <th>보존연한</th>
+                                <td style="width:28%;">
+                                    <select class="field-select" disabled>
+                                        <option selected>5년</option>
+                                    </select>
+                                </td>
+                                <th style="width:16%;">공개범위</th>
+                                <td style="width:28%;">
+                                    <select class="field-select" disabled>
+                                        <option selected>기밀</option>
+                                    </select>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <table class="approval-grid">
+                            <tr>
+                                <th style="width:14%;">기안</th>
+                                <th colspan="5">검토</th>
+                                <th style="width:14%;">승인</th>
+                            </tr>
+                            <tr>
+                                <td><span class="approval-role">팀원</span></td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td><span class="approval-role">팀원</span></td>
+                            </tr>
+                            <tr>
+                                <td class="approval-cell">
+                                    <span id="draftName" class="approval-name">박제영</span>
+                                    <span id="draftState" class="approval-state">기안전</span>
+                                    <div id="draftTime" class="approval-time">-</div>
+                                </td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td class="approval-cell">
+                                    <span id="approveName" class="approval-name">박제영</span>
+                                    <span id="approveState" class="approval-state">대기</span>
+                                    <div id="approveTime" class="approval-time">-</div>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <table>
+                            <tr>
+                                <th style="width:18%;">제목</th>
+                                <td id="docTitleCell">[자기주도 Refresh Plan 신청] 박제영</td>
+                            </tr>
+                        </table>
+
+                        <h2 class="section-title">개인정보</h2>
+                        <table>
+                            <tr>
+                                <th style="width:18%;">사번</th>
+                                <td style="width:32%;">06266</td>
+                                <th style="width:18%;">이름</th>
+                                <td id="nameCell">박제영</td>
+                            </tr>
+                            <tr>
+                                <th>소속부서</th>
+                                <td id="deptCell">AX Solution서비스5팀</td>
+                                <th>직위</th>
+                                <td>Manager</td>
+                            </tr>
+                        </table>
+
+                        <h2 class="section-title">자기주도 Refresh 정보</h2>
+                        <table>
+                            <tr>
+                                <th style="width:18%;">발생월</th>
+                                <td style="width:32%;">
+                                    <input id="occurMonth" class="field-input" type="month" value="2026-01" />
+                                </td>
+                                <th style="width:18%;">시간</th>
+                                <td>
+                                    <input id="occurHours" class="field-input" type="text" value="1.5시간" />
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>프로젝트/부서</th>
+                                <td colspan="3">
+                                    <input
+                                        id="projectInput"
+                                        class="field-input"
+                                        type="text"
+                                        value="SKB 26년 IT Application 위탁운영 계약_DW"
+                                    />
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>근태 종류</th>
+                                <td>
+                                    <select id="leaveType" class="field-select">
+                                        <option value="">선택</option>
+                                        <option value="연차">연차</option>
+                                        <option value="family휴가">family휴가</option>
+                                        <option value="refresh휴가">refresh휴가</option>
+                                    </select>
+                                </td>
+                                <th>시간</th>
+                                <td>
+                                    <input id="leaveHours" class="field-input" type="text" value="1.0시간" />
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Refresh 일자</th>
+                                <td>
+                                    <input id="leaveDate" class="field-input" type="date" />
+                                </td>
+                                <th>비고</th>
+                                <td rowspan="2">
+                                    <textarea
+                                        id="leaveReason"
+                                        class="field-textarea"
+                                        placeholder="사유를 입력하세요."
+                                    ></textarea>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>신청 상태</th>
+                                <td id="requestStateCell">입력 대기</td>
+                            </tr>
+                            <tr>
+                                <th>첨부파일</th>
+                                <td colspan="3">
+                                    <button class="attach-btn" type="button">모두 받기</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>문서첨부</th>
+                                <td colspan="3"></td>
+                            </tr>
+                        </table>
+
+                        <div id="errorBox" class="event-message error"></div>
+                        <div id="successBox" class="event-message success"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="bottom-actions">
+        <div class="bottom-note">
+            파일럿 결재 모드: 기안 후 동일 화면에서 바로 승인 가능합니다.
+        </div>
+        <button id="draftBtn" class="action-btn draft" type="button">기안</button>
+        <button id="approveBtn" class="action-btn approve" type="button" disabled>승인</button>
+    </div>
+
+    <script>
+        const statusInline = document.getElementById("statusInline");
+        const docTitleCell = document.getElementById("docTitleCell");
+        const leaveDateEl = document.getElementById("leaveDate");
+        const leaveTypeEl = document.getElementById("leaveType");
+        const leaveReasonEl = document.getElementById("leaveReason");
+        const draftBtn = document.getElementById("draftBtn");
+        const approveBtn = document.getElementById("approveBtn");
+        const draftState = document.getElementById("draftState");
+        const draftTime = document.getElementById("draftTime");
+        const approveState = document.getElementById("approveState");
+        const approveTime = document.getElementById("approveTime");
+        const requestStateCell = document.getElementById("requestStateCell");
+        const errorBox = document.getElementById("errorBox");
+        const successBox = document.getElementById("successBox");
+        const closeBtn = document.getElementById("closeBtn");
+        const printBtn = document.getElementById("printBtn");
+
+        const params = new URLSearchParams(window.location.search);
+        const threadId = params.get("thread_id") || "default";
+        const openerOrigin = params.get("opener_origin") || "*";
+        const presetLeaveDate = params.get("leave_date") || "";
+        const presetLeaveType = params.get("leave_type") || "";
+        const presetReason = params.get("reason") || "";
+        const autoDraft = params.get("auto_draft") === "1";
+        let draftPayload = null;
+
+        function nowText() {
+            const now = new Date();
+            const yyyy = now.getFullYear();
+            const mm = String(now.getMonth() + 1).padStart(2, "0");
+            const dd = String(now.getDate()).padStart(2, "0");
+            const hh = String(now.getHours()).padStart(2, "0");
+            const min = String(now.getMinutes()).padStart(2, "0");
+            return `${yyyy}-${mm}-${dd} ${hh}:${min}`;
+        }
+
+        function setStatus(mode, label) {
+            statusInline.classList.remove("drafted", "approved");
+            if (mode === "drafted") statusInline.classList.add("drafted");
+            if (mode === "approved") statusInline.classList.add("approved");
+            statusInline.textContent = label;
+            requestStateCell.textContent = label;
+        }
+
+        function showError(message) {
+            errorBox.textContent = message;
+            errorBox.style.display = "block";
+            successBox.style.display = "none";
+        }
+
+        function showSuccess(message) {
+            successBox.textContent = message;
+            successBox.style.display = "block";
+            errorBox.style.display = "none";
+        }
+
+        function clearMessage() {
+            errorBox.style.display = "none";
+            successBox.style.display = "none";
+        }
+
+        function validateForDraft() {
+            if (!leaveDateEl.value) return "Refresh 일자를 입력하세요.";
+            if (!leaveTypeEl.value) return "근태 종류를 선택하세요.";
+            if (!leaveReasonEl.value.trim()) return "사유를 입력하세요.";
+            return "";
+        }
+
+        function buildDraftPayload() {
+            return {
+                leave_date: leaveDateEl.value,
+                leave_type: leaveTypeEl.value,
+                reason: leaveReasonEl.value.trim(),
+            };
+        }
+
+        function emitApprovalCompleted(payload) {
+            const eventPayload = {
+                type: "MYHR_APPROVAL_COMPLETED",
+                thread_id: threadId,
+                payload: payload,
+                timestamp: new Date().toISOString(),
+            };
+
+            if (window.parent && window.parent !== window) {
+                try {
+                    window.parent.postMessage(eventPayload, openerOrigin);
+                } catch (error) {
+                    window.parent.postMessage(eventPayload, "*");
+                }
+            }
+            if (window.opener && !window.opener.closed) {
+                try {
+                    window.opener.postMessage(eventPayload, openerOrigin);
+                } catch (error) {
+                    window.opener.postMessage(eventPayload, "*");
+                }
+            }
+            localStorage.setItem("myhr_approval_event", JSON.stringify(eventPayload));
+        }
+
+        function updateDocumentTitle(leaveType) {
+            const typeText = leaveType || "Refresh Plan";
+            docTitleCell.textContent = `[자기주도 ${typeText} 신청] 박제영`;
+        }
+
+        function runDraftFlow() {
+            clearMessage();
+            const error = validateForDraft();
+            if (error) {
+                showError(error);
+                return false;
+            }
+
+            draftPayload = buildDraftPayload();
+            const draftAt = nowText();
+
+            draftState.textContent = "기안";
+            draftTime.textContent = draftAt;
+            approveState.textContent = "승인 대기";
+            approveTime.textContent = "-";
+            setStatus("drafted", "기안 완료");
+            updateDocumentTitle(draftPayload.leave_type);
+
+            approveBtn.disabled = false;
+            showSuccess("기안이 완료되었습니다. 승인 버튼으로 결재를 완료하세요.");
+            return true;
+        }
+
+        function applyPresetData() {
+            if (presetLeaveDate) leaveDateEl.value = presetLeaveDate;
+            if (presetLeaveType && Array.from(leaveTypeEl.options).some((opt) => opt.value === presetLeaveType)) {
+                leaveTypeEl.value = presetLeaveType;
+            }
+            if (presetReason) leaveReasonEl.value = presetReason;
+            if (leaveTypeEl.value) updateDocumentTitle(leaveTypeEl.value);
+        }
+
+        draftBtn.addEventListener("click", () => {
+            runDraftFlow();
+        });
+
+        approveBtn.addEventListener("click", () => {
+            clearMessage();
+            if (!draftPayload) {
+                showError("먼저 기안을 완료하세요.");
+                return;
+            }
+
+            const approvedAt = nowText();
+            approveState.textContent = "기안전결";
+            approveTime.textContent = approvedAt;
+            setStatus("approved", "결재 완료");
+
+            draftBtn.disabled = true;
+            approveBtn.disabled = true;
+            emitApprovalCompleted(draftPayload);
+            showSuccess("결재가 완료되었습니다. 챗봇 창에서 결과를 확인하세요.");
+        });
+
+        closeBtn.addEventListener("click", () => {
+            window.close();
+        });
+
+        printBtn.addEventListener("click", () => {
+            window.print();
+        });
+
+        // 초기 상태
+        setStatus("", "대기");
+        updateDocumentTitle("");
+        applyPresetData();
+
+        if (autoDraft) {
+            setTimeout(() => {
+                runDraftFlow();
+            }, 120);
+        }
+    </script>
+</body>
+</html>
