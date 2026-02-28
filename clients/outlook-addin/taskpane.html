@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>&#8203;</title>
+  <script type="text/javascript" src="https://appsforoffice.microsoft.com/lib/1.1/hosted/office.js"></script>
+  <link rel="stylesheet" href="/addin/taskpane.css?v=20260226-21">
+</head>
+<body>
+  <div class="app">
+    <div class="chat-toolbar">
+      <button
+        id="newSessionBtn"
+        class="new-session-btn"
+        type="button"
+        title="새 세션 시작"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 20h9"/>
+          <path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/>
+        </svg>
+        <span>새 세션</span>
+      </button>
+    </div>
+
+    <!-- ── Chat Area ──────────────────── -->
+    <div id="chatArea" class="chat-area">
+      <div id="welcomeState" class="welcome-state">
+        <div class="welcome-icon">
+          <!-- MessageSquare -->
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          </svg>
+        </div>
+        <h2 class="welcome-title">안녕하세요.무엇을 도와 드릴까요?</h2>
+        <p class="welcome-desc">메일 요약, 일정 등록, 회의실 예약 등 다양한 업무를 지원합니다.</p>
+      </div>
+    </div>
+
+    <!-- ── Input Area ─────────────────── -->
+    <div class="input-area">
+      <div class="input-wrapper">
+        <button class="composer-plus-btn" id="marketPlusBtn" type="button" title="앱/스킬/에이전트 마켓 열기" aria-label="앱/스킬/에이전트 마켓 열기">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 5v14"/>
+            <path d="M5 12h14"/>
+          </svg>
+        </button>
+        <textarea
+          id="chatInput"
+          rows="1"
+          placeholder="메시지를 입력하세요.  @로 앱, /로 스킬을 선택할 수 있습니다."
+        ></textarea>
+        <button class="send-btn" id="sendBtn">
+          <!-- ArrowUp -->
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m5 12 7-7 7 7"/><path d="M12 19V5"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/addin/taskpane.js?v=20260226-21"></script>
+</body>
+</html>

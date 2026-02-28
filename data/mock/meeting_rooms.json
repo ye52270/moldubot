@@ -1,0 +1,7 @@
+[
+  {"building": "본사", "floor": 5, "room_name": "A-501", "capacity": 8, "features": ["TV", "화이트보드"]},
+  {"building": "본사", "floor": 5, "room_name": "A-502", "capacity": 6, "features": ["TV"]},
+  {"building": "본사", "floor": 6, "room_name": "A-601", "capacity": 12, "features": ["TV", "화상회의"]},
+  {"building": "판교", "floor": 3, "room_name": "P-301", "capacity": 10, "features": ["TV", "화이트보드"]},
+  {"building": "판교", "floor": 4, "room_name": "P-401", "capacity": 14, "features": ["TV", "화상회의"]}
+]
