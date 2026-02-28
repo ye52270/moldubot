@@ -34,6 +34,10 @@
 - 2026-02-28 (before): deep agent Tool Calling으로 실제 메일 조회/요약/수신자 추출/회의실 예약을 수행하도록 도구 모듈 추가 및 에이전트 연결 작업 시작.
 - 2026-02-28 (after): `tools.py`를 추가하고 `deep_chat_agent.py`에 도구 주입을 연결했으며, 메일/회의 의도는 `TaskExecutionService` 직접 실행 경로를 우선 적용해 실제 업무 결과를 안정적으로 반환하도록 전환.
 - 2026-02-28 (before): 사용자 지시에 따라 메일/회의 의도도 모델 Tool Calling으로만 처리하도록 `deep_chat_agent`의 서비스 우선 실행 분기를 제거하는 작업 시작.
+- 2026-02-28 (before): 2단계 품질 고도화를 위해 `intent_schema.py` 검증 규칙(날짜 필드 정합성, missing_slots/steps 정규화)을 강화하는 작업 시작.
+- 2026-02-28 (after): `intent_schema.py`에 `DateFilter`/`IntentDecomposition` 검증기를 추가해 mode별 날짜 필드 일관성, 상대 날짜 토큰 허용 범위, steps 중복 제거, missing_slots 허용값 정규화 및 예약 step 연동 보정을 적용.
+- 2026-02-28 (before): 3단계 표준화를 위해 `tools.py`에 메일 조회 후속작업(요약/보고서) 단일 실행 도구를 추가하는 작업 시작.
+- 2026-02-28 (after): `tools.py`에 `run_mail_post_action(action, summary_line_target)` tool을 추가하고 agent tool 목록에 연결해 메일 후속작업이 단일 서비스 경로를 사용하도록 통합.
 
 ## Update Rule
 - Before and after any code change in this folder, append a detailed log entry.

@@ -1,15 +1,15 @@
 # Task
 
 ## 현재 작업
-LangChain v1.0 공식 미들웨어 기반 공통 파이프라인 구축(모델 전/후 처리 중앙화)
+메일 조회 중심 DeepAgents 미들웨어 고도화(단계별 진행)
 
 ## Plan
-- [x] 1단계: 미들웨어 설계 원칙을 `task.md`에 상세 계획으로 고정하고 단계/산출물 정의
-- [x] 2단계: `app/middleware`에 공통 정책 함수와 LangChain v1 커스텀 미들웨어 클래스 추가
-- [x] 3단계: 미들웨어 레지스트리(단일 조립 지점) 구현 및 순서 고정
-- [x] 4단계: `deep_chat_agent`를 미들웨어 레지스트리 사용 구조로 전환
-- [x] 5단계: 컴파일 및 미들웨어 주입 스모크 테스트로 동작 검증
-- [x] 6단계: 작업 로그(루트/폴더별) 완료 처리 및 변경 요약
+- [x] 1단계: 모델 응답 가드 보정(`tool_calls`가 있는 빈 content를 정상 처리) 및 fallback 오탐 제거
+- [x] 2단계: 메일 조회 intent 스키마/후처리 규칙 정합성 강화(추측 금지, missing_slots 일관화)
+- [x] 3단계: 메일 조회→요약/보고서 후속 작업 체인 표준화(단일 실행 경로 고정)
+- [x] 4단계: 미들웨어 책임 경계 문서화(입력 정규화/모델 가드/툴 가드) 및 README 동기화
+- [x] 5단계: 실문장 E2E 재검증(10개+경계 케이스)과 지연/정확도 리포트 갱신
+- [x] 6단계: 운영 체크리스트 정리(로그, 메트릭, 실패 대응) 및 마무리 커밋
 
 ## 미들웨어 설계 요약
 - 단일 조립 지점 원칙: `app/middleware/registry.py`에서만 미들웨어 순서를 정의하고, 다른 모듈은 레지스트리 함수만 사용한다.
@@ -36,6 +36,19 @@ LangChain v1.0 공식 미들웨어 기반 공통 파이프라인 구축(모델 �
   - `tests/fixtures/intent_query_cases.py`
   - `tests/fixtures/intent_query_edge_cases.py`
   - `tests/eval_intent_edge_cases.py`
+
+## 운영 체크리스트 (현재 기준)
+- 로그 점검
+  - `app.api.routes`: 요청 수신/처리 완료 로그에서 `answer_length`, `source` 확인
+  - `app.agents.intent_parser`: 구조분해 성공 step 목록, 검증 실패 fallback 경고 확인
+  - `app.middleware.agent_middlewares`: `tool_calls` 응답 보정 생략 로그 확인
+- 메트릭 점검
+  - `GET /search/chat/metrics`에서 `success_rate`, `fallback_rate`, `p95_latency_ms` 모니터링
+  - 기준: fallback 급증 또는 p95 급등 시 모델/네트워크/툴 호출 지연 점검
+- 실패 대응
+  - 모델 구조분해 검증 실패 시 규칙 기반 분해로 자동 전환(정확도 유지, 지연 증가 가능)
+  - 도구 예외는 `ToolErrorGuardMiddleware`에서 표준 오류 메시지로 변환
+  - 예약 요청 `missing_slots`가 남으면 확정 실행 대신 추가 정보 질의
 
 ## Action Log
 - [10:36] 작업 시작: `taskpane.css`의 참조 끊긴/미사용 스타일 정리 작업 시작
@@ -119,6 +132,23 @@ LangChain v1.0 공식 미들웨어 기반 공통 파이프라인 구축(모델 �
 - [16:32] 완료: `chore(snapshot): 미들웨어구축전-깔끔버전` 커밋(`57469b5`) 생성 및 `origin/main` 푸시 완료
 - [16:32] 작업 시작: 복구용 Git 태그 생성 및 원격 푸시(`미들웨어구축전-깔끔버전`)
 - [16:33] 완료: 태그 `snapshot/middleware-pre-clean-20260228-1632`를 커밋 `1e82a27`에 생성하고 `origin`으로 푸시 완료
+- [16:34] 작업 시작: 단계별 진행을 위한 `task.md` 계획 재수립 및 1단계(모델 응답 가드 보정) 착수
+- [16:37] 완료: `ModelOutputGuardMiddleware`에서 `tool_calls` 신호를 감지하면 빈 content 보정을 생략하도록 수정, 컴파일 및 시그널 판별 테스트(`True/True/False`)로 검증
+- [16:35] 작업 시작: 단계 중간 검증을 위해 intent 품질 테스트(오프라인/모델 파서) 실행
+- [16:39] 완료: `tests/eval_intent_edge_cases.py` 오프라인/모델 파서 모두 품질 게이트 PASS(정확도 100%, 모델 평균 1789.5ms), 추가로 `ModelOutputGuardMiddleware` 스모크에서 tool_calls 응답 fallback 미적용(`is_fallback=False`) 확인
+- [16:33] 완료: 태그 `snapshot/middleware-pre-clean-20260228-1632`를 커밋 `1e82a27`에 생성하고 `origin`으로 푸시 완료
+- [16:40] 작업 시작: 2단계 착수 - 메일 조회 intent 스키마/후처리 규칙 정합성 강화(추측 금지, missing_slots 일관화)
+- [16:44] 완료: `intent_schema.py`에 날짜/슬롯/스텝 정합성 검증 추가, `intent_rules.py`에 허용 상수/상대 날짜 토큰 판별 함수 추가; 오프라인/모델 파서 평가 모두 QUALITY_GATE PASS(정확도 100%, 모델 평균 1828.2ms)
+- [16:46] 작업 시작: 3단계 착수 - 메일 조회 후속작업(요약/보고서) 단일 실행 경로 표준화
+- [16:49] 완료: `MailService.run_post_action`/보고서 생성 경로와 `run_mail_post_action` tool을 추가해 메일 후속작업 단일 경로를 제공; 스모크 테스트(summary/report) 통과 및 intent 오프라인/모델 파서 품질 게이트 PASS(모델 평균 1708.2ms)
+- [16:50] 작업 시작: 4단계 착수 - 미들웨어 책임 경계/메일 후속작업 단일 경로를 README 인터페이스 정의서에 문서화
+- [16:52] 완료: `README.MD`에 의도 스키마 검증 규칙, LangChain v1 미들웨어 책임 경계, `run_mail_post_action` 표준 툴 계약을 추가해 문서 동기화
+- [16:52] 작업 시작: 5단계 착수 - 10문장/경계 20문장 재검증 및 지연/정확도 리포트 갱신
+- [16:54] 이슈: 모델 파서 경계 20문장 평가에서 정확도는 100%이나 평균 지연 3124.3ms로 임계(2500ms) 초과 → QUALITY_GATE FAIL(지연 기준), 오프라인 룰 평가는 PASS
+- [16:54] 완료: 10문장 재검증(평균 4255.0ms)과 경계 20문장 재검증(정확도 100%, 평균 3124.3ms) 결과를 확보하고 성능 리스크를 확인
+- [16:55] 작업 시작: 6단계 착수 - 운영 체크리스트(로그/메트릭/실패 대응) 정리 및 마무리
+- [16:55] 완료: `task.md`에 운영 체크리스트를 추가해 관측 포인트/장애 대응 기준을 문서화하고 단계별 계획(1~6단계) 완료
+- [16:57] 작업 시작: 단계별 반영 결과를 커밋/푸시하여 원격 동기화
 
 ## 완료된 작업
 - [2026-02-28] `README.MD` 서버 실행 절차 문서화 및 `/addin/client-logs` 204 무본문 응답 수정

@@ -6,6 +6,15 @@ from datetime import date
 DEFAULT_SUMMARY_LINE_TARGET = 5
 MAX_SUMMARY_LINE_TARGET = 20
 REQUIRED_BOOKING_SLOTS = ("date", "start_time", "end_time", "attendee_count")
+ALLOWED_RELATIVE_DATE_FILTERS = (
+    "today",
+    "yesterday",
+    "this_week",
+    "last_week",
+    "recent",
+    "tomorrow",
+)
+ALLOWED_MISSING_SLOTS = REQUIRED_BOOKING_SLOTS
 
 
 def sanitize_user_query(user_message: str) -> str:
@@ -138,6 +147,24 @@ def _extract_relative_range(text: str) -> tuple[str, str, str, str] | None:
         weeks_ago = int(range_match.group(1))
         return ("relative", f"{weeks_ago}_weeks_ago_to_last_week", "", "")
     return None
+
+
+def is_allowed_relative_filter(relative_value: str) -> bool:
+    """
+    상대 날짜 토큰이 허용 범위인지 판별한다.
+
+    Args:
+        relative_value: 검사할 상대 날짜 토큰
+
+    Returns:
+        허용 토큰이거나 `N_weeks_ago_to_last_week` 패턴이면 True
+    """
+    token = str(relative_value or "").strip()
+    if not token:
+        return False
+    if token in ALLOWED_RELATIVE_DATE_FILTERS:
+        return True
+    return re.fullmatch(r"\d+_weeks_ago_to_last_week", token) is not None
 
 
 def _format_ymd(year: int, month: int, day: int) -> str:

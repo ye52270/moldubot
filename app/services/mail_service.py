@@ -10,6 +10,8 @@ from typing import Any
 from app.core.logging_config import get_logger
 
 logger = get_logger(__name__)
+DEFAULT_REPORT_FACT_LIMIT = 5
+DEFAULT_REPORT_RECIPIENT_LIMIT = 10
 
 
 @dataclass
@@ -103,6 +105,27 @@ class MailService:
             return ["본문이 비어 있어 요약할 수 없습니다."]
         return [_trim_sentence(sentence=item) for item in sentences[:target]]
 
+    def run_post_action(self, action: str, summary_line_target: int) -> dict[str, Any]:
+        """
+        메일 조회 후속작업(요약/보고서)을 단일 경로로 실행한다.
+
+        Args:
+            action: 후속작업 종류(`summary` 또는 `report`)
+            summary_line_target: 요약 라인 목표
+
+        Returns:
+            실행 결과 사전
+        """
+        normalized_action = str(action or "").strip().lower()
+        if normalized_action == "report":
+            return self._build_report_payload(summary_line_target=summary_line_target)
+        summary_lines = self.summarize_current_mail(line_target=summary_line_target)
+        return {
+            "action": "summary",
+            "summary_lines": summary_lines,
+            "line_count": len(summary_lines),
+        }
+
     def extract_key_facts(self, limit: int = 5) -> list[str]:
         """
         현재 메일에서 핵심 포인트를 추출한다.
@@ -165,6 +188,44 @@ class MailService:
             return dict(row) if row is not None else None
         finally:
             conn.close()
+
+    def _build_report_payload(self, summary_line_target: int) -> dict[str, Any]:
+        """
+        현재 메일 기준 요약/핵심/수신자를 결합한 보고서 페이로드를 생성한다.
+
+        Args:
+            summary_line_target: 요약 라인 목표
+
+        Returns:
+            보고서 결과 사전
+        """
+        mail = self.get_current_mail()
+        if mail is None:
+            return {
+                "action": "report",
+                "title": "현재 메일 보고서",
+                "summary_lines": ["현재 메일이 없습니다."],
+                "key_facts": [],
+                "recipients": [],
+                "report_markdown": "## 현재 메일 보고서\n- 현재 메일이 없습니다.",
+            }
+
+        summary_lines = self.summarize_current_mail(line_target=summary_line_target)
+        key_facts = self.extract_key_facts(limit=DEFAULT_REPORT_FACT_LIMIT)
+        recipients = self.extract_recipients(limit=DEFAULT_REPORT_RECIPIENT_LIMIT)
+        return {
+            "action": "report",
+            "title": f"메일 보고서: {mail.subject}",
+            "summary_lines": summary_lines,
+            "key_facts": key_facts,
+            "recipients": recipients,
+            "report_markdown": _compose_report_markdown(
+                mail=mail,
+                summary_lines=summary_lines,
+                key_facts=key_facts,
+                recipients=recipients,
+            ),
+        }
 
 
 def _normalize_line_target(line_target: int) -> int:
@@ -249,3 +310,35 @@ def _extract_recipients_from_body(text: str) -> list[str]:
         if recipient not in deduped:
             deduped.append(recipient)
     return deduped
+
+
+def _compose_report_markdown(
+    mail: MailRecord,
+    summary_lines: list[str],
+    key_facts: list[str],
+    recipients: list[str],
+) -> str:
+    """
+    메일 분석 결과를 마크다운 보고서 문자열로 합성한다.
+
+    Args:
+        mail: 기준 메일 레코드
+        summary_lines: 요약 라인 목록
+        key_facts: 핵심 포인트 목록
+        recipients: 수신자 목록
+
+    Returns:
+        마크다운 보고서 문자열
+    """
+    summary_block = "\n".join([f"- {line}" for line in summary_lines]) or "- 없음"
+    facts_block = "\n".join([f"- {fact}" for fact in key_facts]) or "- 없음"
+    recipients_block = "\n".join([f"- {recipient}" for recipient in recipients]) or "- 없음"
+    return (
+        f"## 메일 보고서\n"
+        f"- 제목: {mail.subject}\n"
+        f"- 발신자: {mail.from_address}\n"
+        f"- 수신시각: {mail.received_date}\n\n"
+        f"### 요약\n{summary_block}\n\n"
+        f"### 중요 내용\n{facts_block}\n\n"
+        f"### 수신자\n{recipients_block}"
+    )

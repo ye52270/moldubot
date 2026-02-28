@@ -19,8 +19,31 @@ from app.middleware.policies import (
 )
 
 EMPTY_MODEL_RESPONSE_FALLBACK = "응답을 생성하지 못했습니다. 다시 시도해 주세요."
+TOOL_CALLS_KEY = "tool_calls"
 
 logger = get_logger(__name__)
+
+
+def has_tool_call_signal(message: Any) -> bool:
+    """
+    메시지에 tool calling 신호가 있는지 판별한다.
+
+    Args:
+        message: 모델이 반환한 마지막 메시지 객체
+
+    Returns:
+        tool_calls 신호가 있으면 True, 아니면 False
+    """
+    direct_tool_calls = getattr(message, "tool_calls", None)
+    if isinstance(direct_tool_calls, list) and direct_tool_calls:
+        return True
+
+    additional_kwargs = getattr(message, "additional_kwargs", None)
+    if isinstance(additional_kwargs, dict):
+        tool_calls = additional_kwargs.get(TOOL_CALLS_KEY)
+        if isinstance(tool_calls, list) and tool_calls:
+            return True
+    return False
 
 
 class RequestResponseLogMiddleware(AgentMiddleware):
@@ -129,6 +152,10 @@ class ModelOutputGuardMiddleware(AgentMiddleware):
             return ModelResponse(result=[AIMessage(content=EMPTY_MODEL_RESPONSE_FALLBACK)])
 
         last_message = response.result[-1]
+        if has_tool_call_signal(last_message):
+            logger.info("middleware.wrap_model_call: tool_calls 응답 감지, 빈 content 보정 생략")
+            return response
+
         answer = normalize_message_text(getattr(last_message, "content", ""))
         if not answer:
             logger.warning("middleware.wrap_model_call: 공백 모델 응답 보정")
@@ -165,4 +192,3 @@ class ToolErrorGuardMiddleware(AgentMiddleware):
                 tool_call_id=tool_call_id,
                 status="error",
             )
-

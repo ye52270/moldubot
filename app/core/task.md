@@ -13,6 +13,8 @@
 - 2026-02-28 (after): `2주 전부터 지난주까지` 상대 범위 토큰화(`2_weeks_ago_to_last_week`)와 `N월 N일부터 N월 N일까지` 절대 날짜(현재연도 기준 YYYY-MM-DD 변환) 규칙을 추가하고 회의 일정 step 추론을 보강.
 - 2026-02-28 (before): `/search/chat` 운영 모니터링을 위해 요청 성공률/지연/폴백 비율을 집계하는 공통 메트릭 모듈(`metrics.py`) 추가 작업 시작.
 - 2026-02-28 (after): `metrics.py`를 추가해 요청 수/성공률/폴백 비율/지연(p95 포함)을 스레드 안전하게 집계하는 `ChatMetricsTracker` 싱글턴 모듈을 구현.
+- 2026-02-28 (before): 2단계 정합성 강화를 위해 `intent_rules.py`의 상대 날짜 토큰/누락 슬롯 규칙 상수를 스키마와 동일 기준으로 통일하는 작업 시작.
+- 2026-02-28 (after): `intent_rules.py`에 `ALLOWED_RELATIVE_DATE_FILTERS`, `ALLOWED_MISSING_SLOTS`, `is_allowed_relative_filter`를 추가해 스키마 검증과 동일한 허용 기준을 공통 모듈에서 재사용하도록 통일.
 
 ## Update Rule
 - Before and after any code change in this folder, append a detailed log entry.

@@ -52,6 +52,31 @@ def read_current_mail() -> dict[str, Any]:
 
 
 @tool
+def run_mail_post_action(action: str = "summary", summary_line_target: int = 5) -> dict[str, Any]:
+    """
+    메일 조회 후속작업(요약/보고서)을 단일 실행 경로로 처리한다.
+
+    Args:
+        action: `summary` 또는 `report`
+        summary_line_target: 요약 줄 수 목표
+
+    Returns:
+        후속작업 실행 결과 사전
+    """
+    mail = _MAIL_SERVICE.get_current_mail()
+    if mail is None:
+        mail = _MAIL_SERVICE.read_current_mail()
+    if mail is None:
+        return {"status": "failed", "reason": "현재 메일을 찾지 못했습니다."}
+
+    payload = _MAIL_SERVICE.run_post_action(
+        action=action,
+        summary_line_target=summary_line_target,
+    )
+    return {"status": "completed", **payload}
+
+
+@tool
 def summarize_mail(summary_line_target: int = 5) -> dict[str, Any]:
     """
     현재 메일 본문을 지정한 줄 수로 요약한다.
@@ -166,10 +191,10 @@ def get_agent_tools() -> list[Any]:
     """
     return [
         read_current_mail,
+        run_mail_post_action,
         summarize_mail,
         extract_key_facts,
         extract_recipients,
         search_meeting_rooms,
         book_meeting_room,
     ]
-

@@ -102,6 +102,25 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 }
 ```
 
+### 3-1) 의도 스키마 검증 규칙
+- `date_filter.mode == none`이면 `relative/start/end`는 빈 값으로 정규화된다.
+- `date_filter.mode == relative`면 `relative`는 허용 토큰만 허용된다.
+  - 허용 토큰: `today`, `yesterday`, `this_week`, `last_week`, `recent`, `tomorrow`, `N_weeks_ago_to_last_week`
+- `date_filter.mode == absolute`면 `start/end`는 `YYYY-MM-DD` 형식만 허용된다.
+- `missing_slots`는 예약 필수 슬롯(`date`, `start_time`, `end_time`, `attendee_count`)만 유지된다.
+- `steps`에 `book_meeting_room`가 없으면 `missing_slots`는 자동으로 빈 배열로 보정된다.
+
+### 3-2) 미들웨어 책임 경계 (LangChain v1)
+- `IntentDecompositionMiddleware.before_model`
+  - 사용자 입력에 구조분해 컨텍스트를 주입한다.
+- `ModelOutputGuardMiddleware.wrap_model_call`
+  - 모델 예외/빈 응답을 보정한다.
+  - 단, `tool_calls`가 있는 응답은 정상으로 간주하고 빈 content 보정을 생략한다.
+- `ToolErrorGuardMiddleware.wrap_tool_call`
+  - 도구 예외를 표준 `ToolMessage(status=error)`로 변환한다.
+- `RequestResponseLogMiddleware.before_agent/after_agent`
+  - 요청 경계 로깅을 공통화한다.
+
 ### 4) 서버 인터페이스: `POST /search/chat`
 - 요청 본문
 
@@ -135,3 +154,14 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 3. 구조분해 결과를 텍스트 컨텍스트로 직렬화해 deep agent 입력에 주입
 4. deep agent가 최종 응답 생성
 5. 실패 시 fallback 응답 또는 오류 안내 반환
+
+### 6) 메일 후속작업 표준 툴 인터페이스
+- Tool 이름: `run_mail_post_action`
+- 목적: `메일조회 -> (요약 | 보고서)` 후속작업을 단일 경로로 실행
+- 입력:
+  - `action`: `summary | report` (기본 `summary`)
+  - `summary_line_target`: 요약 줄 수(기본 5)
+- 출력:
+  - 공통: `status`, `action`
+  - `summary`: `summary_lines`, `line_count`
+  - `report`: `title`, `summary_lines`, `key_facts`, `recipients`, `report_markdown`
