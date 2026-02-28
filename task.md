@@ -75,6 +75,8 @@ LangChain v1.0 공식 미들웨어 기반 공통 파이프라인 구축(모델 �
 - [14:42] 완료: `feat(middleware): LangChain v1 공통 미들웨어 레지스트리 도입` 커밋 생성(커밋 해시: `9556267`)
 - [14:54] 작업 시작: 로컬 유지/원격 제거 요구사항에 맞춰 DB 파일 삭제 커밋을 원격(main)으로 반영
 - [14:55] 작업 시작: 민감 DB/Chroma 파일의 Git 히스토리 완전 삭제(`git filter-repo` + 강제 푸시) 진행
+- [14:55] 이슈: `git filter-repo` 미설치 상태 확인 → `venv/bin/pip install git-filter-repo`로 설치 후 히스토리 재작성 진행
+- [14:56] 완료: `git filter-repo --invert-paths`로 민감 경로(`chroma_db/`, `database/emails.db`, `data/sqlite/emails.db`, `data/chroma` DB 산출물)를 히스토리에서 제거하고 `origin/main`에 `--force-with-lease` 푸시 완료(원격 트리/히스토리 재검증 결과 0건)
 
 ## 완료된 작업
 - [2026-02-28] `README.MD` 서버 실행 절차 문서화 및 `/addin/client-logs` 204 무본문 응답 수정
