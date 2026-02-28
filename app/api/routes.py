@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import mimetypes
 import os
+import time
 from datetime import datetime, timezone
 from io import BytesIO
 from pathlib import Path
@@ -13,8 +14,9 @@ from fastapi.responses import Response, StreamingResponse
 from openai import OpenAIError
 from pydantic import BaseModel, Field
 
-from app.agents.deep_chat_agent import get_deep_chat_agent, is_openai_key_configured
+from app.agents.deep_chat_agent import FALLBACK_EMPTY_RESPONSE, get_deep_chat_agent, is_openai_key_configured
 from app.core.logging_config import get_logger
+from app.core.metrics import get_chat_metrics_tracker
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 PROMISE_PROJECTS_PATH = ROOT_DIR / "clients" / "portals" / "myPromise" / "projects.json"
@@ -25,6 +27,7 @@ ADDIN_MANIFEST_PATH = ROOT_DIR / "clients" / "outlook-addin" / "manifest.xml"
 
 router = APIRouter()
 logger = get_logger(__name__)
+chat_metrics = get_chat_metrics_tracker()
 
 
 class ChatRequest(BaseModel):
@@ -177,6 +180,7 @@ def search_chat(payload: ChatRequest) -> dict[str, Any]:
     Returns:
         상태/스레드/응답/메타데이터를 포함한 표준 응답 객체
     """
+    started_at = time.perf_counter()
     text = str(payload.message or "").strip()
     preview = (text[:80] + "...") if len(text) > 80 else text
     logger.info("search_chat 요청 수신: length=%s preview=%s", len(text), preview)
@@ -184,20 +188,35 @@ def search_chat(payload: ChatRequest) -> dict[str, Any]:
     if not text:
         answer = "요청 내용을 입력해 주세요."
         source = "validation"
+        success = False
         logger.info("search_chat 검증 실패: 빈 입력")
     elif not is_openai_key_configured():
         answer = "서버에 OPENAI_API_KEY가 설정되지 않아 답변을 생성할 수 없습니다."
         source = "missing-openai-key"
+        success = False
         logger.warning("search_chat 환경 누락: OPENAI_API_KEY 미설정")
     else:
         try:
             answer = get_deep_chat_agent().respond(text)
             source = "deep-agent"
+            success = True
             logger.info("search_chat 처리 완료: source=%s answer_length=%s", source, len(answer))
         except OpenAIError as exc:
             logger.error("OpenAI 호출 실패: %s", exc)
             answer = "OpenAI 호출에 실패했습니다. 잠시 후 다시 시도해 주세요."
             source = "openai-error"
+            success = False
+
+    elapsed_ms = (time.perf_counter() - started_at) * 1000
+    is_fallback = answer.strip() == FALLBACK_EMPTY_RESPONSE
+    chat_metrics.record(source=source, success=success, elapsed_ms=elapsed_ms, is_fallback=is_fallback)
+    logger.info(
+        "search_chat 메트릭 기록: source=%s success=%s fallback=%s elapsed_ms=%.1f",
+        source,
+        success,
+        is_fallback,
+        elapsed_ms,
+    )
 
     return {
         "status": "completed",
@@ -205,6 +224,17 @@ def search_chat(payload: ChatRequest) -> dict[str, Any]:
         "answer": answer,
         "metadata": {"source": source},
     }
+
+
+@router.get("/search/chat/metrics")
+def search_chat_metrics() -> dict[str, Any]:
+    """
+    `/search/chat` 운영 메트릭 스냅샷을 반환한다.
+
+    Returns:
+        성공률/지연/폴백 비율을 포함한 메트릭 사전
+    """
+    return chat_metrics.snapshot()
 
 
 @router.post("/search/chat/confirm")

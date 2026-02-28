@@ -13,6 +13,8 @@
 - 2026-02-28 (after): `/search/chat`에서 OPENAI_API_KEY 확인 후 deep agent 응답을 반환하도록 변경하고 OpenAI 오류 처리 로깅 추가.
 - 2026-02-28 (before): API 라우트 로깅을 공통 로거 모듈로 통합하고 채팅 경로 추적 로그를 보강하는 작업 시작.
 - 2026-02-28 (after): `app.core.logging_config.get_logger`를 사용하도록 전환하고 `/search/chat` 요청/검증/완료 단계 추적 로그를 추가.
+- 2026-02-28 (before): `/search/chat` 운영 메트릭 수집 및 조회 엔드포인트(`/search/chat/metrics`) 추가 작업 시작.
+- 2026-02-28 (after): `/search/chat`에 처리시간/성공여부/fallback 여부 메트릭 기록을 추가하고 `/search/chat/metrics` 스냅샷 조회 엔드포인트를 구현.
 
 ## Update Rule
 - Before and after any code change in this folder, append a detailed log entry.
