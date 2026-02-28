@@ -26,6 +26,7 @@ jobs:
       - name: Run Intent Edge Evaluation
         run: |
           PYTHONPATH=. python tests/eval_intent_edge_cases.py \
+            --offline-rule-only \
             --min-accuracy-all-fields 95 \
             --max-avg-latency-ms 2500 \
             --output-json intent_eval_result.json
@@ -35,4 +36,3 @@ jobs:
         with:
           name: intent-eval-result
           path: intent_eval_result.json
-

@@ -7,6 +7,14 @@ from statistics import mean
 from typing import Any
 
 from app.agents.intent_parser import get_intent_parser
+from app.agents.intent_schema import DateFilter, DateFilterMode, ExecutionStep, IntentDecomposition
+from app.core.intent_rules import (
+    build_missing_slots,
+    extract_date_filter_fields,
+    extract_summary_line_target,
+    infer_steps_from_query,
+    sanitize_user_query,
+)
 from tests.fixtures.intent_query_edge_cases import INTENT_EDGE_CASES
 
 
@@ -30,14 +38,65 @@ def _is_date_filter_match(actual: dict[str, Any], expected: dict[str, Any]) -> b
     return True
 
 
-def evaluate_intent_edge_cases() -> dict[str, Any]:
+def _map_step_value(step_value: str) -> ExecutionStep | None:
+    """
+    문자열 step 값을 ExecutionStep enum으로 변환한다.
+
+    Args:
+        step_value: step 문자열 값
+
+    Returns:
+        변환된 ExecutionStep 또는 None
+    """
+    mapping = {
+        "read_current_mail": ExecutionStep.READ_CURRENT_MAIL,
+        "summarize_mail": ExecutionStep.SUMMARIZE_MAIL,
+        "extract_key_facts": ExecutionStep.EXTRACT_KEY_FACTS,
+        "extract_recipients": ExecutionStep.EXTRACT_RECIPIENTS,
+        "search_meeting_schedule": ExecutionStep.SEARCH_MEETING_SCHEDULE,
+        "book_meeting_room": ExecutionStep.BOOK_MEETING_ROOM,
+    }
+    return mapping.get(step_value)
+
+
+def _build_rule_only_decomposition(user_message: str) -> IntentDecomposition:
+    """
+    모델 호출 없이 규칙 모듈만으로 의도 구조분해 결과를 생성한다.
+
+    Args:
+        user_message: 사용자 입력 문장
+
+    Returns:
+        규칙 기반 IntentDecomposition 결과
+    """
+    sanitized_query = sanitize_user_query(user_message=user_message)
+    inferred_steps = infer_steps_from_query(user_message=sanitized_query)
+    steps: list[ExecutionStep] = []
+    for step_value in inferred_steps:
+        step_enum = _map_step_value(step_value=step_value)
+        if step_enum is not None:
+            steps.append(step_enum)
+
+    mode, relative, start, end = extract_date_filter_fields(user_message=sanitized_query)
+    date_filter = DateFilter(mode=DateFilterMode(mode), relative=relative, start=start, end=end)
+
+    return IntentDecomposition(
+        original_query=sanitized_query,
+        steps=steps,
+        summary_line_target=extract_summary_line_target(user_message=sanitized_query),
+        date_filter=date_filter,
+        missing_slots=build_missing_slots(steps=[step.value for step in steps], user_message=sanitized_query),
+    )
+
+
+def evaluate_intent_edge_cases(offline_rule_only: bool = False) -> dict[str, Any]:
     """
     경계 케이스 20개를 실행해 의도 분해 품질 지표를 계산한다.
 
     Returns:
         케이스별 결과와 요약 지표를 포함한 사전
     """
-    parser = get_intent_parser()
+    parser = None if offline_rule_only else get_intent_parser()
     per_case: list[dict[str, Any]] = []
     elapsed_list: list[float] = []
     steps_pass = 0
@@ -48,7 +107,10 @@ def evaluate_intent_edge_cases() -> dict[str, Any]:
 
     for case in INTENT_EDGE_CASES:
         start = time.perf_counter()
-        decomposition = parser.parse(case["utterance"])
+        if offline_rule_only:
+            decomposition = _build_rule_only_decomposition(user_message=case["utterance"])
+        else:
+            decomposition = parser.parse(case["utterance"])
         elapsed_ms = round((time.perf_counter() - start) * 1000, 1)
         elapsed_list.append(elapsed_ms)
 
@@ -101,6 +163,7 @@ def evaluate_intent_edge_cases() -> dict[str, Any]:
     total = len(INTENT_EDGE_CASES)
     return {
         "summary": {
+            "mode": "offline-rule-only" if offline_rule_only else "model-parser",
             "total": total,
             "passed_all_fields": all_pass,
             "accuracy_all_fields": round((all_pass / total) * 100, 1),
@@ -142,6 +205,11 @@ def _build_arg_parser() -> argparse.ArgumentParser:
         default="",
         help="평가 결과 JSON 저장 경로(옵션)",
     )
+    parser.add_argument(
+        "--offline-rule-only",
+        action="store_true",
+        help="모델 호출 없이 규칙 모듈만으로 평가를 수행한다(CI 권장).",
+    )
     return parser
 
 
@@ -170,7 +238,7 @@ def _is_quality_gate_passed(
 if __name__ == "__main__":
     # CI/로컬에서 바로 읽기 쉽도록 JSON으로 출력하고 품질 게이트를 판정한다.
     args = _build_arg_parser().parse_args()
-    result = evaluate_intent_edge_cases()
+    result = evaluate_intent_edge_cases(offline_rule_only=args.offline_rule_only)
     if args.output_json:
         with open(args.output_json, "w", encoding="utf-8") as fp:
             json.dump(result, fp, ensure_ascii=False, indent=2)

@@ -108,6 +108,8 @@ LangChain v1.0 공식 미들웨어 기반 공통 파이프라인 구축(모델 �
 - [15:09] 완료: 임시 서버(`:8002`) 실호출에서 OpenAI `HTTP 200 OK`, 미들웨어 훅(`before_agent -> before_model -> after_agent`) 정상 순서, 비-fallback 정상 답변(`안녕하세요. 미들웨어가 정상적으로 동작하고 있습니다.`) 확인
 - [15:12] 작업 시작: GitHub Actions 기반 의도분해 품질 게이트(CI) 구성 및 임계치 자동 판정 추가
 - [15:14] 완료: `.github/workflows/intent-quality.yml` 추가(정확도>=95, 평균지연<=2500ms), `tests/eval_intent_edge_cases.py` 품질 게이트 exit code/JSON 출력 지원 및 로컬 PASS 검증 완료
+- [15:20] 작업 시작: CI에서 Ollama 의존 제거를 위해 `eval_intent_edge_cases.py` 오프라인(rule-only) 모드 추가 및 워크플로우 반영
+- [15:20] 완료: CI 워크플로우를 `--offline-rule-only` 모드로 전환해 환경 의존성을 제거했고, 로컬 동일 명령 실행에서 QUALITY_GATE PASS 확인
 
 ## 완료된 작업
 - [2026-02-28] `README.MD` 서버 실행 절차 문서화 및 `/addin/client-logs` 204 무본문 응답 수정
