@@ -106,6 +106,8 @@ LangChain v1.0 공식 미들웨어 기반 공통 파이프라인 구축(모델 �
 - [15:08] 완료: `/search/chat` E2E에서 `before_agent -> before_model -> wrap_model_call(401 예외 가드) -> after_agent` 로그 순서를 확인했고, 모델 인증 실패 시 fallback 응답(`응답을 생성하지 못했습니다...`)으로 정상 복구됨을 검증
 - [15:09] 작업 시작: 실제 OpenAI 유효 키 기준 E2E 재검증(정상 응답 경로 확인)
 - [15:09] 완료: 임시 서버(`:8002`) 실호출에서 OpenAI `HTTP 200 OK`, 미들웨어 훅(`before_agent -> before_model -> after_agent`) 정상 순서, 비-fallback 정상 답변(`안녕하세요. 미들웨어가 정상적으로 동작하고 있습니다.`) 확인
+- [15:12] 작업 시작: GitHub Actions 기반 의도분해 품질 게이트(CI) 구성 및 임계치 자동 판정 추가
+- [15:14] 완료: `.github/workflows/intent-quality.yml` 추가(정확도>=95, 평균지연<=2500ms), `tests/eval_intent_edge_cases.py` 품질 게이트 exit code/JSON 출력 지원 및 로컬 PASS 검증 완료
 
 ## 완료된 작업
 - [2026-02-28] `README.MD` 서버 실행 절차 문서화 및 `/addin/client-logs` 204 무본문 응답 수정

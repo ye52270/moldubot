@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import json
 import time
 from statistics import mean
@@ -115,7 +116,79 @@ def evaluate_intent_edge_cases() -> dict[str, Any]:
     }
 
 
+def _build_arg_parser() -> argparse.ArgumentParser:
+    """
+    CLI 인자 파서를 생성한다.
+
+    Returns:
+        초기화된 ArgumentParser
+    """
+    parser = argparse.ArgumentParser(description="의도 분해 경계 케이스 품질 평가 스크립트")
+    parser.add_argument(
+        "--min-accuracy-all-fields",
+        type=float,
+        default=95.0,
+        help="전체 필드 동시 일치 최소 정확도(%)",
+    )
+    parser.add_argument(
+        "--max-avg-latency-ms",
+        type=float,
+        default=2500.0,
+        help="허용 가능한 평균 지연(ms) 상한",
+    )
+    parser.add_argument(
+        "--output-json",
+        type=str,
+        default="",
+        help="평가 결과 JSON 저장 경로(옵션)",
+    )
+    return parser
+
+
+def _is_quality_gate_passed(
+    result: dict[str, Any],
+    min_accuracy_all_fields: float,
+    max_avg_latency_ms: float,
+) -> bool:
+    """
+    평가 결과가 품질 게이트 임계치를 통과했는지 판정한다.
+
+    Args:
+        result: 평가 결과 사전
+        min_accuracy_all_fields: 최소 허용 정확도(%)
+        max_avg_latency_ms: 최대 허용 평균 지연(ms)
+
+    Returns:
+        통과 시 True, 미통과 시 False
+    """
+    summary = result.get("summary", {})
+    accuracy = float(summary.get("accuracy_all_fields", 0.0))
+    avg_latency = float(summary.get("avg_elapsed_ms", 0.0))
+    return accuracy >= min_accuracy_all_fields and avg_latency <= max_avg_latency_ms
+
+
 if __name__ == "__main__":
-    # CI/로컬에서 바로 읽기 쉽도록 JSON으로 출력한다.
+    # CI/로컬에서 바로 읽기 쉽도록 JSON으로 출력하고 품질 게이트를 판정한다.
+    args = _build_arg_parser().parse_args()
     result = evaluate_intent_edge_cases()
+    if args.output_json:
+        with open(args.output_json, "w", encoding="utf-8") as fp:
+            json.dump(result, fp, ensure_ascii=False, indent=2)
     print(json.dumps(result, ensure_ascii=False, indent=2))
+
+    is_passed = _is_quality_gate_passed(
+        result=result,
+        min_accuracy_all_fields=args.min_accuracy_all_fields,
+        max_avg_latency_ms=args.max_avg_latency_ms,
+    )
+    if is_passed:
+        print(
+            f"QUALITY_GATE=PASS accuracy_all_fields>={args.min_accuracy_all_fields}, "
+            f"avg_elapsed_ms<={args.max_avg_latency_ms}"
+        )
+    else:
+        print(
+            f"QUALITY_GATE=FAIL accuracy_all_fields<{args.min_accuracy_all_fields} "
+            f"or avg_elapsed_ms>{args.max_avg_latency_ms}"
+        )
+        raise SystemExit(1)

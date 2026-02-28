@@ -1,0 +1,38 @@
+name: Intent Quality Gate
+
+on:
+  pull_request:
+  push:
+    branches: ["main"]
+
+jobs:
+  intent-quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Intent Edge Evaluation
+        run: |
+          PYTHONPATH=. python tests/eval_intent_edge_cases.py \
+            --min-accuracy-all-fields 95 \
+            --max-avg-latency-ms 2500 \
+            --output-json intent_eval_result.json
+
+      - name: Upload Evaluation Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: intent-eval-result
+          path: intent_eval_result.json
+
