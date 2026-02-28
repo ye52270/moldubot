@@ -27,3 +27,14 @@ venv/
 venv_py314_backup/
 __pycache__/
 *.pyc
+
+# Chroma DB
+chroma_db/
+data/chroma/**
+!data/chroma/
+!data/chroma/task.md
+
+# SQLite
+emails.db
+database/emails.db
+data/sqlite/emails.db

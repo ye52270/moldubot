@@ -1,12 +1,21 @@
 # Task
 
 ## 현재 작업
-의도 구조분해 규칙 보강(날짜 범위/한글 절대날짜/회의 일정 intent) 및 재검증
+LangChain v1.0 공식 미들웨어 기반 공통 파이프라인 구축(모델 전/후 처리 중앙화)
 
 ## Plan
-- [x] 1단계: 공통 규칙 모듈에 상대 날짜 범위/한글 절대 날짜 파싱 규칙 추가
-- [x] 2단계: 회의 일정 intent step을 스키마/파서에 반영
-- [x] 3단계: 10문장 재실행으로 개선 효과 검증 및 로그 정리
+- [x] 1단계: 미들웨어 설계 원칙을 `task.md`에 상세 계획으로 고정하고 단계/산출물 정의
+- [x] 2단계: `app/middleware`에 공통 정책 함수와 LangChain v1 커스텀 미들웨어 클래스 추가
+- [x] 3단계: 미들웨어 레지스트리(단일 조립 지점) 구현 및 순서 고정
+- [x] 4단계: `deep_chat_agent`를 미들웨어 레지스트리 사용 구조로 전환
+- [x] 5단계: 컴파일 및 미들웨어 주입 스모크 테스트로 동작 검증
+- [x] 6단계: 작업 로그(루트/폴더별) 완료 처리 및 변경 요약
+
+## 미들웨어 설계 요약
+- 단일 조립 지점 원칙: `app/middleware/registry.py`에서만 미들웨어 순서를 정의하고, 다른 모듈은 레지스트리 함수만 사용한다.
+- 단일 책임 원칙: 정책(`policies.py`)과 실행(`agent_middlewares.py`)을 분리해 규칙 변경과 실행 체인을 분리한다.
+- 전/후 처리 공통화 원칙: 입력 구조분해 주입은 `before_model`, 모델 응답 방어는 `wrap_model_call`, 도구 오류 표준화는 `wrap_tool_call`로 고정한다.
+- 관측 가능성 원칙: 요청 경계(`before_agent`/`after_agent`)에 공통 로그를 남겨 추적 포인트를 중앙화한다.
 
 ## Action Log
 - [10:36] 작업 시작: `taskpane.css`의 참조 끊긴/미사용 스타일 정리 작업 시작
@@ -53,6 +62,16 @@
 - [11:58] 완료: `intent_parser`가 `app/core/intent_rules.py`를 공통 사용하도록 리팩터링 완료, `venv/bin/python -m compileall app` 및 샘플 문장 구조분해 결과 검증
 - [12:00] 작업 시작: 재검증에서 드러난 3개 이슈(상대 날짜 범위/한글 절대 날짜/회의 일정 intent) 수정 작업 시작
 - [12:01] 완료: step 스키마/파서/규칙 모듈을 보강하고 10문장 재실행 검증에서 이슈 3건(케이스 4/5/8) 개선 확인
+- [14:36] 작업 시작: LangChain v1 공식 미들웨어 전환 작업 시작(전/후 처리 공통화, 레지스트리 기반 순서 고정)
+- [14:38] 완료: `app/middleware` 공통 정책/미들웨어/레지스트리 구현 및 `deep_chat_agent` 미들웨어 주입 전환, 컴파일/주입 스모크 테스트 완료(OpenAI 키 미설정으로 실제 모델 호출 스모크는 미실행)
+- [14:39] 작업 시작: `.gitignore`에 Chroma DB 산출물 제외 규칙 추가
+- [14:40] 완료: `.gitignore`에 `chroma_db/`, `data/chroma/` 무시 규칙 추가
+- [14:40] 작업 시작: `.gitignore`에 SQLite `emails.db` 제외 규칙 추가
+- [14:40] 완료: `.gitignore`에 `emails.db`, `database/emails.db`, `data/sqlite/emails.db` 무시 규칙 추가
+- [14:41] 작업 시작: Git 추적 대상에서 Chroma DB와 `emails.db`를 인덱스 제거(`git rm --cached`) 처리
+- [14:42] 이슈: `git rm --cached data/chroma` 실행 시 `data/chroma/task.md`도 함께 제거 스테이징됨 → 해당 파일만 스테이징/워킹트리 복구 후 `.gitignore` 예외(`!data/chroma/task.md`)로 해결
+- [14:42] 완료: `data/chroma` DB 파일들과 `data/sqlite/emails.db`를 Git 인덱스에서 제거하고, `data/chroma/task.md`는 추적 유지 상태로 정리
+- [14:42] 작업 시작: 미들웨어 공통화 변경 + DB 파일 추적 제거 상태를 하나의 커밋으로 정리
 
 ## 완료된 작업
 - [2026-02-28] `README.MD` 서버 실행 절차 문서화 및 `/addin/client-logs` 204 무본문 응답 수정

@@ -8,8 +8,7 @@ from deepagents import create_deep_agent
 from langchain_core.messages import BaseMessage
 
 from app.core.logging_config import get_logger
-from app.agents.intent_parser import get_intent_parser
-from app.agents.intent_schema import decomposition_to_context_text
+from app.middleware.registry import build_agent_middlewares
 
 DEFAULT_AGENT_MODEL = "gpt-4o-mini"
 DEFAULT_SYSTEM_PROMPT = (
@@ -88,27 +87,6 @@ def _extract_assistant_text(result: Mapping[str, object]) -> str:
     return ""
 
 
-def _compose_agent_input(user_message: str) -> str:
-    """
-    사용자 입력과 의도 구조분해 결과를 결합해 deep agent 입력 본문을 만든다.
-
-    Args:
-        user_message: 원본 사용자 입력
-
-    Returns:
-        구조분해 컨텍스트를 포함한 최종 입력 텍스트
-    """
-    # 로컬 Exaone 파서 결과를 우선 주입해 실행 계획 일관성을 높인다.
-    decomposition = get_intent_parser().parse(user_message=user_message)
-    context_text = decomposition_to_context_text(decomposition=decomposition)
-    decomposition_json = decomposition.model_dump_json(ensure_ascii=False)
-    logger.info(
-        "의도 구조분해 결과(JSON): %s",
-        decomposition_json,
-    )
-    return f"{context_text}\n\n원본 사용자 입력:\n{user_message.strip()}"
-
-
 class DeepChatAgent:
     """
     단일 deep agent를 생성해 사용자 메시지에 대한 응답을 반환하는 서비스 클래스.
@@ -126,6 +104,7 @@ class DeepChatAgent:
             model=model_name,
             tools=[],
             system_prompt=system_prompt,
+            middleware=build_agent_middlewares(),
             name="moldubot-chat-agent",
         )
 
@@ -139,10 +118,9 @@ class DeepChatAgent:
         Returns:
             모델 응답 텍스트. 비어 있으면 기본 안내 문구 반환
         """
-        # deep agent에 전달할 입력에는 구조분해 컨텍스트를 선주입한다.
+        # 입력 전/후 처리는 LangChain v1 미들웨어 체인에서 공통 처리한다.
         logger.info("deep agent 응답 생성 시작: input_length=%s", len(user_message))
-        composed_input = _compose_agent_input(user_message=user_message)
-        payload = {"messages": [{"role": "user", "content": composed_input}]}
+        payload = {"messages": [{"role": "user", "content": user_message.strip()}]}
         result = self._graph.invoke(payload)
 
         if not isinstance(result, Mapping):

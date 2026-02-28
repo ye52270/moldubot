@@ -29,6 +29,8 @@
 - 2026-02-28 (after): `intent_parser.py` 중복 규칙 함수를 제거하고 `app.core.intent_rules` 공통 함수(import)로 연결, 질의 정제/step/date/missing_slots 계산을 단일 규칙 소스로 통합.
 - 2026-02-28 (before): `회의 일정` 질의를 명시적으로 다루기 위해 최소 step 스키마/파서 허용값을 확장하는 작업 시작.
 - 2026-02-28 (after): `ExecutionStep.SEARCH_MEETING_SCHEDULE`를 추가하고 parser step 매핑/허용값 프롬프트를 동기화해 회의 일정 질의가 메일 조회로 오분류되지 않도록 수정.
+- 2026-02-28 (before): deep agent 생성 지점에서 공통 미들웨어 레지스트리를 주입하도록 에이전트 초기화 구조를 전환하는 작업 시작.
+- 2026-02-28 (after): `deep_chat_agent.py`에서 입력 전처리 직접 결합 로직을 제거하고 `app.middleware.registry.build_agent_middlewares()`를 `create_deep_agent(..., middleware=...)`로 주입해 전/후 처리를 미들웨어 체인으로 일원화.
 
 ## Update Rule
 - Before and after any code change in this folder, append a detailed log entry.
