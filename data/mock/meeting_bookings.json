@@ -1,0 +1,22 @@
+[
+  {
+    "date": "2026-02-28",
+    "start_time": "14:00",
+    "end_time": "15:00",
+    "attendee_count": 5,
+    "building": "본사",
+    "floor": 5,
+    "room_name": "A-501",
+    "subject": "자동 예약"
+  },
+  {
+    "date": "2026-03-01",
+    "start_time": "14:00",
+    "end_time": "15:00",
+    "attendee_count": 5,
+    "building": "본사",
+    "floor": 5,
+    "room_name": "A-501",
+    "subject": "자동 예약"
+  }
+]

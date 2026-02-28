@@ -31,6 +31,9 @@
 - 2026-02-28 (after): `ExecutionStep.SEARCH_MEETING_SCHEDULE`를 추가하고 parser step 매핑/허용값 프롬프트를 동기화해 회의 일정 질의가 메일 조회로 오분류되지 않도록 수정.
 - 2026-02-28 (before): deep agent 생성 지점에서 공통 미들웨어 레지스트리를 주입하도록 에이전트 초기화 구조를 전환하는 작업 시작.
 - 2026-02-28 (after): `deep_chat_agent.py`에서 입력 전처리 직접 결합 로직을 제거하고 `app.middleware.registry.build_agent_middlewares()`를 `create_deep_agent(..., middleware=...)`로 주입해 전/후 처리를 미들웨어 체인으로 일원화.
+- 2026-02-28 (before): deep agent Tool Calling으로 실제 메일 조회/요약/수신자 추출/회의실 예약을 수행하도록 도구 모듈 추가 및 에이전트 연결 작업 시작.
+- 2026-02-28 (after): `tools.py`를 추가하고 `deep_chat_agent.py`에 도구 주입을 연결했으며, 메일/회의 의도는 `TaskExecutionService` 직접 실행 경로를 우선 적용해 실제 업무 결과를 안정적으로 반환하도록 전환.
+- 2026-02-28 (before): 사용자 지시에 따라 메일/회의 의도도 모델 Tool Calling으로만 처리하도록 `deep_chat_agent`의 서비스 우선 실행 분기를 제거하는 작업 시작.
 
 ## Update Rule
 - Before and after any code change in this folder, append a detailed log entry.

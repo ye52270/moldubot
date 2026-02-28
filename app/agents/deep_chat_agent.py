@@ -9,11 +9,14 @@ from langchain_core.messages import BaseMessage
 
 from app.core.logging_config import get_logger
 from app.middleware.registry import build_agent_middlewares
+from app.agents.tools import get_agent_tools
 
 DEFAULT_AGENT_MODEL = "gpt-4o-mini"
 DEFAULT_SYSTEM_PROMPT = (
     "You are MolduBot. Reply in Korean by default unless the user requests another language. "
-    "Keep answers practical and concise."
+    "Keep answers practical and concise. "
+    "When users ask about current email, summary, key facts, recipients, meeting room search, or booking, "
+    "use tools first and answer only with tool-grounded facts."
 )
 FALLBACK_EMPTY_RESPONSE = "응답을 생성하지 못했습니다. 다시 시도해 주세요."
 
@@ -102,7 +105,7 @@ class DeepChatAgent:
         """
         self._graph = create_deep_agent(
             model=model_name,
-            tools=[],
+            tools=get_agent_tools(),
             system_prompt=system_prompt,
             middleware=build_agent_middlewares(),
             name="moldubot-chat-agent",
@@ -118,7 +121,7 @@ class DeepChatAgent:
         Returns:
             모델 응답 텍스트. 비어 있으면 기본 안내 문구 반환
         """
-        # 입력 전/후 처리는 LangChain v1 미들웨어 체인에서 공통 처리한다.
+        # 요청 처리는 모델 + tool calling 경로로 일원화한다.
         logger.info("deep agent 응답 생성 시작: input_length=%s", len(user_message))
         payload = {"messages": [{"role": "user", "content": user_message.strip()}]}
         result = self._graph.invoke(payload)
