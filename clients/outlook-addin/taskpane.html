@@ -6,11 +6,23 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>&#8203;</title>
   <script type="text/javascript" src="https://appsforoffice.microsoft.com/lib/1.1/hosted/office.js"></script>
-  <link rel="stylesheet" href="/addin/taskpane.css?v=20260226-21">
+  <link rel="stylesheet" href="/addin/taskpane.css?v=20260302-41">
 </head>
 <body>
   <div class="app">
     <div class="chat-toolbar">
+      <button
+        id="openEvalBtn"
+        class="toolbar-icon-btn"
+        type="button"
+        title="테스트 페이지 열기"
+        aria-label="테스트 페이지 열기"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33h.09A1.65 1.65 0 0 0 10 3.09V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.09a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+      </button>
       <button
         id="newSessionBtn"
         class="new-session-btn"
@@ -24,7 +36,6 @@
         <span>새 세션</span>
       </button>
     </div>
-
     <!-- ── Chat Area ──────────────────── -->
     <div id="chatArea" class="chat-area">
       <div id="welcomeState" class="welcome-state">
@@ -41,6 +52,7 @@
 
     <!-- ── Input Area ─────────────────── -->
     <div class="input-area">
+      <div id="chatStatus" class="chat-status" aria-live="polite"></div>
       <div class="input-wrapper">
         <button class="composer-plus-btn" id="marketPlusBtn" type="button" title="앱/스킬/에이전트 마켓 열기" aria-label="앱/스킬/에이전트 마켓 열기">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -63,6 +75,14 @@
     </div>
   </div>
 
-  <script src="/addin/taskpane.js?v=20260226-21"></script>
+  <script src="/addin/taskpane.helpers.js?v=20260302-06"></script>
+  <script src="/addin/taskpane.messages.js?v=20260302-49"></script>
+  <script src="/addin/taskpane.api.js?v=20260302-12"></script>
+  <script src="/addin/taskpane.interactions.js?v=20260302-18"></script>
+  <script src="/addin/taskpane.quick_prompts.js?v=20260302-06"></script>
+  <script src="/addin/taskpane.send.js?v=20260302-04"></script>
+  <script src="/addin/taskpane.chat_actions.js?v=20260302-08"></script>
+  <script src="/addin/taskpane.selection.js?v=20260301-03"></script>
+  <script src="/addin/taskpane.js?v=20260302-36"></script>
 </body>
 </html>
