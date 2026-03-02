@@ -210,18 +210,7 @@ curl -X POST http://127.0.0.1:8000/search/chat \
   -d '{"message":"현재메일 요약해줘"}'
 ```
 
-### 3) 로컬에서 그래프(Mermaid) 파일 생성
-```bash
-venv/bin/python scripts/export_agent_graph.py
-```
-- 기본 출력 파일: `docs/agent_graph.mmd`
-- 다른 경로로 저장하려면:
-```bash
-venv/bin/python scripts/export_agent_graph.py --output docs/agent_graph_custom.mmd
-```
-- 생성된 `.mmd` 파일을 Mermaid Live Editor(https://mermaid.live)에 붙여 넣으면 즉시 시각화할 수 있다.
-
-### 4) LangSmith UI에서 그래프 확인
+### 3) LangSmith UI에서 그래프 확인
 - LangSmith 프로젝트(`LANGSMITH_PROJECT`)에서 방금 생성된 run을 연다.
 - run 트리에서 `moldubot-chat-turn` 실행을 선택하면 노드/툴 호출 흐름을 그래프 형태로 추적할 수 있다.
 - 태그 `moldubot`, `deep-agent`로 필터링하면 해당 실행만 빠르게 찾을 수 있다.

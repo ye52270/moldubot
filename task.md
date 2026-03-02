@@ -1856,3 +1856,13 @@
 - [05:43] 작업 시작: `langgraph dev`로 노드 그래프/디버깅 가능한 로컬 설정 작업 착수
 - [05:47] 이슈 발생: Studio 로더가 기존 그래프의 custom checkpointer(`InMemorySaver`)를 거부해 startup 실패 → 해결 방법: `langgraph_entry.py`에서 Studio 전용 graph를 checkpointer 없이 생성하도록 분리
 - [05:47] 완료: `langgraph.json` + `app/agents/langgraph_entry.py` + 테스트를 추가하고 `langgraph dev --config langgraph.json` 부팅/Studio URL 출력 스모크를 확인
+
+## Plan (2026-03-03 Mermaid export 코드 정리)
+- [x] 1단계: Mermaid export 관련 파일/참조 식별
+- [x] 2단계: 로컬 Mermaid export 코드/산출물/테스트 삭제
+- [x] 3단계: README/문서에서 Mermaid export 안내 제거
+- [x] 4단계: 검증 및 Action Log 업데이트
+
+## Action Log (2026-03-03 Mermaid export 코드 정리)
+- [05:50] 작업 시작: LangGraph Studio 실행 완료 기준으로 로컬 Mermaid export 구성 삭제 착수
+- [05:51] 완료: `scripts/export_agent_graph.py`, `tests/test_export_agent_graph.py`, `docs/agent_graph.mmd`를 삭제하고 README의 Mermaid export 안내를 제거, `tests.test_langgraph_config` 재검증 통과
