@@ -225,3 +225,21 @@ venv/bin/python scripts/export_agent_graph.py --output docs/agent_graph_custom.m
 - LangSmith 프로젝트(`LANGSMITH_PROJECT`)에서 방금 생성된 run을 연다.
 - run 트리에서 `moldubot-chat-turn` 실행을 선택하면 노드/툴 호출 흐름을 그래프 형태로 추적할 수 있다.
 - 태그 `moldubot`, `deep-agent`로 필터링하면 해당 실행만 빠르게 찾을 수 있다.
+
+## LangGraph Studio 로컬 실행 (노드 그래프/디버깅)
+
+### 1) 설정 파일
+- 프로젝트 루트 `langgraph.json`을 사용한다.
+- 그래프 엔트리: `app/agents/langgraph_entry.py:graph`
+
+### 2) 로컬 Studio 서버 실행
+```bash
+venv/bin/langgraph dev --config langgraph.json --port 2024 --no-browser
+```
+
+### 3) Studio 접속
+- 터미널 출력의 Studio URL을 열어 노드 그래프/스텝 실행 상태를 확인한다.
+- Safari 환경에서 localhost 연결이 막히면 다음 명령을 사용한다.
+```bash
+venv/bin/langgraph dev --config langgraph.json --port 2024 --no-browser --tunnel
+```

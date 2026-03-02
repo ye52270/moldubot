@@ -1,0 +1,34 @@
+from __future__ import annotations
+
+import importlib
+import json
+import os
+import unittest
+from pathlib import Path
+from unittest.mock import patch
+
+
+class LangGraphConfigTest(unittest.TestCase):
+    """LangGraph Studio 로컬 실행 구성을 검증한다."""
+
+    def test_langgraph_json_declares_graph_entry(self) -> None:
+        """`langgraph.json`이 MolduBot 그래프 엔트리를 선언해야 한다."""
+        root_dir = Path(__file__).resolve().parents[1]
+        config_path = root_dir / "langgraph.json"
+        payload = json.loads(config_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(".env", payload.get("env"))
+        graphs = payload.get("graphs", {})
+        self.assertEqual("./app/agents/langgraph_entry.py:graph", graphs.get("moldubot_chat"))
+
+    def test_langgraph_entry_exposes_graph_object(self) -> None:
+        """LangGraph 진입 모듈이 `graph` 객체를 노출해야 한다."""
+        with patch.dict(os.environ, {"OPENAI_API_KEY": "dummy-key"}):
+            module = importlib.import_module("app.agents.langgraph_entry")
+
+        self.assertTrue(hasattr(module, "graph"))
+        self.assertTrue(hasattr(module.graph, "invoke"))
+
+
+if __name__ == "__main__":
+    unittest.main()

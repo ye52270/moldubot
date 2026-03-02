@@ -1845,3 +1845,14 @@
 - [05:34] 이슈 발생: 핵심 파일(`routes.py`, `deep_chat_agent.py`)이 대규모 미커밋 상태라 선택 커밋 시 기존 변경이 혼입될 위험 확인 → 해결 방법: 독립 스크립트(`scripts/export_agent_graph.py`) + 문서 + 전용 테스트로 안전 분리
 - [05:35] 이슈 발생: 스크립트 직접 실행 시 `ModuleNotFoundError: app` 발생 → 해결 방법: 스크립트에서 프로젝트 루트를 `sys.path`에 주입해 모듈 경로 해결
 - [05:35] 완료: LangSmith 활성화 절차/그래프 확인 방법을 README에 문서화하고, Mermaid 내보내기 스크립트와 테스트(4건), 실제 그래프 파일 생성(`docs/agent_graph.mmd`) 검증 완료
+
+## Plan (2026-03-03 LangGraph Studio 로컬 실행 설정)
+- [x] 1단계: LangGraph Studio 실행용 그래프 엔트리 파일 추가
+- [x] 2단계: `langgraph.json` 구성 파일 추가
+- [x] 3단계: 실행/확인 방법 문서화 및 스모크 검증
+- [x] 4단계: task 로그 갱신 및 커밋
+
+## Action Log (2026-03-03 LangGraph Studio 로컬 실행 설정)
+- [05:43] 작업 시작: `langgraph dev`로 노드 그래프/디버깅 가능한 로컬 설정 작업 착수
+- [05:47] 이슈 발생: Studio 로더가 기존 그래프의 custom checkpointer(`InMemorySaver`)를 거부해 startup 실패 → 해결 방법: `langgraph_entry.py`에서 Studio 전용 graph를 checkpointer 없이 생성하도록 분리
+- [05:47] 완료: `langgraph.json` + `app/agents/langgraph_entry.py` + 테스트를 추가하고 `langgraph dev --config langgraph.json` 부팅/Studio URL 출력 스모크를 확인

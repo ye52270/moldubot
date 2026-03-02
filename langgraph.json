@@ -1,0 +1,10 @@
+{
+  "$schema": "https://langgra.ph/schema.json",
+  "dependencies": [
+    "."
+  ],
+  "graphs": {
+    "moldubot_chat": "./app/agents/langgraph_entry.py:graph"
+  },
+  "env": ".env"
+}
