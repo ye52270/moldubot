@@ -1822,3 +1822,14 @@
 - [17:15] 작업 시작: 회의실 제안의 `논의할 주요 내용` 품질 개선을 위해 본문 추출 대신 DB `summary` 원문 사용으로 전환 착수
 - [17:18] 완료: `meeting_mail_suggestion_service`에서 본문 요약 추출 로직을 제거하고 `summary_text` 단일 소스로 통일, 프론트 제안 메시지에서도 `summary_text` 우선 렌더로 정리
 - [17:19] 완료: 회귀 테스트 통과(Python 11건: bootstrap meeting/legacy/search-chat-confirm, Node 63건: api/helpers/messages/chat-actions)
+
+## Plan (2026-03-03 README 구조/스킬 정합성 점검)
+- [x] 1단계: 프로젝트 루트 구조 및 스킬 문서(`SKILL.md`/`skills/`) 존재 여부 확인
+- [x] 2단계: `README.MD` 내용과 실제 구조 불일치 항목 식별
+- [x] 3단계: 필요한 README 업데이트 및 표현 정리
+- [x] 4단계: 변경 검증 후 커밋
+
+## Action Log (2026-03-03 README 구조/스킬 정합성 점검)
+- [05:25] 작업 시작: 프로젝트 구조 및 스킬 문서 기준으로 README 정합성 점검 착수
+- [05:26] 이슈 발생: 프로젝트 루트/`skills/` 경로에서 `SKILL.md` 파일이 확인되지 않음 → 해결 방법: 현재 실제 상태(`skills/task.md`만 존재)를 README에 명시
+- [05:26] 완료: 프로젝트 구조/스킬 문서 상태를 반영해 `README.MD`를 갱신하고 선택 파일(`README.MD`, `task.md`)만 커밋

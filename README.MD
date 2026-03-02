@@ -1,4 +1,31 @@
-# 서버 구동방법
+# MolduBot
+
+## 프로젝트 개요
+- FastAPI 백엔드(`app/`)와 Outlook Add-in 프론트(`clients/outlook-addin/`)를 함께 운영하는 사내 업무 보조 봇 프로젝트.
+- 메일 조회/요약, 회의실 예약, 일정 등록, 실행예산/비용정산/근태 포털 연동, 보고서 생성 기능을 포함.
+
+## 프로젝트 구조 (2026-03-03 기준)
+```text
+.
+├── app/                  # FastAPI 서버, 에이전트, 미들웨어, 서비스
+├── clients/
+│   ├── outlook-addin/    # Outlook Add-in UI/스크립트/manifest
+│   └── portals/          # myPromise, finance, myHR 정적 포털
+├── data/                 # mock/chroma/sqlite/reports/meeting 데이터
+├── docs/                 # 문서 및 프롬프트 스냅샷
+├── infra/                # 인프라 보조 파일
+├── scripts/              # 운영/유틸 스크립트
+├── skills/               # 현재 task.md만 존재 (프로젝트 로컬 SKILL.md 없음)
+├── tests/                # Python 테스트
+├── requirements.txt
+└── task.md
+```
+
+## Skill 문서 상태
+- 루트 및 `skills/` 경로 기준으로 프로젝트 전용 `SKILL.md`/`skill.md` 파일은 현재 없음.
+- 스킬 관련 작업 이력은 `skills/task.md`에서 관리.
+
+## 서버 구동방법
 
 ## 1) 가상환경 활성화
 ```bash
