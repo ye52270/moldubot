@@ -2055,3 +2055,480 @@
 - 완료: run_mail_post_action 중복 호출 캐시
 - 완료: 반복 성능 측정 체계(benchmark script, p95/top slow cases) 구축
 - 완료: search 경로 경량화로 평균/p95 개선 검증
+
+## 실행 Plan v6 (의도 라우팅 현황 점검)
+- [ ] 1단계: 현재 메일 질의 의도 분류/라우팅 관련 코드 경로 식별
+- [ ] 2단계: 질문 유형별(요약/상세요약/N줄/수신자역할/원인분석/해결책) 지원 여부 점검
+- [ ] 3단계: 미지원 케이스의 원인(프롬프트/툴/후처리) 정리
+- [ ] 4단계: 개선 우선순위와 최소 변경안 제안
+
+## Action Log (의도 라우팅 점검)
+- [14:05] 작업 시작: 몰두봇 현재 의도 라우팅/질문 다양성 대응 구조 점검 시작
+- [14:08] 완료: 의도 라우팅 경로 점검 완료( intent_rules -> intent_parser -> middleware -> tools -> answer_postprocessor ) 및 질문 1~7 지원/미지원 현황 정리
+- [14:08] 이슈: 쉘에서 백틱 포함 `rg` 패턴 실행 시 command not found 발생 → 패턴 quoting 수정으로 재실행
+
+## 실행 Plan v6 결과
+- [x] 1단계: 현재 메일 질의 의도 분류/라우팅 관련 코드 경로 식별
+- [x] 2단계: 질문 유형별(요약/상세요약/N줄/수신자역할/원인분석/해결책) 지원 여부 점검
+- [x] 3단계: 미지원 케이스의 원인(프롬프트/툴/후처리) 정리
+- [x] 4단계: 개선 우선순위와 최소 변경안 제안
+
+## 실행 Plan v7 (의도 라우팅 확장 리팩터링 1차)
+- [ ] 1단계: Intent 스키마 확장 필드(task_type/focus_topics/output_format/confidence) 설계 및 모델 반영
+- [ ] 2단계: 규칙 기반 추론 로직을 parser에 추가해 기존 step 체계와 병행 동작
+- [ ] 3단계: 프롬프트/컨텍스트 직렬화 업데이트로 LLM JSON 계약 동기화
+- [ ] 4단계: 신규 테스트(TDD) 추가(7개 질의 + 확장성 케이스)
+- [ ] 5단계: 관련 테스트 실행 및 task.md 로그 기록
+
+## Action Log (의도 라우팅 확장 리팩터링)
+- [14:14] 작업 시작: 확장 가능한 intent schema 도입 및 라우팅 리팩터링 1차 구현 시작
+- [14:16] 완료: Intent 확장 스키마(v2) 1차 반영(task_type/output_format/focus_topics/confidence), parser 추론 로직/프롬프트 스키마 동기화, 신규 테스트 6건 추가 및 관련 테스트 19건 통과
+
+## 실행 Plan v7 결과
+- [x] 1단계: Intent 스키마 확장 필드(task_type/focus_topics/output_format/confidence) 설계 및 모델 반영
+- [x] 2단계: 규칙 기반 추론 로직을 parser에 추가해 기존 step 체계와 병행 동작
+- [x] 3단계: 프롬프트/컨텍스트 직렬화 업데이트로 LLM JSON 계약 동기화
+- [x] 4단계: 신규 테스트(TDD) 추가(7개 질의 + 확장성 케이스)
+- [x] 5단계: 관련 테스트 실행 및 task.md 로그 기록
+
+## 실행 Plan v8 (원인/해결 라우팅 실행 연결 2차)
+- [ ] 1단계: intent_rules/intent_parser required step 규칙에 원인분석/해결책 질의 반영
+- [ ] 2단계: answer postprocessor에 원인-영향-대응/해결 체크리스트 강제 템플릿 추가
+- [ ] 3단계: TDD 테스트 추가(원인분석/SSL 해결) 및 회귀 실행
+- [ ] 4단계: task.md 결과 기록
+
+## Action Log (원인/해결 라우팅 실행 연결)
+- [14:18] 작업 시작: 원인분석/해결책 질의의 실행 라우팅 및 후처리 템플릿 연결 작업 시작
+- [14:20] 완료: 원인/해결 질의 step 추론 규칙 보강(summarize+key_facts), 후처리 강제 템플릿(원인/영향/대응, 가능한 원인/점검 순서/즉시 조치) 추가, 관련 테스트 75건 통과
+
+## 실행 Plan v8 결과
+- [x] 1단계: intent_rules/intent_parser required step 규칙에 원인분석/해결책 질의 반영
+- [x] 2단계: answer postprocessor에 원인-영향-대응/해결 체크리스트 강제 템플릿 추가
+- [x] 3단계: TDD 테스트 추가(원인분석/SSL 해결) 및 회귀 실행
+- [x] 4단계: task.md 결과 기록
+
+## 실행 Plan v9 (의도 스키마 실사용 라우팅 지시 연결 3차)
+- [x] 1단계: 미들웨어 intent 컨텍스트에 task_type/output_format/confidence 기반 라우팅 지시 주입
+- [x] 2단계: low-confidence(0.6 미만) 케이스 확인 질문 지시 추가
+- [x] 3단계: 정책 단위 테스트 추가(TDD) 및 기존 라우팅 회귀 실행
+
+- [14:22] 완료: 미들웨어 라우팅 지시 주입(_build_routing_instruction) 및 low-confidence 확인질문 힌트 반영, 정책/라우팅 테스트 79건 통과
+
+## 실행 Plan v10 (완결 단계 5-step)
+- [ ] 1단계: intent 확장 필드를 agent 실행 분기(프롬프트 variant/툴 제약)로 강제 연결
+- [ ] 2단계: low-confidence 실제 확인질문 응답 플로우 구현
+- [ ] 3단계: 실사용 질의 로그 기반 Eval 세트(200+) 및 자동 리포트 스크립트 추가
+- [ ] 4단계: KPI 기준선(정확도/형식준수/지연) 정의 및 회귀 게이트 테스트 연결
+- [ ] 5단계: 운영 문서(장애 대응/fallback/신규 intent 추가 절차) 정리
+
+## Action Log (완결 단계 5-step)
+- [14:24] 작업 시작: intent 확장 라우팅 완결(실행 분기/확인질문/Eval/KPI/운영문서) 작업 시작
+- [14:30] 이슈 발생: intent eval dataset 생성 시 특정 query_type(current_mail) 편향으로 mail_search/general 케이스 누락 → query_type 확장 시퀀스 및 후보 선택 로직(라운드로빈/포인터) 보강으로 해결
+- [14:30] 완료: v10 5단계 완료(실행 분기 강제, low-confidence 확인질문, 220건 eval 데이터셋 생성기, KPI 게이트, 운영 문서) 및 관련 테스트 86건 통과
+
+## 실행 Plan v10 결과
+- [x] 1단계: intent 확장 필드를 agent 실행 분기(프롬프트 variant/툴 제약)로 강제 연결
+- [x] 2단계: low-confidence 실제 확인질문 응답 플로우 구현
+- [x] 3단계: 실사용 질의 로그 기반 Eval 세트(200+) 및 자동 리포트 스크립트 추가
+- [x] 4단계: KPI 기준선(정확도/형식준수/지연) 정의 및 회귀 게이트 테스트 연결
+- [x] 5단계: 운영 문서(장애 대응/fallback/신규 intent 추가 절차) 정리
+
+## 실행 Plan v11 (? 추천 시나리오 수동 점검 항목 추가)
+- [ ] 1단계: Outlook Add-in `?` 추천 시나리오 렌더링 소스 위치 파악
+- [ ] 2단계: 수동 점검용 입력 시나리오를 기존 추천 목록에 추가
+- [ ] 3단계: 관련 단위 테스트/스냅샷 갱신 및 회귀 실행
+- [ ] 4단계: task.md 로그 업데이트
+
+## Action Log (? 추천 시나리오)
+- [14:37] 작업 시작: 챗봇 `?` 추천 목록에 수동 점검 시나리오 추가 작업 시작
+- [14:39] 완료: `?` 추천 프롬프트에 수동 점검 시나리오(원인분석/비용원인/SSL해결/역할표/모호질의) 추가 및 UI helper 테스트 통과
+
+## 실행 Plan v11 결과
+- [x] 1단계: Outlook Add-in `?` 추천 시나리오 렌더링 소스 위치 파악
+- [x] 2단계: 수동 점검용 입력 시나리오를 기존 추천 목록에 추가
+- [x] 3단계: 관련 단위 테스트/스냅샷 갱신 및 회귀 실행
+- [x] 4단계: task.md 로그 업데이트
+- [14:41] 이슈 발생: 메일검색형 질의에서 응답 본문(mail_search)과 근거메일 카드(current_mail)가 불일치할 수 있는 payload 선택 기준 차이 확인 → deep_chat_agent payload 선택에 mail_search 우선 규칙 적용(user_message 기반), low-confidence 확인질문 예외(scope 선택/예약 step) 보강으로 회귀 해결
+- [14:41] 완료: 근거메일 불일치 버그 수정 및 관련 회귀 테스트 26건 통과
+
+## 실행 Plan v13 (의도+동적 출력 스펙)
+- [x] 1단계: 고정 표 렌더링 경로 식별 및 `table_spec` 계약 설계
+- [x] 2단계: 의도/질문 기반 동적 컬럼 생성 로직 구현(수신자/참조/본문 인물 구분)
+- [x] 3단계: 후처리 렌더러를 `table_spec` 우선으로 리팩터링
+- [x] 4단계: 수동 점검 시나리오와 단위 테스트(TDD) 추가
+- [x] 5단계: 회귀 테스트 실행 및 문서/로그 기록
+
+## Action Log (2026-03-03 의도+동적 출력 스펙)
+- [14:55] 작업 시작: intent와 출력 스펙 분리 구조를 코드에 반영하기 위한 분석/리팩터링 시작
+- [14:57] 이슈 발생: 본문 인물 추출 정규식이 일반 명사(일정/변경/검토)를 이름으로 과검출 → 이름 패턴을 직함/호칭 결합형으로 제한하고 본문 전용 3열 스키마 분기 추가로 해결
+- [14:58] 완료: 동적 인물 역할 `table_spec` 모듈 추가, 후처리 우선 라우팅 적용, 단위/회귀 테스트 8건 통과
+
+## 실행 Plan v14 (역할 taxonomy 설정파일 + 무중단 리로드)
+- [x] 1단계: 역할 taxonomy 설정 파일(JSON) 구조 정의 및 기본값 분리
+- [x] 2단계: 설정 로더/mtime 기반 자동 리로드 로직 구현
+- [x] 3단계: 역할표 렌더러에서 하드코딩 규칙 제거 후 설정 기반 추론 연결
+- [x] 4단계: 사용설명서(MD) 작성 및 운영 절차 문서화
+- [x] 5단계: 단위 테스트(TDD) 추가 및 회귀 실행
+
+## Action Log (2026-03-03 taxonomy 설정파일화)
+- [15:33] 작업 시작: 역할 taxonomy를 설정 파일로 분리하고 자동 리로드 방식으로 운영 튜닝 가능하도록 개선 시작
+- [15:36] 완료: `config/role_taxonomy.json` 분리, mtime 기반 자동 리로드 로더 추가, 역할표 설정 연동, 루트 가이드 문서 작성, 관련 테스트 11건 통과
+
+## 실행 Plan v15 (수신자 이름/이메일 정제 보강)
+- [x] 1단계: 실패 케이스 테스트 추가(이름+이메일 혼합, HTML escape 잔여물)
+- [x] 2단계: 인물 토큰 정제 로직 모듈 분리(이름 우선/이메일 fallback)
+- [x] 3단계: 역할표 파이프라인 연동 및 중복/찌꺼기 제거 보강
+- [x] 4단계: 관련 회귀 테스트 실행
+- [x] 5단계: task.md 완료 로그 기록
+
+## Action Log (2026-03-03 수신자 정제 보강)
+- [15:37] 작업 시작: 역할표 수신자 표시에 이름 우선/이메일 fallback/찌꺼기 제거 규칙 반영 시작
+- [15:45] 완료: 이름 우선 정규화 모듈(`person_identity_parser`) 추가, 역할표 연동 및 HTML artifact 제거 보강, 관련 테스트 11건 통과
+
+## 실행 Plan v16 (메일검색 수신자 역할 요약 라우팅)
+- [x] 1단계: 재현 케이스 테스트 추가(검색 질의에서 역할요약 요청)
+- [x] 2단계: 후처리 라우팅에 mail_search 역할요약 분기 추가
+- [x] 3단계: 결과 데이터 기반 역할 요약 렌더(가능한 범위/한계 명시)
+- [x] 4단계: 회귀 테스트 실행
+- [x] 5단계: task.md 로그 기록
+
+## Action Log (2026-03-03 메일검색 역할요약 라우팅)
+- [15:46] 작업 시작: `M365 ... 수신자별 역할 요약`이 일반 요약으로 내려가는 라우팅 누락 보강 시작
+- [15:48] 완료: mail_search 수신자역할 전용 렌더 분기 추가(수신자 필드 없을 때 `미확인` 명시), 관련 테스트 15건 통과
+
+## 실행 Plan v17 (수신자별 역할 실제 근거 추론)
+- [x] 1단계: 본문 매칭 기반 역할/근거 추론 테스트 추가(TDD)
+- [x] 2단계: 역할 추론 유틸 분리(수신자별 매칭, 역할/근거 산출)
+- [x] 3단계: 역할표 렌더러에 적용(fallback 최소화)
+- [x] 4단계: 중복/헤더 과증식 보정 및 회귀 테스트
+- [x] 5단계: task.md 로그 기록
+
+## Action Log (2026-03-03 수신자별 역할 실제 추론)
+- [15:50] 작업 시작: 수신자별 역할을 본문 단서 기반으로 추론하고 근거 문장을 표시하도록 개선 시작
+- [15:53] 이슈 발생: 본문 헤더(To/Cc) 라인이 근거로 채택되어 `메일 헤더 TO` 대비 가독성이 저하되고 역할이 과추론됨 → 헤더 라인 제외 규칙 추가, 수신자별 본문 매칭 실패 시에만 헤더 fallback으로 보정
+- [15:54] 완료: 수신자별 본문 매칭 역할 추론 유틸 분리/연동, 헤더 중복 후보 억제 및 역할 우선순위 개선, 관련 테스트 19건 통과
+
+## 실행 Plan v18 (LLM 역할분석 StructOut 전환)
+- [x] 1단계: LLM 응답 계약에 `recipient_roles` 구조 추가
+- [x] 2단계: 프롬프트 JSON 계약/가이드에 역할표 생성 규칙 반영
+- [x] 3단계: 후처리에서 모델 JSON 기반 역할표 우선 렌더 연결
+- [x] 4단계: fallback은 규칙 기반(메일 컨텍스트)으로 유지
+- [x] 5단계: 테스트(TDD) 추가 및 회귀 실행/로그 기록
+
+## Action Log (2026-03-03 LLM StructOut 역할분석 전환)
+- [15:56] 작업 시작: 역할표를 규칙 기본값이 아닌 LLM JSON 분석 결과 우선 렌더로 전환 시작
+- [16:00] 이슈 발생: 현재메일 수신자 질의 fallback(`주요 수신자 정보`)가 역할표 경로보다 먼저 실행되어 contract 기반 렌더가 가려짐 → `역할` 포함 질의는 recipients fallback 제외로 우선순위 충돌 해결
+- [16:00] 완료: `recipient_roles` StructOut 계약/프롬프트/후처리 우선 렌더 반영, 관련 테스트 17건 통과
+
+## 실행 Plan v19 (recipient_roles strict guard)
+- [x] 1단계: recipient_roles 품질 가드 테스트 추가(TDD)
+- [x] 2단계: 수신자 교집합/발신자 제외/근거 품질 필터 구현
+- [x] 3단계: 후처리 contract 렌더에 strict guard 연결
+- [x] 4단계: 프롬프트 제약 강화(수신자 대상/근거 문장 규칙)
+- [x] 5단계: 회귀 테스트 및 task 로그 기록
+
+## Action Log (2026-03-03 recipient_roles strict guard)
+- [16:06] 작업 시작: LLM recipient_roles 출력에 수신자 범위/근거 품질 strict guard 추가 시작
+- [16:10] 이슈 발생: alias 추출에서 일반 명사(예: 서비스)가 이름으로 인식되어 To/CC 교집합 필터가 과차단됨 → alias 규칙에서 일반 한글 토큰 추출을 제거하고 정규화 식별자/이메일 중심으로 보정
+- [16:12] 완료: recipient_roles strict guard(To 교집합, 발신자/참조 제외, 인사/헤더/참조 근거 필터, 모호 역할 보정) 적용 및 관련 테스트 31건 통과
+
+## 실행 Plan v20 (Schema Catalog 문서화)
+- [x] 1단계: 현재 StructOut 타입/의도 매핑 정리
+- [x] 2단계: 공통 스키마 카탈로그 초안 작성(5~8개)
+- [x] 3단계: 신규 질의 추가 절차(결정 트리) 문서화
+- [x] 4단계: 예시 문장→스키마 매핑표 작성
+- [x] 5단계: task.md 로그 기록
+
+## Action Log (2026-03-03 Schema Catalog 문서화)
+- [16:14] 작업 시작: 의도 그룹별 출력 스키마 카탈로그 문서(SCHEMA_CATALOG.md) 작성 시작
+- [16:16] 완료: 루트 `SCHEMA_CATALOG.md` 작성(공통 스키마 6종, 라우팅 결정 트리, 신규 스키마 추가 기준/절차, recipient_todos 초안 포함)
+
+## 실행 Plan v21 (recipient_todos 구현)
+- [x] 1단계: 응답 계약에 `recipient_todos` 필드/정규화 모델 추가
+- [x] 2단계: 프롬프트 JSON 계약과 생성 규칙에 `recipient_todos` 반영
+- [x] 3단계: 후처리에서 contract 기반 `recipient_todos` 표 렌더 추가
+- [x] 4단계: strict guard(To 수신자 범위/기한 형식/근거 품질) 적용
+- [x] 5단계: 테스트(TDD) 및 회귀 실행, task.md 기록
+
+## Action Log (2026-03-03 recipient_todos 구현)
+- [16:17] 작업 시작: 수신자별 ToDo/마감기한 StructOut(`recipient_todos`) 구현 시작
+- [16:20] 완료: `recipient_todos` 계약/프롬프트/후처리 표 렌더 및 strict guard(To 범위/기한 형식/근거 품질) 반영, 관련 테스트 23건 통과
+
+## 실행 Plan v22 (recipient_todos 품질 가드 강화)
+- [x] 1단계: confidence 자동 점수화 규칙 테스트 추가
+- [x] 2단계: 근거 부족 시 due_date를 `미정`으로 강제하는 규칙 추가
+- [x] 3단계: recipient_todos guard 로직에 품질 점수 계산 연결
+- [x] 4단계: 후처리 렌더 회귀 테스트 실행
+- [x] 5단계: task.md 로그 기록
+
+## Action Log (2026-03-03 recipient_todos 품질 가드 강화)
+- [16:22] 작업 시작: recipient_todos 신뢰도 자동 산정 및 마감기한 근거 검증 강화 시작
+- [16:23] 이슈 발생: 신규 `due_date 강제 미정` 규칙으로 기존 테스트 기대값(고정 날짜)이 불일치 → 정책 기준에 맞게 기대값을 `미정`으로 갱신
+- [16:24] 완료: confidence 자동 점수화(0 입력 시 품질 기반 산정) 및 근거 약한 due_date `미정` 강제 반영, 관련 테스트 34건 통과
+
+## 실행 Plan v23 (요약형 ToDo 요청에서 실행툴 오탐 방지)
+- [x] 1단계: 라우팅/프롬프트 규칙에 `요약/정리/표` 기반 ToDo 요청은 생성툴 호출 금지 조건 추가
+- [x] 2단계: 정책/프롬프트 단위 테스트(TDD) 추가
+- [x] 3단계: 관련 테스트 실행 후 회귀 확인
+- [x] 4단계: Action Log에 결과/이슈 기록
+
+## Action Log (v23)
+- [16:30] 작업 시작: 요약형 ToDo 질의가 `create_outlook_todo` HIL로 오탐되는 문제 수정 착수
+- [16:33] 완료: 라우팅 지시+프롬프트 계약에 요약형 ToDo 질의 실행툴 금지 규칙 반영, 관련 테스트 26건 통과
+
+## 실행 Plan v24 (Intent Taxonomy 설정 분리)
+- [x] 1단계: `intent_taxonomy` 설정 파일/로더 추가(캐시+mtime reload)
+- [x] 2단계: 요약형 ToDo 실행금지 판별 로직을 설정 기반으로 전환
+- [x] 3단계: 단위 테스트(TDD) 추가 및 회귀 실행
+- [x] 4단계: 루트 가이드 문서 추가 및 Action Log 반영
+
+## Action Log (v24)
+- [16:36] 작업 시작: ToDo 요약/등록 분기 규칙을 intent taxonomy 설정으로 외부화 작업 시작
+- [16:42] 완료: `intent_taxonomy.json` + 설정 로더/정책 연동/가이드/테스트 추가, 관련 테스트 29건 통과
+
+## 실행 Plan v25 (recipient_todos 신뢰도 필드 제거)
+- [x] 1단계: 응답 계약(`recipient_todos`)에서 confidence 필드 제거
+- [x] 2단계: guard/렌더 로직에서 confidence 계산/표시 제거
+- [x] 3단계: 프롬프트/문서 스키마 예시 동기화
+- [x] 4단계: 테스트(TDD) 갱신 및 회귀 실행
+- [x] 5단계: Action Log 기록
+
+## Action Log (v25)
+- [16:47] 작업 시작: recipient_todos 스키마에서 confidence(신뢰도) 필드 제거 착수
+- [16:50] 완료: recipient_todos 계약/가드/표 렌더/프롬프트/카탈로그에서 신뢰도 제거, 관련 테스트 35건 통과
+
+## 실행 Plan v26 (할일 등록 의도 확인질문 오탐 제거)
+- [x] 1단계: intent clarification 예외 규칙에 `todo/할일 등록` 추가
+- [x] 2단계: 관련 단위 테스트(TDD) 추가
+- [x] 3단계: 회귀 테스트 실행
+- [x] 4단계: Action Log 반영
+
+## Action Log (v26)
+- [16:55] 작업 시작: `현재메일 ... 할일로 등록` 요청이 의도 확인질문으로 분기되는 오탐 수정 시작
+- [16:58] 완료: `todo/할일 + 등록` 질의는 intent clarification 예외 처리로 deep-agent 실행 고정, 관련 테스트 13건 통과
+
+## 실행 Plan v27 (/search/chat/confirm 500 수정)
+- [x] 1단계: deep_chat_agent `resume_pending_actions` 호출 인자 누락 수정
+- [x] 2단계: confirm 경로 회귀 테스트 추가/보강
+- [x] 3단계: 관련 테스트 실행
+- [x] 4단계: Action Log 반영
+
+## Action Log (v27)
+- [17:03] 작업 시작: `/search/chat/confirm` 500(TypeError: _build_turn_response user_message 누락) 수정 시작
+- [17:05] 완료: `_build_turn_response` user_message 기본값 적용 및 confirm 경로 회귀 테스트 추가, 관련 테스트 12건 통과
+
+## 실행 Plan v28 (회의 제안 UI/시간 기본값/카드 연동 개선)
+- [x] 1단계: 회의 제안 섹션 타이틀 스타일(14px, bold) 적용
+- [x] 2단계: 본문 시간 미기재 시 업무시간 기본값(정시) 제안으로 강제
+- [x] 3단계: 시간/회의실 제안 클릭 시 카드 입력값 반영 경로 점검 및 보정
+- [x] 4단계: 회의실 예약 제목 포맷(`[회의실]회의룸 정보`) 반영
+- [x] 5단계: 테스트 추가/갱신(TDD) 및 회귀 실행
+- [x] 6단계: Action Log 반영
+
+## Action Log (v28)
+- [17:12] 작업 시작: 회의 제안 UI/시간 기본값/카드 연동 개선 작업 착수
+- [17:18] 완료: 회의 제안 메시지 섹션을 `###` 헤딩으로 정형화해 가독성(굵게/크기 강조)을 반영하고, 본문 시간 미기재 또는 새벽 시간 힌트는 업무시간 기본 슬롯(10:00/14:00/16:00)으로 보정하도록 개선
+- [17:19] 완료: 시간/회의실 제안 선택값이 일정 카드 입력값(날짜/시작/종료/회의실 표시)에 즉시 반영되도록 프론트 액션 연동 보강 및 회의실 예약 제목을 `[회의실] 건물 층 회의실` 포맷으로 통일
+- [17:20] 완료: 회귀 테스트 통과(Python 7건: `tests/test_bootstrap_meeting_routes.py`, `tests/test_meeting_mail_suggestion_service.py` / Node 45건: `tests/test_taskpane_messages_render.cjs`, `tests/test_taskpane_chat_actions.cjs`)
+
+## 실행 Plan v29 (회의 제안 본문 중복 제거)
+- [x] 1단계: 회의 제안 메시지에서 시간/회의실 제안 텍스트 블록 제거
+- [x] 2단계: 카드의 시간/회의실 제안 셀렉터는 유지(기능 영향 없음) 확인
+- [x] 3단계: 관련 프론트 테스트 실행
+- [x] 4단계: Action Log 반영
+
+## Action Log (v29)
+- [17:24] 작업 시작: 회의 제안 본문의 시간/회의실 중복 표시 제거 작업 착수
+- [17:26] 완료: `buildMeetingSuggestionMessage`에서 시간/회의실 제안 텍스트 블록을 제거하고 카드 셀렉터를 단일 선택 진입점으로 유지
+- [17:27] 완료: 프론트 회귀 테스트 통과(`tests/test_taskpane_messages_render.cjs`, `tests/test_taskpane_chat_actions.cjs`, `tests/test_taskpane_helpers.cjs` / 62건)
+
+## 실행 Plan v30 (정적 캐시 무효화)
+- [x] 1단계: `taskpane.send.js` 정적 버전 쿼리 상향
+- [x] 2단계: manifest `taskpane.html` 버전 쿼리 상향
+- [x] 3단계: Action Log 반영
+
+## Action Log (v30)
+- [17:31] 작업 시작: 회의 제안 본문 중복 제거 미반영 이슈에 대해 Add-in 정적 캐시 무효화 적용 시작
+- [17:32] 완료: `taskpane.send.js` 버전을 `20260303-01`로 상향하고 manifest `taskpane.html` 버전을 `20260303-22`로 갱신해 구버전 캐시 로드 경로 차단
+
+## 실행 Plan v31 (LLM 기반 다음 액션 추천)
+- [x] 1단계: 후속 추천 스키마/서비스 추가(LLM 생성, 규칙 고정 추천 금지)
+- [x] 2단계: `/search/chat` 응답 metadata에 `next_actions` 연결
+- [x] 3단계: Add-in에 `이어 할 수 있어요` 추천 카드 렌더 추가
+- [x] 4단계: 추천 클릭 시 후속 질문 자동 실행 흐름 연결
+- [x] 5단계: 테스트(TDD) 추가/갱신 및 회귀 실행
+- [x] 6단계: Action Log 반영
+
+## Action Log (v31)
+- [17:38] 작업 시작: 응답 이후 LLM 기반 다음 액션 추천(생성+노출+클릭 실행) 구현 착수
+- [17:44] 완료: `next_action_recommender` 서비스 추가(OpenAI JSON 생성 기반 1~3개 추천), `/search/chat` metadata `next_actions` 연결
+- [17:46] 완료: Add-in 메시지에 `💡 이어서 할 수 있어요` 추천 카드 렌더 + 추천 클릭 시 후속 질의 자동 실행 경로 추가
+- [17:47] 완료: 테스트 통과(Python 18건: `tests/test_next_action_recommender.py` 포함 / Node 47건: `taskpane_messages_render`, `taskpane_chat_actions`)
+
+## 실행 Plan v32 (후속추천 카드 UI 트렌드 반영)
+- [x] 1단계: 트렌드 조사 기반 카드형 레이아웃(헤더/설명/액션) 적용
+- [x] 2단계: `이어 할 수 있어요` 블록의 버튼 시각 스타일/상태 개선
+- [x] 3단계: 모바일 폭 대응/접근성 포커스 스타일 보강
+- [x] 4단계: 프론트 테스트 회귀 실행
+- [x] 5단계: Action Log 반영
+
+## Action Log (v32)
+- [17:52] 작업 시작: `이어 할 수 있어요` 영역을 카드형 트렌드 UI로 개선 작업 착수
+- [17:56] 완료: `이어 할 수 있어요`를 카드형(헤더/서브카피/액션 리스트)으로 재구성하고 액션 버튼 hover/focus/priority 스타일을 추가해 기존 몰두봇 톤과 정합되게 개선
+- [17:57] 완료: 정적 캐시 무효화를 위해 `taskpane.css`/manifest taskpane 버전 상향
+- [17:58] 완료: 프론트 회귀 테스트 통과(Node 64건: `test_taskpane_messages_render`, `test_taskpane_chat_actions`, `test_taskpane_helpers`)
+
+## 실행 Plan v33 (Tavily 검색 + 출처 팝오버)
+- [x] 1단계: Tavily 검색 서비스 추가 및 질의 트리거 기준 정의
+- [x] 2단계: `/search/chat` metadata에 `web_sources` 포함
+- [x] 3단계: Add-in에 출처 아이콘 스택 + 클릭 팝오버 UI 추가
+- [x] 4단계: 출처 링크 오픈/요약 표시 동작 테스트 추가
+- [x] 5단계: 회귀 테스트 실행 및 Action Log 반영
+
+## Action Log (v33)
+- [18:05] 작업 시작: 기술 질의 대응을 위한 Tavily 기반 웹 출처 검색/표시 기능 구현 착수
+- [18:11] 완료: `web_source_search_service` 추가(Tavily 검색 + 키워드/의도 트리거 + 출처 정규화) 및 `/search/chat` metadata `web_sources` 연결
+- [18:13] 완료: Add-in에 출처 아이콘 스택(`출처`) + 클릭 팝오버(사이트/제목/요약/외부링크) UI 반영, 기존 몰두봇 톤과 정합된 스타일 적용
+- [18:14] 완료: 테스트 통과(Python 14건: `test_web_source_search_service`, `test_search_chat_selected_mail_context` / Node 65건: messages/chat_actions/helpers)
+
+## 실행 Plan v34 (요약 상단 가독성/트렌드 스타일 개선)
+- [x] 1단계: 요약 번호 목록 UI를 카드형 리스트로 리디자인
+- [x] 2단계: 제목/본문 타이포 계층(굵기/줄간격) 보정
+- [x] 3단계: 정적 리소스 버전 상향(캐시 무효화)
+- [x] 4단계: 프론트 회귀 테스트 실행
+- [x] 5단계: Action Log 반영
+
+## Action Log (v34)
+- [18:20] 작업 시작: 상단 요약 문단의 촌스러운 인상을 줄이기 위해 번호 목록 카드형 UI 개선 착수
+- [18:24] 완료: 요약 번호 목록을 카드형 리스트(번호 배지/보더/배경/간격)로 리디자인하고 과도한 Bold를 완화해 가독성/트렌디함 개선
+- [18:25] 완료: 정적 캐시 무효화를 위해 `taskpane.chat.css`/`taskpane.css`/`taskpane.html`/manifest 버전 상향
+- [18:26] 완료: 프론트 회귀 테스트 통과(Node 65건)
+
+## 실행 Plan v35 (임시 스트리밍 프리뷰 + 완료 후 구조화 교체)
+- [x] 1단계: `/search/chat/stream`에 preview 토큰 이벤트를 선택적으로 재도입(최종 completed 계약 유지)
+- [x] 2단계: Add-in 메시지 UI에 임시 스트리밍 버블(상태 라벨 포함) 추가
+- [x] 3단계: completed 수신 시 임시 버블을 최종 구조화 렌더로 원자 교체
+- [x] 4단계: 중간 상태 문구(근거 분석/응답 생성)와 접근성/시인성 스타일 보강
+- [x] 5단계: 테스트(TDD) 추가/갱신 및 회귀 실행
+- [x] 6단계: Action Log 반영
+
+## Action Log (v35)
+- [23:13] 작업 시작: 임시 스트리밍 프리뷰 후 완료 시 최종 구조화 교체 UX 구현 착수
+- [23:22] 완료: `/search/chat/stream`에 `progress(received/processing/finalizing)` + `preview` + `completed` 이벤트를 추가하고 completed 최종 JSON 계약은 유지
+- [23:22] 완료: Add-in에 임시 스트리밍 버블(`임시 생성 중...`)을 도입해 preview 누적 텍스트를 표시하고 completed 수신 시 최종 구조화 메시지로 원자 교체
+- [23:22] 완료: 상태 문구를 `요청 확인/근거 분석/최종 정리` 단계로 보강하고 chat-status/preview 스타일을 시인성 중심으로 조정
+- [23:22] 완료: 테스트 통과(Python 5건: `tests/test_search_chat_stream.py` / Node 93건: `test_taskpane_api_stream`, `test_taskpane_selection_context`, `test_taskpane_messages_render`, `test_taskpane_chat_actions`, `test_taskpane_helpers`)
+
+## 실행 Plan v36 (요약 질의 HIL 납치 방지)
+- [x] 1단계: 요약/분석 같은 비-실행 질의에서 인터럽트 재시도 정책 정의
+- [x] 2단계: `/search/chat` 실행 경로에 인터럽트 자동 정리(거절) 후 1회 재실행 분기 추가
+- [x] 3단계: `/search/chat/stream` 회귀 테스트 추가(TDD)
+- [x] 4단계: 프론트 상태 문구/관련 테스트 회귀 점검
+- [x] 5단계: Action Log 반영
+
+## Action Log (v36)
+- [23:24] 작업 시작: 요약 질의에서 이전 승인 대기(HIL) 카드가 우선 노출되는 납치 이슈 수정 착수
+- [23:26] 완료: 비-실행 질의(`task_type!=action` + 예약/등록 키워드 부재)에서 인터럽트 감지 시 자동 거절 정리 후 동일 질의를 1회 재실행하도록 서버 분기 추가
+- [23:26] 완료: 테스트 통과(Python 6건: `tests/test_search_chat_stream.py` / Node 72건: `test_taskpane_api_stream`, `test_taskpane_selection_context`, `test_taskpane_messages_render`)
+
+## 실행 Plan v37 (프리뷰 스트리밍 체감 강화)
+- [x] 1단계: preview chunk 전송 간격/분량 상수 도입으로 체감 타이핑 보강
+- [x] 2단계: 프론트에서 preview 최소 노출 시간 보장 후 최종 교체
+- [x] 3단계: 회귀 테스트 추가(TDD)
+- [x] 4단계: Action Log 반영
+
+## Action Log (v37)
+- [23:27] 작업 시작: preview 스트리밍이 너무 빨리 지나가 체감이 없는 이슈 수정 착수
+- [23:31] 완료: 서버 preview chunk를 더 잘게(18자) 분할하고 chunk 간 짧은 지연(35ms) + 최대 chunk 수 제한을 적용해 타이핑 체감을 보강
+- [23:31] 완료: 프론트 send 흐름에서 preview 최초 노출 시 최소 520ms 유지 후 최종 응답 카드로 교체하도록 조정
+- [23:31] 완료: 테스트 통과(Python 7건: `tests/test_search_chat_stream.py` / Node 10건: `tests/test_taskpane_send_streaming.cjs`, `tests/test_taskpane_api_stream.cjs`)
+- [23:31] 완료: Add-in 캐시 무효화를 위해 `taskpane.html` 및 manifest 버전 상향
+
+## 실행 Plan v38 (실토큰 스트리밍 전환)
+- [x] 1단계: DeepChatAgent에 단일 실행 기반 token stream 경로 추가(중복 실행 금지)
+- [x] 2단계: `/search/chat/stream`에서 token SSE 실시간 중계 + completed 최종 JSON 유지
+- [x] 3단계: Add-in에서 token 누적 렌더(임시 버블) 후 completed 시 최종 구조화 교체
+- [x] 4단계: 기존 preview 에뮬레이션 경로 정리(불필요 코드 리팩터링)
+- [x] 5단계: 테스트(TDD) 갱신 및 회귀 실행
+- [x] 6단계: Action Log 반영
+
+## Action Log (v38)
+- [23:38] 작업 시작: 에뮬레이션 preview를 실토큰 스트리밍으로 전환 작업 착수
+- [23:43] 완료: `DeepChatAgent.stream_execute_turn` 추가로 graph 단일 실행에서 토큰 스트리밍 + 최종 상태 응답 구성(중복 실행 제거)
+- [23:43] 완료: `/search/chat/stream`을 `token` SSE 실시간 중계 구조로 전환하고 `completed` 최종 JSON 계약 유지
+- [23:43] 완료: Add-in API/send를 `token` 누적 렌더 방식으로 전환하고 preview 에뮬레이션 경로를 제거/정리
+- [23:43] 완료: 테스트 통과(Python 6건: `tests/test_search_chat_stream.py` / Node 10건: `tests/test_taskpane_api_stream.cjs`, `tests/test_taskpane_send_streaming.cjs`)
+- [23:43] 완료: 정적 캐시 무효화를 위해 taskpane/manifest 버전 상향
+
+## 실행 Plan v39 (스트리밍 UI 정제: JSON 숨김 + 생각중 중심)
+- [x] 1단계: token 프리뷰 필터링 규칙 추가(JSON 토큰은 노출 금지)
+- [x] 2단계: token 구간 상태 문구를 "생각하는 중" 중심으로 정리
+- [x] 3단계: 프론트 테스트 추가(TDD)
+- [x] 4단계: 정적 캐시 버전 상향 및 Action Log 반영
+
+## Action Log (v39)
+- [23:45] 작업 시작: 스트리밍 중 JSON 원문 노출 제거 및 ChatGPT/Claude 유사 상태 UX 정제 착수
+- [04:31] 완료: `taskpane.send.js`에 JSON-like 토큰 감지/숨김 로직을 추가해 스트리밍 중 내부 계약(JSON) 노출을 차단
+- [04:31] 완료: token 구간에서 사용자 노출 텍스트가 없으면 프리뷰 버블 대신 `생각하는 중...` 상태만 유지하도록 UX 보정
+- [04:31] 완료: 강제 프리뷰 최소 노출시간을 520ms→220ms로 축소해 체감 지연을 완화
+- [04:31] 완료: 테스트 통과(Node 30건: `tests/test_taskpane_send_streaming.cjs`, `tests/test_taskpane_api_stream.cjs`, `tests/test_taskpane_selection_context.cjs` / Python 6건: `tests/test_search_chat_stream.py`)
+- [04:31] 완료: 캐시 무효화를 위해 `taskpane.html`/manifest 버전을 `20260304-01`로 상향
+
+## 실행 Plan v40 (Thinking 제거/위치 재정렬)
+- [x] 1단계: 깜박임(Thinking dot/pulse) 관련 CSS/JS 경로 제거
+- [x] 2단계: 진행 상태 텍스트를 사용자 말풍선 바로 아래에 고정되도록 위치 조정
+- [x] 3단계: SSE 진행 이벤트 처리 로직 단순화(불필요 indicator 제거)
+- [x] 4단계: 테스트 갱신(TDD) 및 캐시 버전 상향
+- [x] 5단계: Action Log 반영
+
+## Action Log (v40)
+- [04:32] 작업 시작: Thinking 깜박임 제거 및 진행 상태 위치 재정렬 작업 착수
+- [04:43] 완료: `taskpane.send.js`/`taskpane.js`/`taskpane.chat_actions.js`에서 `show/clearThinkingIndicator` 호출 제거, `taskpane.layout.css`의 `chat-status`(dot/pulse) 블록 삭제, `taskpane.html`에서 `#chatStatus` 제거
+- [04:43] 완료: 진행 상태를 채팅 인라인(`chatProgressInline`)만 사용하도록 고정하고 사용자 말풍선 아래에 표시되도록 유지
+- [04:43] 완료: 캐시 무효화 버전 상향(`taskpane.html`/manifest) 및 Node 회귀 테스트 78건 통과
+
+## 실행 Plan v41 (500줄 초과 코드 리팩터링)
+- [x] 1단계: 500줄 초과 파일 전수 스캔 및 리팩터링 대상 우선순위 선정(운영 코드 우선)
+- [x] 2단계: 단일 책임 기준으로 모듈 분리/공통화 설계 및 불필요 코드 식별
+- [x] 3단계: 무중단 리팩터링 적용(기능 동일성 유지) + 테스트 보강(TDD)
+- [x] 4단계: 회귀 테스트 실행(프론트/백엔드) 및 사이드이펙트 점검
+- [x] 5단계: Action Log/문서 동기화
+
+## Action Log (v41)
+- [04:49] 작업 시작: 500줄 초과 코드 리팩터링(운영 코드 우선, 부작용 최소화) 착수
+- [04:52] 이슈: `pytest` 명령 미인식(`command not found`) → 해결 방법: `PYTHONPATH=. venv/bin/pytest`로 실행 경로 고정
+- [05:02] 완료: `answer_postprocessor.py`를 오케스트레이터로 축소하고 `contract/mail_search/current_mail` 유틸 모듈로 분리(각 파일 500줄 이하)
+- [05:02] 완료: `answer_postprocessor_summary.py`의 라인 필터 규칙을 `answer_postprocessor_line_filters.py`로 분리(542→405줄)
+- [05:02] 완료: `answer_postprocessor_guards.py` 액션 라인 정규화 공통 함수 분리(508→490줄)
+- [05:02] 완료: `answer_table_spec.py`에서 row dedupe/토큰 정규화/테이블 렌더 유틸을 분리(566→493줄)
+- [05:02] 완료: 회귀 테스트 82건 통과(`test_answer_postprocessor_*`, `test_answer_table_spec.py`, `test_search_chat_stream.py`)
+- [05:02] 완료: 운영 코드 500줄 초과 파일을 8개→5개로 축소(`app/services/chat_eval_service.py`, `app/agents/intent_parser.py`, `app/api/routes.py`, `app/services/answer_postprocessor_rendering.py`, `app/agents/deep_chat_agent.py`)
+
+## 실행 Plan v42 (대형 파일 추가 리팩터링 + taskpane.js 정리)
+- [x] 1단계: 500줄 초과 잔여 파일 중 저위험 대상부터 분리(`answer_postprocessor_rendering.py`, `deep_chat_agent.py`) 
+- [x] 2단계: `taskpane.js` 중복/불필요 로직 점검 후 공통화/삭제
+- [x] 3단계: 관련 테스트(TDD) 보강 및 회귀 실행
+- [x] 4단계: Action Log 반영
+
+## Action Log (v42)
+- [05:04] 작업 시작: 잔여 대형 파일 리팩터링 및 `taskpane.js` 중복/불필요 코드 점검 착수
+- [05:09] 이슈: `deep_chat_agent` 분리 후 테스트가 private 함수 import(`_extract_latest_tool_payload`, `_resolve_thread_id`)에 의존하여 수집 실패 → 해결 방법: 기존 함수명 호환 래퍼 복원
+- [05:13] 완료: `answer_postprocessor_rendering` 분리(`rendering.py` 76줄 + `rendering_summary.py` 352줄 + `rendering_standard.py` 272줄)로 500줄 초과 해소
+- [05:13] 완료: `deep_chat_agent.py`를 유틸 분리(`deep_chat_agent_utils.py`)로 600→394줄 축소, 스트리밍/인터럽트 추출 공통화
+- [05:13] 완료: `taskpane.js` 중복/불필요 점검 결과 치명 중복 없음(옵션 키 중복 라인 미존재 확인), 현재 구조 유지가 안정적임을 검증
+- [05:13] 완료: 테스트 통과(Python 89건 + Node 47건) 및 변경 파일 `py_compile` 스모크 통과
+- [05:13] 완료: 운영 코드 500줄 초과 파일을 5개→3개로 축소(`app/services/chat_eval_service.py`, `app/agents/intent_parser.py`, `app/api/routes.py`)
+
+## 실행 Plan v43 (잔여 대형 파일 완료 리팩터링)
+- [x] 1단계: `app/api/routes.py`를 스트림/핵심 처리/헬퍼로 분리해 500줄 이하로 축소
+- [x] 2단계: `app/agents/intent_parser.py`를 파서/검증/정규화 유틸로 분리
+- [x] 3단계: `app/services/chat_eval_service.py`를 로더/집계/리포트 유틸로 분리
+- [x] 4단계: 회귀 테스트(TDD) + py_compile 스모크 실행
+- [x] 5단계: Action Log 반영
+
+## Action Log (v43)
+- [05:14] 작업 시작: 잔여 대형 파일 3개(routes/intent_parser/chat_eval_service) 리팩터링 착수
+- [05:19] 이슈: 신규 분리 파일(`search_chat_flow.py`, `chat_eval_service_utils.py`)이 각각 500줄을 초과 → 해결 방법: `search_chat_stream_utils.py`, `chat_eval_persistence_utils.py`로 2차 분리
+- [05:23] 이슈: `test_search_chat_stream.py`가 `app.api.routes`의 patch 대상 심볼(`is_openai_key_configured`, `get_deep_chat_agent`, `_execute_agent_turn`)에 의존해 4건 실패 → 해결 방법: routes 호환 심볼 복원 + flow 모듈 의존성 주입 래퍼 추가
+- [05:26] 완료: `routes.py`(166줄), `intent_parser.py`(241줄), `chat_eval_service.py`(191줄)로 축소 완료, 분리 모듈 포함 전부 500줄 이하 준수
+- [05:26] 완료: Python 회귀 118건 + Node 회귀 47건 통과, `taskpane.js` 중복/불필요 로직 재점검(치명 중복 없음)
