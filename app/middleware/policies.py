@@ -4,6 +4,7 @@ from typing import Sequence
 
 from langchain_core.messages import BaseMessage, HumanMessage
 
+from app.core.intent_rules import infer_steps_from_query
 from app.agents.intent_parser import get_intent_parser
 from app.agents.intent_schema import decomposition_to_context_text
 from app.core.logging_config import get_logger
@@ -74,3 +75,19 @@ def compose_intent_augmented_text(user_message: str) -> str:
     context_text = decomposition_to_context_text(decomposition=decomposition)
     return f"{context_text}\n\n원본 사용자 입력:\n{user_message.strip()}"
 
+
+def should_inject_intent_context(user_message: str) -> bool:
+    """
+    사용자 질의에 구조분해 컨텍스트 주입이 필요한지 판별한다.
+
+    Args:
+        user_message: 원본 사용자 질의
+
+    Returns:
+        주입이 필요하면 True
+    """
+    steps = infer_steps_from_query(user_message=user_message)
+    # 단일 메일조회는 규칙 분기가 안정적이라 컨텍스트 주입을 생략해 토큰/지연을 줄인다.
+    if steps == ["search_mails"]:
+        return False
+    return True

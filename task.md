@@ -2038,3 +2038,9 @@
 - [x] 1단계: warm/cold 분리 반복 측정 스크립트 추가
 - [x] 2단계: p95/max/케이스별 상위 지연 자동 집계 구현
 - [x] 3단계: 테스트/실행 검증 및 느린 케이스 Top3 기록
+- [13:50] 완료: mail_search SQL 경량화(의미 토큰 우선/동적 candidate_limit) 및 단순 조회 질의 intent 컨텍스트 주입 생략 적용
+- [13:50] 완료: 관련 테스트 통과(`tests/test_mail_search_service.py`, `tests/test_middleware_policies.py`, `tests/test_intent_rules.py`, `tests/test_search_chat_stream.py`, `tests/test_search_chat_e2e_samples.py`)
+- [13:50] 완료: 동일 벤치 조건 재측정( warmup=1, measure=2, max_cases=5 )
+  - 튜닝 전(직전): avg_elapsed_ms_mean=4916.9, p95_case_elapsed_ms=6816.1
+  - 튜닝 후: avg_elapsed_ms_mean=4499.5, p95_case_elapsed_ms=6125.9
+  - 개선: 평균 약 8.5% 감소, p95 약 10.1% 감소
