@@ -1890,3 +1890,15 @@
 - [10:48] 완료: 미사용 레거시 서비스 `app/services/task_execution_service.py` 삭제로 불필요 코드 정리
 - [10:56] 완료: 회귀 테스트 29건(`test_search_chat_*`, `test_mail_context_service`, `test_langgraph_config` 등) 통과 확인
 - [10:56] 완료: 변경사항 선택 커밋(`refactor(api): chat 경로 공통화 및 current_mail 상태 격리`) 반영
+
+## Plan (2026-03-03 P1 실행: agent tools 모듈 분리)
+- [x] 1단계: `app/agents/tools.py` 의존/테스트 패치 포인트 식별
+- [x] 2단계: 기능 축으로 서브모듈 분리(mail/search/meeting/calendar/todo)
+- [x] 3단계: 기존 import/테스트 호환 레이어 유지 및 불필요 코드 정리
+- [x] 4단계: 관련 테스트 실행 및 회귀 검증
+- [ ] 5단계: task 로그 업데이트 및 커밋
+
+## Action Log (2026-03-03 P1 실행: agent tools 모듈 분리)
+- [10:58] 작업 시작: tools 모듈 분리 리팩터링 착수
+- [11:03] 완료: 회의실/일정/기준날짜 도구를 `app/agents/tools_schedule.py`로 분리하고 `tools.py`를 298줄로 축소(호환 레이어 유지)
+- [11:04] 완료: 관련 회귀 테스트 24건(`test_agent_tools_*`, `test_search_chat_*`, `test_langgraph_config`) 통과
