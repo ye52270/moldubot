@@ -2001,3 +2001,19 @@
 - [x] 1단계: 현재 서버 기준 chat quality/eval 리포트 재실행
 - [x] 2단계: 기존 리포트 대비 지연/품질 지표 비교
 - [x] 3단계: 결과를 task.md에 기록하고 다음 최적화 후보 선정
+
+## Plan (2026-03-03 P6 품질지표 checked_cases 보정)
+- [ ] 1단계: 기본 chat eval 케이스셋에 품질지표 대상 질의(줄수요약/보고서/예약) 추가
+- [ ] 2단계: 관련 테스트 실행으로 회귀 확인
+- [ ] 3단계: 실제 `/qa/chat-eval/run` 샘플 실행으로 checked_cases>0 검증
+
+## Action Log (2026-03-03 P6 품질지표 checked_cases 보정)
+- [13:34] 작업 시작: chat eval 기본 케이스셋에 품질지표 집계 대상 질의 추가 착수
+- [13:37] 완료: `CHAT_EVAL_CASES`에 품질지표 대상 질의 3건 추가(mail-11: N줄요약, mail-12: 보고서, mail-13: 예약)
+- [13:37] 완료: chat eval 관련 테스트 통과(`tests/test_chat_eval_cases.py`, `tests/test_chat_eval_service.py`, `tests/test_chat_eval_routes.py`)
+- [13:37] 완료: `/qa/chat-eval/run` 샘플 검증(case_ids=mail-11,12,13)에서 checked_cases=1/1/1 확인
+
+## Plan 완료 체크 (2026-03-03 P6 품질지표 checked_cases 보정)
+- [x] 1단계: 기본 chat eval 케이스셋에 품질지표 대상 질의(줄수요약/보고서/예약) 추가
+- [x] 2단계: 관련 테스트 실행으로 회귀 확인
+- [x] 3단계: 실제 `/qa/chat-eval/run` 샘플 실행으로 checked_cases>0 검증
