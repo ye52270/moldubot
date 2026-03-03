@@ -1866,3 +1866,26 @@
 ## Action Log (2026-03-03 Mermaid export 코드 정리)
 - [05:50] 작업 시작: LangGraph Studio 실행 완료 기준으로 로컬 Mermaid export 구성 삭제 착수
 - [05:51] 완료: `scripts/export_agent_graph.py`, `tests/test_export_agent_graph.py`, `docs/agent_graph.mmd`를 삭제하고 README의 Mermaid export 안내를 제거, `tests.test_langgraph_config` 재검증 통과
+
+## Plan (2026-03-03 향후개선 문서화)
+- [x] 1단계: 현재 구조 문제/개선 포인트를 문서 구조로 정리
+- [x] 2단계: 루트 `향후개선.md` 신규 작성(우선순위/실행계획/검증지표 포함)
+- [x] 3단계: task.md Action Log 완료 기록
+
+## Action Log (2026-03-03 향후개선 문서화)
+- [05:54] 작업 시작: 구조적 문제/비효율/개선안 내용을 루트 `향후개선.md`로 문서화 착수
+- [09:34] 완료: 루트 `향후개선.md`를 생성해 구조 문제(P0~P2), 공식가이드 연계 개선방향, 단계별 로드맵, TDD/측정지표, 즉시 실행 TODO를 상세 정리
+
+## Plan (2026-03-03 P0 안정화 실행: 상태격리 + chat/stream 공통화)
+- [x] 1단계: current_mail 전역 상태 의존 제거(요청/스레드 단위 context 전달)
+- [x] 2단계: `/search/chat`/`/search/chat/stream` 공통 오케스트레이터 추출
+- [x] 3단계: 불필요/레거시 코드 정리 및 참조 정리
+- [x] 4단계: 회귀 테스트 실행 및 결과 검증
+- [ ] 5단계: task.md Action Log 업데이트 및 커밋
+
+## Action Log (2026-03-03 P0 안정화 실행: 상태격리 + chat/stream 공통화)
+- [09:35] 작업 시작: 추천 우선순위(P0-1, P0-2) 기반 구조 개선 작업 착수
+- [10:34] 완료: `MailService`의 current_mail 저장소를 `ContextVar` 기반으로 전환해 요청 간 상태 오염 위험을 낮춤
+- [10:43] 완료: `/search/chat`와 `/search/chat/stream` 공통 실행 경로 `_run_search_chat`로 통합해 중복 오케스트레이션 제거
+- [10:48] 완료: 미사용 레거시 서비스 `app/services/task_execution_service.py` 삭제로 불필요 코드 정리
+- [10:56] 완료: 회귀 테스트 29건(`test_search_chat_*`, `test_mail_context_service`, `test_langgraph_config` 등) 통과 확인
