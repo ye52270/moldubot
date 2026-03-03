@@ -2017,3 +2017,24 @@
 - [x] 1단계: 기본 chat eval 케이스셋에 품질지표 대상 질의(줄수요약/보고서/예약) 추가
 - [x] 2단계: 관련 테스트 실행으로 회귀 확인
 - [x] 3단계: 실제 `/qa/chat-eval/run` 샘플 실행으로 checked_cases>0 검증
+
+## Plan (2026-03-03 P7 성능 최적화 3차 준비: 측정 체계 고정)
+- [ ] 1단계: warm/cold 분리 반복 측정 스크립트 추가
+- [ ] 2단계: p95/max/케이스별 상위 지연 자동 집계 구현
+- [ ] 3단계: 테스트/실행 검증 및 느린 케이스 Top3 기록
+
+## Action Log (2026-03-03 P7 성능 최적화 3차 준비)
+- [13:39] 작업 시작: 성능 반복 측정 자동화 스크립트 구현 착수
+- [13:43] 이슈 발생: 벤치 스크립트 초기 버전이 케이스별 timeout 고정(90s)으로 실행 지연 과다 → 해결 방법: `run_chat_quality_cases`/스크립트에 `request_timeout_sec`, `max_cases` 파라미터 추가
+- [13:43] 완료: 반복 측정 집계 모듈/스크립트 추가(`app/services/chat_quality_benchmark.py`, `scripts/benchmark_chat_quality.py`)
+- [13:43] 완료: 집계/runner 테스트 통과(`tests/test_chat_quality_benchmark.py`, `tests/test_eval_chat_quality_cases_runner.py`, `tests/test_chat_quality_metrics.py`)
+- [13:43] 완료: 벤치 실행 결과(top3 느린 케이스) 기록
+  - run_count=2, avg_elapsed_ms_mean=4510.7, p95_case_elapsed_ms=6126.6
+  - Top1 case_id=5 (박준용 관련 2월 메일)
+  - Top2 case_id=3 (조영득 관련 2월 메일 요약)
+  - Top3 case_id=1 (M365 프로젝트 최근 2주 메일)
+
+## Plan 완료 체크 (2026-03-03 P7 성능 최적화 3차 준비: 측정 체계 고정)
+- [x] 1단계: warm/cold 분리 반복 측정 스크립트 추가
+- [x] 2단계: p95/max/케이스별 상위 지연 자동 집계 구현
+- [x] 3단계: 테스트/실행 검증 및 느린 케이스 Top3 기록
