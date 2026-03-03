@@ -1948,3 +1948,19 @@
 - [x] 2단계: 상대 날짜 공통 변환 유틸 확장(`모레`, `다음주`, `지난주`)
 - [x] 3단계: 회의실 예약/일정 생성 경로에 공통 유틸 적용
 - [x] 4단계: 테스트 추가(TDD) 및 회귀 검증
+
+## Plan (2026-03-03 P3 품질 지표 자동화)
+- [ ] 1단계: `/qa/chat-eval/run` 리포트 summary에 품질 지표(요약 줄수/보고서 형식/예약 실패 사유) 집계 추가
+- [ ] 2단계: chat eval 서비스 단위 테스트(TDD)로 지표 계산 계약 검증
+- [ ] 3단계: 관련 회귀 테스트 실행 및 결과 기록
+
+## Action Log (2026-03-03 P3 품질 지표 자동화)
+- [13:16] 작업 시작: chat_eval report summary에 자동 품질 지표 집계 추가 착수
+- [13:17] 완료: `chat_eval_service` summary에 자동 품질 지표 3종(요약 줄수/보고서 형식/예약 실패 사유) 집계 추가
+- [13:17] 완료: 품질 지표 모듈 분리(`app/services/chat_eval_quality_metrics.py`) 및 서비스/지표 테스트 보강
+- [13:17] 완료: 회귀 테스트 통과(`tests/test_chat_quality_metrics.py`, `tests/test_chat_eval_service.py`, `tests/test_chat_eval_routes.py`, `tests/test_chat_quality_ab.py`, `tests/test_chat_quality_non_mail_ab.py`)
+
+## Plan 완료 체크 (2026-03-03 P3 품질 지표 자동화)
+- [x] 1단계: `/qa/chat-eval/run` 리포트 summary에 품질 지표(요약 줄수/보고서 형식/예약 실패 사유) 집계 추가
+- [x] 2단계: chat eval 서비스 단위 테스트(TDD)로 지표 계산 계약 검증
+- [x] 3단계: 관련 회귀 테스트 실행 및 결과 기록
