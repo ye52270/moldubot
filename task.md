@@ -1881,7 +1881,7 @@
 - [x] 2단계: `/search/chat`/`/search/chat/stream` 공통 오케스트레이터 추출
 - [x] 3단계: 불필요/레거시 코드 정리 및 참조 정리
 - [x] 4단계: 회귀 테스트 실행 및 결과 검증
-- [ ] 5단계: task.md Action Log 업데이트 및 커밋
+- [x] 5단계: task.md Action Log 업데이트 및 커밋
 
 ## Action Log (2026-03-03 P0 안정화 실행: 상태격리 + chat/stream 공통화)
 - [09:35] 작업 시작: 추천 우선순위(P0-1, P0-2) 기반 구조 개선 작업 착수
@@ -1889,3 +1889,4 @@
 - [10:43] 완료: `/search/chat`와 `/search/chat/stream` 공통 실행 경로 `_run_search_chat`로 통합해 중복 오케스트레이션 제거
 - [10:48] 완료: 미사용 레거시 서비스 `app/services/task_execution_service.py` 삭제로 불필요 코드 정리
 - [10:56] 완료: 회귀 테스트 29건(`test_search_chat_*`, `test_mail_context_service`, `test_langgraph_config` 등) 통과 확인
+- [10:56] 완료: 변경사항 선택 커밋(`refactor(api): chat 경로 공통화 및 current_mail 상태 격리`) 반영
