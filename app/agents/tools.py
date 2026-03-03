@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from contextvars import ContextVar
+from copy import deepcopy
 from datetime import datetime
 from pathlib import Path
 import re
@@ -39,6 +41,10 @@ MAIL_PREFIX_PATTERN = re.compile(
     r"^(?:(?:\s*(?:re|fw|fwd|sv|답장|전달)\s*[:：]\s*)+)",
     flags=re.IGNORECASE,
 )
+_POST_ACTION_CACHE_CTX: ContextVar[dict[str, dict[str, Any]]] = ContextVar(
+    "agent_tools_post_action_cache",
+    default={},
+)
 
 
 def prime_current_mail(mail: MailRecord) -> None:
@@ -49,6 +55,7 @@ def prime_current_mail(mail: MailRecord) -> None:
         mail: 현재 메일로 설정할 레코드
     """
     _MAIL_SERVICE.set_current_mail(mail=mail)
+    _clear_post_action_cache()
 
 
 def clear_current_mail() -> None:
@@ -56,6 +63,31 @@ def clear_current_mail() -> None:
     에이전트 메일 컨텍스트 캐시를 초기화한다.
     """
     _MAIL_SERVICE.clear_current_mail()
+    _clear_post_action_cache()
+
+
+def _clear_post_action_cache() -> None:
+    """
+    후속작업 결과 캐시를 초기화한다.
+    """
+    _POST_ACTION_CACHE_CTX.set({})
+
+
+def _build_post_action_cache_key(mail: MailRecord, action: str, summary_line_target: int) -> str:
+    """
+    후속작업 캐시 키를 생성한다.
+
+    Args:
+        mail: 현재 메일 컨텍스트
+        action: 후속 액션명
+        summary_line_target: 요약 줄수 목표
+
+    Returns:
+        캐시 키 문자열
+    """
+    normalized_action = str(action or "").strip().lower() or "summary"
+    normalized_target = max(1, int(summary_line_target or 5))
+    return f"{mail.message_id}:{normalized_action}:{normalized_target}"
 
 
 def _collapse_whitespace(text: str) -> str:
@@ -193,11 +225,26 @@ def run_mail_post_action(action: str = "summary", summary_line_target: int = 5) 
     if mail is None:
         return {"status": "failed", "reason": "현재 메일을 찾지 못했습니다."}
 
+    cache_key = _build_post_action_cache_key(
+        mail=mail,
+        action=action,
+        summary_line_target=summary_line_target,
+    )
+    cache_store = _POST_ACTION_CACHE_CTX.get()
+    cached = cache_store.get(cache_key) if isinstance(cache_store, dict) else None
+    if isinstance(cached, dict):
+        logger.info("run_mail_post_action cache hit: key=%s", cache_key)
+        return deepcopy(cached)
+
     payload = _MAIL_SERVICE.run_post_action(
         action=action,
         summary_line_target=summary_line_target,
     )
-    return {"status": "completed", **payload}
+    result = {"status": "completed", **payload}
+    next_cache = dict(cache_store) if isinstance(cache_store, dict) else {}
+    next_cache[cache_key] = deepcopy(result)
+    _POST_ACTION_CACHE_CTX.set(next_cache)
+    return result
 
 
 @tool

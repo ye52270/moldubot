@@ -1964,3 +1964,19 @@
 - [x] 1단계: `/qa/chat-eval/run` 리포트 summary에 품질 지표(요약 줄수/보고서 형식/예약 실패 사유) 집계 추가
 - [x] 2단계: chat eval 서비스 단위 테스트(TDD)로 지표 계산 계약 검증
 - [x] 3단계: 관련 회귀 테스트 실행 및 결과 기록
+
+## Plan (2026-03-03 P4 지연 최적화 2차: tool 호출 축소)
+- [ ] 1단계: `run_mail_post_action` 중복 호출 방지 캐시 도입(요청/메일 단위)
+- [ ] 2단계: 캐시 무효화 조건(메일 변경/컨텍스트 초기화) 반영
+- [ ] 3단계: 단위 테스트(TDD) 추가 및 회귀 테스트 실행
+
+## Action Log (2026-03-03 P4 지연 최적화 2차)
+- [13:20] 작업 시작: `run_mail_post_action` 중복 호출 축소 캐시 구현 착수
+- [13:21] 이슈 발생: 신규 캐시 테스트가 기존 tool 반환 계약(`status=context_only`) 기대와 불일치 → 해결 방법: 테스트 기대값을 기존 계약 기준으로 수정
+- [13:21] 완료: `run_mail_post_action` 캐시 적용(동일 메일/액션/줄수 재호출 생략) 및 컨텍스트 변경 시 캐시 무효화 반영
+- [13:21] 완료: 회귀 테스트 통과(`tests/test_agent_tools_post_action_cache.py`, `tests/test_agent_tools_current_mail_guard.py`, `tests/test_mail_post_action.py`, `tests/test_search_chat_selected_mail_context.py`, `tests/test_agent_tools_registry.py`, `tests/test_search_chat_hitl.py`)
+
+## Plan 완료 체크 (2026-03-03 P4 지연 최적화 2차: tool 호출 축소)
+- [x] 1단계: `run_mail_post_action` 중복 호출 방지 캐시 도입(요청/메일 단위)
+- [x] 2단계: 캐시 무효화 조건(메일 변경/컨텍스트 초기화) 반영
+- [x] 3단계: 단위 테스트(TDD) 추가 및 회귀 테스트 실행
