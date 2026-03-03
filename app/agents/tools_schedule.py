@@ -263,19 +263,26 @@ def create_outlook_calendar_event(
     if not title:
         return {"status": "failed", "reason": "subject는 필수입니다."}
     date_text = str(date or "").strip()
+    normalized_date = resolve_booking_date_token(raw_date=date_text)
     start = str(start_time or "").strip()
     end = str(end_time or "").strip()
     try:
-        datetime.strptime(f"{date_text} {start}", "%Y-%m-%d %H:%M")
-        datetime.strptime(f"{date_text} {end}", "%Y-%m-%d %H:%M")
+        datetime.strptime(f"{normalized_date} {start}", "%Y-%m-%d %H:%M")
+        datetime.strptime(f"{normalized_date} {end}", "%Y-%m-%d %H:%M")
     except ValueError:
         return {"status": "failed", "reason": "date/start_time/end_time 형식이 유효하지 않습니다."}
+    if normalized_date != date_text:
+        logger.info(
+            "create_outlook_calendar_event 날짜 변환 적용: raw_date=%s normalized_date=%s",
+            date_text,
+            normalized_date,
+        )
     valid_attendees, invalid_attendees = _normalize_attendee_inputs(attendees=attendees)
     body_text = _append_attendee_note(body_text=str(body or "").strip(), attendee_notes=invalid_attendees)
     event = _CALENDAR_CLIENT.create_event(
         subject=title,
-        start_iso=f"{date_text}T{start}:00",
-        end_iso=f"{date_text}T{end}:00",
+        start_iso=f"{normalized_date}T{start}:00",
+        end_iso=f"{normalized_date}T{end}:00",
         body_text=body_text,
         attendees=valid_attendees,
     )
@@ -284,12 +291,12 @@ def create_outlook_calendar_event(
     return {
         "action": "create_outlook_calendar_event",
         "status": "completed",
-        "answer": f"{date_text} {start}-{end} 일정 등록을 완료했습니다.",
+        "answer": f"{normalized_date} {start}-{end} 일정 등록을 완료했습니다.",
         "event": {
             "id": event.event_id,
             "web_link": event.web_link,
             "subject": title,
-            "date": date_text,
+            "date": normalized_date,
             "start_time": start,
             "end_time": end,
         },

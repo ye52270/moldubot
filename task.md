@@ -1939,3 +1939,12 @@
 - [x] 2단계: 동일 질의 결과 메모이제이션으로 반복 요청 지연 감소
 - [x] 3단계: 단위 테스트(TDD) 추가/수정으로 회귀 방지
 - [x] 4단계: 관련 테스트 실행 및 성능 개선 근거 기록
+- [11:34] 이슈 발생: 회의실 예약 응답의 `booking.date`가 상대 날짜 원문(`내일`)으로 유지됨 → 해결 방법: 예약 응답 구성 시 정규화 날짜(`YYYY-MM-DD`)로 교체
+- [11:34] 완료: 상대 날짜 해석 공통화 적용(회의실 예약/일정 생성/툴 경로) 및 date resolver 토큰 확장(`모레`, `다음주/지난주`)
+- [11:34] 완료: TDD 검증 통과(`tests/test_date_resolver.py`, `tests/test_tools_schedule_date_resolution.py`, `tests/test_bootstrap_meeting_routes.py`, `tests/test_search_chat_hitl.py`, `tests/test_bootstrap_search_chat_confirm.py`)
+
+## Plan 완료 체크 (2026-03-03 P2 날짜 해석 안정화)
+- [x] 1단계: 예약/일정 생성 경로의 날짜 정규화 적용 지점 정리
+- [x] 2단계: 상대 날짜 공통 변환 유틸 확장(`모레`, `다음주`, `지난주`)
+- [x] 3단계: 회의실 예약/일정 생성 경로에 공통 유틸 적용
+- [x] 4단계: 테스트 추가(TDD) 및 회귀 검증

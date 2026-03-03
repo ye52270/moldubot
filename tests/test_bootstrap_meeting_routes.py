@@ -63,6 +63,34 @@ class BootstrapMeetingRoutesTest(unittest.TestCase):
         self.assertEqual("event-123", payload.get("event", {}).get("id"))
         self.assertIn("회의 안건: M365 구축 일정 논의", str(mocked_create_event.call_args.kwargs.get("body_text")))
 
+    def test_meeting_room_book_normalizes_relative_date(self) -> None:
+        fake_rooms = [{"building": "sku-tower", "floor": 18, "room_name": "1801", "capacity": 8}]
+        with patch("app.api.bootstrap_meeting_calendar_routes.load_meeting_rooms", return_value=fake_rooms):
+            with patch("app.api.bootstrap_meeting_calendar_routes.resolve_booking_date_token", return_value="2026-03-04"):
+                with patch(
+                    "app.api.bootstrap_meeting_calendar_routes.calendar_client.create_event",
+                    return_value=GraphCalendarEvent(event_id="event-777", web_link="https://outlook.live.com/event/777"),
+                ) as mocked_create_event:
+                    response = self.client.post(
+                        "/api/meeting-rooms/book",
+                        json={
+                            "building": "sku-tower",
+                            "floor": 18,
+                            "room_name": "1801",
+                            "date": "내일",
+                            "start_time": "10:00",
+                            "end_time": "11:00",
+                            "attendee_count": 4,
+                            "subject": "운영 점검",
+                        },
+                    )
+
+        self.assertEqual(200, response.status_code)
+        payload = response.json()
+        self.assertEqual("completed", payload.get("status"))
+        self.assertEqual("2026-03-04", payload.get("booking", {}).get("date"))
+        self.assertEqual("2026-03-04T10:00:00", mocked_create_event.call_args.kwargs.get("start_iso"))
+
     def test_meeting_room_suggestion_from_current_mail(self) -> None:
         fake_mail = SimpleNamespace(
             subject="FW: M365 구축 일정 협의 요청",

@@ -9,6 +9,7 @@ from fastapi import APIRouter
 
 from app.api.contracts import CalendarEventCreateRequest, CalendarSuggestionRequest, MeetingSuggestionRequest, RoomBookingRequest
 from app.api.data_access import meeting_rooms as load_meeting_rooms
+from app.core.date_resolver import resolve_booking_date_token
 from app.core.logging_config import get_logger
 from app.integrations.microsoft_graph.calendar_client import GraphCalendarClient
 from app.services.calendar_mail_suggestion_service import suggest_calendar_plan_from_mail
@@ -101,11 +102,14 @@ def meeting_room_book(payload: RoomBookingRequest) -> dict[str, Any]:
     Returns:
         예약 접수 결과
     """
-    date_text = str(payload.date or "").strip()
+    raw_date_text = str(payload.date or "").strip()
+    date_text = resolve_booking_date_token(raw_date=raw_date_text)
     start_time = str(payload.start_time or "").strip()
     end_time = str(payload.end_time or "").strip()
     if not _is_valid_booking_datetime(date_text=date_text, start_time=start_time, end_time=end_time):
         return {"status": "failed", "reason": "date/start_time/end_time 형식이 유효하지 않습니다."}
+    if date_text != raw_date_text:
+        logger.info("meeting_room_book 날짜 변환 적용: raw_date=%s normalized_date=%s", raw_date_text, date_text)
     if _is_past_booking_date(date_text=date_text):
         return {"status": "failed", "reason": "과거 날짜는 예약할 수 없습니다."}
 
@@ -140,6 +144,7 @@ def meeting_room_book(payload: RoomBookingRequest) -> dict[str, Any]:
         return {"status": "failed", "reason": "Graph 일정 생성에 실패했습니다. 설정/로그인을 확인해 주세요."}
 
     booking = payload.model_dump()
+    booking["date"] = date_text
     booking["attendee_count"] = attendee_count
     booking["subject"] = title
     return {
@@ -196,11 +201,18 @@ def create_calendar_event(payload: CalendarEventCreateRequest) -> dict[str, Any]
     Returns:
         생성 결과
     """
-    date_text = str(payload.date or "").strip()
+    raw_date_text = str(payload.date or "").strip()
+    date_text = resolve_booking_date_token(raw_date=raw_date_text)
     start_time = str(payload.start_time or "").strip()
     end_time = str(payload.end_time or "").strip()
     if not _is_valid_booking_datetime(date_text=date_text, start_time=start_time, end_time=end_time):
         return {"status": "failed", "reason": "date/start_time/end_time 형식이 유효하지 않습니다."}
+    if date_text != raw_date_text:
+        logger.info(
+            "create_calendar_event 날짜 변환 적용: raw_date=%s normalized_date=%s",
+            raw_date_text,
+            date_text,
+        )
     title = str(payload.subject or "").strip()
     if not title:
         return {"status": "failed", "reason": "subject는 필수입니다."}
