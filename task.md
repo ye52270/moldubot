@@ -1903,3 +1903,22 @@
 - [11:03] 완료: 회의실/일정/기준날짜 도구를 `app/agents/tools_schedule.py`로 분리하고 `tools.py`를 298줄로 축소(호환 레이어 유지)
 - [11:04] 완료: 관련 회귀 테스트 24건(`test_agent_tools_*`, `test_search_chat_*`, `test_langgraph_config`) 통과
 - [11:04] 완료: 변경사항 커밋(`refactor(agent): scheduling tools 모듈 분리`) 반영
+
+## Plan (2026-03-03 P1-2 bootstrap_routes 모듈 분리 검증)
+- [ ] 1단계: `bootstrap_routes` 분리 파일(회의/레거시/운영) 엔드포인트 정합성 점검
+- [ ] 2단계: 관련 테스트 실행(`test_bootstrap_*`, `test_chat_eval_routes`)으로 회귀 확인
+- [ ] 3단계: 실패 케이스 수정 및 재검증
+- [ ] 4단계: 불필요 코드/중복 import 정리
+- [ ] 5단계: 결과를 task 로그에 기록하고 커밋
+
+## Action Log (2026-03-03 P1-2 bootstrap_routes 모듈 분리 검증)
+- [11:25] 작업 시작: `bootstrap_routes.py` 모듈 분리본(3개 서브 라우터 포함) 회귀 검증 및 정리 착수
+- [11:26] 이슈 발생: `venv`에 `pytest` 미설치로 회귀 테스트 실행 불가 → 해결 방법: `venv/bin/pip install pytest` 후 재실행
+- [11:26] 완료: `bootstrap_routes` 분리 회귀 테스트 통과(16 passed) 및 테스트 patch 경로를 분리 모듈(`bootstrap_meeting_calendar_routes`, `bootstrap_ops_routes`)로 정합화
+
+## Plan 완료 체크 (2026-03-03 P1-2 bootstrap_routes 모듈 분리 검증)
+- [x] 1단계: `bootstrap_routes` 분리 파일(회의/레거시/운영) 엔드포인트 정합성 점검
+- [x] 2단계: 관련 테스트 실행(`test_bootstrap_*`, `test_chat_eval_routes`)으로 회귀 확인
+- [x] 3단계: 실패 케이스 수정 및 재검증
+- [x] 4단계: 불필요 코드/중복 import 정리
+- [x] 5단계: 결과를 task 로그에 기록하고 커밋
