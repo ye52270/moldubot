@@ -67,9 +67,24 @@ class IntentParserFastPathTest(unittest.TestCase):
             result = parser.parse("현재메일 요약해줘")
         self.assertEqual([ExecutionStep.READ_CURRENT_MAIL, ExecutionStep.SUMMARIZE_MAIL], result.steps)
 
-    def test_fast_path_auto_calls_ollama_for_complex_query(self) -> None:
+    def test_fast_path_auto_uses_rule_based_for_complex_query_with_known_steps(self) -> None:
         """
-        `auto` 모드에서 복합 질의는 fast-path를 건너뛰고 Ollama를 호출해야 한다.
+        `auto` 모드에서 규칙으로 단계 추출이 가능한 복합 질의는 Ollama를 생략해야 한다.
+        """
+        parser = ExaoneIntentParser(
+            model_name="exaone3.5:2.4b",
+            base_url="http://127.0.0.1:11434",
+            fast_path_mode="auto",
+        )
+        with patch.object(parser, "_invoke_ollama_structured", side_effect=AssertionError("should not call")):
+            result = parser.parse("현재메일에서 주요 수신자 정보를 알려주고 요약보고서를 만들어줘")
+        self.assertIn(ExecutionStep.READ_CURRENT_MAIL, result.steps)
+        self.assertIn(ExecutionStep.EXTRACT_RECIPIENTS, result.steps)
+        self.assertIn(ExecutionStep.SUMMARIZE_MAIL, result.steps)
+
+    def test_fast_path_auto_calls_ollama_when_rule_steps_are_not_detected(self) -> None:
+        """
+        `auto` 모드에서 규칙 단계 추출이 불가능한 질의는 Ollama를 호출해야 한다.
         """
         parser = ExaoneIntentParser(
             model_name="exaone3.5:2.4b",
@@ -77,16 +92,15 @@ class IntentParserFastPathTest(unittest.TestCase):
             fast_path_mode="auto",
         )
         mocked = IntentDecomposition(
-            original_query="현재메일 수신자와 요약 보고서",
-            steps=[ExecutionStep.READ_CURRENT_MAIL, ExecutionStep.EXTRACT_RECIPIENTS, ExecutionStep.SUMMARIZE_MAIL],
+            original_query="추상적인 전략 방향성을 검토해줘",
+            steps=[ExecutionStep.SUMMARIZE_MAIL],
             summary_line_target=5,
             date_filter=DateFilter(mode=DateFilterMode.NONE),
             missing_slots=[],
         )
         with patch.object(parser, "_invoke_ollama_structured", return_value=mocked) as invoke_mock:
-            result = parser.parse("현재메일에서 주요 수신자 정보를 알려주고 요약보고서를 만들어줘")
+            _ = parser.parse("추상적인 전략 방향성을 검토해줘")
         invoke_mock.assert_called_once()
-        self.assertIn(ExecutionStep.EXTRACT_RECIPIENTS, result.steps)
 
     def test_parser_limits_steps_by_priority(self) -> None:
         """

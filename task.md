@@ -1980,3 +1980,24 @@
 - [x] 1단계: `run_mail_post_action` 중복 호출 방지 캐시 도입(요청/메일 단위)
 - [x] 2단계: 캐시 무효화 조건(메일 변경/컨텍스트 초기화) 반영
 - [x] 3단계: 단위 테스트(TDD) 추가 및 회귀 테스트 실행
+
+## Plan (2026-03-03 P5 성능 측정/비교)
+- [ ] 1단계: 현재 서버 기준 chat quality/eval 리포트 재실행
+- [ ] 2단계: 기존 리포트 대비 지연/품질 지표 비교
+- [ ] 3단계: 결과를 task.md에 기록하고 다음 최적화 후보 선정
+
+## Action Log (2026-03-03 P5 성능 측정/비교)
+- [13:23] 작업 시작: 최신 최적화 반영 후 실제 지연/품질 지표 재측정 착수
+- [13:26] 완료: intent parser auto 모드 fast-path 확장(규칙 단계 추출 가능 질의는 Ollama 호출 생략)
+- [13:26] 완료: 관련 테스트 통과(`tests/test_intent_parser_fast_path.py`, `tests/test_intent_rules.py`, `tests/test_search_chat_stream.py`, `tests/test_search_chat_hitl.py`)
+- [13:26] 완료: 10문장 성능 재측정(3회) 결과 기록
+  - 측정1: avg_elapsed_ms=6972.1 (cold/outlier)
+  - 측정2: avg_elapsed_ms=5098.6
+  - 측정3: avg_elapsed_ms=5081.7
+  - 직전 기준(동일 세트): avg_elapsed_ms=5406.4
+  - 판단: warm run 기준 소폭 개선(약 5.8~6.0%)
+
+## Plan 완료 체크 (2026-03-03 P5 성능 측정/비교)
+- [x] 1단계: 현재 서버 기준 chat quality/eval 리포트 재실행
+- [x] 2단계: 기존 리포트 대비 지연/품질 지표 비교
+- [x] 3단계: 결과를 task.md에 기록하고 다음 최적화 후보 선정

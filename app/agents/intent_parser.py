@@ -516,7 +516,26 @@ def _try_simple_fast_path(user_message: str, fast_path_mode: str) -> IntentDecom
         return None
     if fast_path_mode == "always":
         return _rule_based_decomposition(user_message=user_message)
-    return _build_simple_fast_path_decomposition(user_message=user_message)
+    simple = _build_simple_fast_path_decomposition(user_message=user_message)
+    if simple is not None:
+        return simple
+    if _is_rule_fast_path_candidate(user_message=user_message):
+        return _rule_based_decomposition(user_message=user_message)
+    return None
+
+
+def _is_rule_fast_path_candidate(user_message: str) -> bool:
+    """
+    auto 모드에서 Ollama 호출을 생략해도 되는 규칙 기반 fast-path 후보인지 판별한다.
+
+    Args:
+        user_message: 사용자 입력
+
+    Returns:
+        규칙 기반 단계 추출이 가능하면 True
+    """
+    inferred_steps = infer_steps_from_query(user_message=user_message)
+    return bool(inferred_steps)
 
 
 def _build_simple_fast_path_decomposition(user_message: str) -> IntentDecomposition | None:
