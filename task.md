@@ -2044,3 +2044,14 @@
   - 튜닝 전(직전): avg_elapsed_ms_mean=4916.9, p95_case_elapsed_ms=6816.1
   - 튜닝 후: avg_elapsed_ms_mean=4499.5, p95_case_elapsed_ms=6125.9
   - 개선: 평균 약 8.5% 감소, p95 약 10.1% 감소
+- [13:58] 이슈 발생: 검색+요약 질의까지 intent 컨텍스트 주입 생략 확장 시 벤치 편차가 커지고 p95 악화 구간 관측 → 해결 방법: 해당 실험 롤백(단일 search_mails 질의 생략만 유지)
+- [13:58] 완료: 안정화 기준 최종 상태 확정(적용 유지: search SQL 경량화 + 단일 조회 주입 생략 + post_action 캐시 + intent fast-path 확장)
+
+## 최종 완료 상태 (2026-03-03)
+- 완료: API 라우트 모듈 분리 및 회귀 테스트 정합화
+- 완료: intent parser 캐시/모델 재사용 + auto fast-path 확장
+- 완료: 상대 날짜 정규화 공통화(회의실/일정 생성)
+- 완료: chat-eval summary 품질 지표 자동 집계 + checked_cases 케이스셋 보강
+- 완료: run_mail_post_action 중복 호출 캐시
+- 완료: 반복 성능 측정 체계(benchmark script, p95/top slow cases) 구축
+- 완료: search 경로 경량화로 평균/p95 개선 검증
