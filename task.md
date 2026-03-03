@@ -1922,3 +1922,20 @@
 - [x] 3단계: 실패 케이스 수정 및 재검증
 - [x] 4단계: 불필요 코드/중복 import 정리
 - [x] 5단계: 결과를 task 로그에 기록하고 커밋
+
+## Plan (2026-03-03 P2 `/search/chat` 지연 최적화 1차)
+- [ ] 1단계: 의도 구조분해 경로 병목(모델 객체 생성/중복 호출) 제거
+- [ ] 2단계: 동일 질의 결과 메모이제이션으로 반복 요청 지연 감소
+- [ ] 3단계: 단위 테스트(TDD) 추가/수정으로 회귀 방지
+- [ ] 4단계: 관련 테스트 실행 및 성능 개선 근거 기록
+
+## Action Log (2026-03-03 P2 `/search/chat` 지연 최적화 1차)
+- [11:29] 작업 시작: intent parser 경로 캐시/재사용 기반 지연 최적화 착수
+- [11:31] 완료: `intent_parser`에 구조분해 결과 LRU 캐시(128) 및 Ollama structured model 재사용 로직 추가
+- [11:31] 완료: TDD 회귀 검증 통과(`tests/test_intent_parser_fast_path.py`, `tests/test_intent_rules.py`, `tests/test_search_chat_stream.py`, `tests/test_search_chat_selected_mail_context.py`, `tests/test_search_chat_hitl.py`)
+
+## Plan 완료 체크 (2026-03-03 P2 `/search/chat` 지연 최적화 1차)
+- [x] 1단계: 의도 구조분해 경로 병목(모델 객체 생성/중복 호출) 제거
+- [x] 2단계: 동일 질의 결과 메모이제이션으로 반복 요청 지연 감소
+- [x] 3단계: 단위 테스트(TDD) 추가/수정으로 회귀 방지
+- [x] 4단계: 관련 테스트 실행 및 성능 개선 근거 기록
