@@ -1896,9 +1896,10 @@
 - [x] 2단계: 기능 축으로 서브모듈 분리(mail/search/meeting/calendar/todo)
 - [x] 3단계: 기존 import/테스트 호환 레이어 유지 및 불필요 코드 정리
 - [x] 4단계: 관련 테스트 실행 및 회귀 검증
-- [ ] 5단계: task 로그 업데이트 및 커밋
+- [x] 5단계: task 로그 업데이트 및 커밋
 
 ## Action Log (2026-03-03 P1 실행: agent tools 모듈 분리)
 - [10:58] 작업 시작: tools 모듈 분리 리팩터링 착수
 - [11:03] 완료: 회의실/일정/기준날짜 도구를 `app/agents/tools_schedule.py`로 분리하고 `tools.py`를 298줄로 축소(호환 레이어 유지)
 - [11:04] 완료: 관련 회귀 테스트 24건(`test_agent_tools_*`, `test_search_chat_*`, `test_langgraph_config`) 통과
+- [11:04] 완료: 변경사항 커밋(`refactor(agent): scheduling tools 모듈 분리`) 반영
