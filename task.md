@@ -1,7 +1,2320 @@
 # Task
 
 ## 현재 작업
-메일 조회 중심 DeepAgents 미들웨어 고도화(단계별 진행)
+기본정보/커뮤니케이션 흐름 표시 단순화 Phase 96(기본 필드 카드 + 로그형 흐름 라인)
+
+## Plan (2026-03-09 기본정보/커뮤니케이션 흐름 표시 단순화 Phase 96)
+- [x] 1단계: 기본정보 렌더에서 핵심 필드(날짜/최종발신자/수신자/원본문의발신) 상시 노출
+- [x] 2단계: 커뮤니케이션 흐름은 별도 로그형 라인으로 분리 렌더(과한 가공 제거)
+- [x] 3단계: CSS 스타일을 기존 톤에 맞춰 보정
+- [x] 4단계: 프론트 테스트 갱신 및 회귀 실행
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-09 기본정보/커뮤니케이션 흐름 표시 단순화 Phase 96)
+- [06:37] 작업 시작: 기본정보 카드+로그형 흐름 분리 렌더 작업 착수
+- [06:38] 완료: 기본정보에서 `커뮤니케이션 흐름` 행을 일반 행과 분리하고, 로그형 별도 블록(`basic-info-route-log`)으로 렌더링
+- [06:38] 완료: 흐름 문자열은 원문 기반으로 가볍게 정규화(`::`→` · `, `=>`→` → `, 단계구분 `%%`/`||`→` ↠ `)만 적용
+- [06:39] 완료: 프론트 회귀 통과(`tests/test_taskpane_messages_render.cjs` 77 passed)
+
+## 현재 작업
+표준요약 조치항목 필터 보정 Phase 95(required_actions 누락 방지)
+
+## Plan (2026-03-09 표준요약 조치항목 필터 보정 Phase 95)
+- [x] 1단계: `required_actions` 필터 누락 재현/원인 확인
+- [x] 2단계: 조치항목 전용 정규화 경로 분리(과한 요약 필터 우회)
+- [x] 3단계: TDD 추가 및 회귀 테스트 실행
+- [x] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-09 표준요약 조치항목 필터 보정 Phase 95)
+- [06:26] 작업 시작: `required_actions`가 로그에는 있으나 UI에서 누락되는 이슈 수정 착수
+- [06:26] 이슈: `resolve_required_actions`가 `sanitize_summary_lines`를 타면서 액션 라인(담당/기한 포함)이 전부 제거됨
+- [06:27] 완료: 조치항목 전용 정규화 함수(`_sanitize_action_lines`) 분리 적용, `resolve_required_actions`에 연결
+- [06:27] 완료: TDD 추가(`담당/기한` 포함 액션 보존) 및 관련 테스트 통과(`tests/test_answer_postprocessor_routing.py -k keeps_required_actions_with_owner_due_tokens`)
+- [06:28] 완료: 회귀 통과(`tests/test_answer_postprocessor_contract_utils.py`, `tests/test_mail_text_utils.py`, `tests/test_taskpane_messages_render.cjs`)
+
+## 현재 작업
+기본정보 흐름 배지 UI 단순화 Phase 94(괄호번호 제거 + 로그 흐름 가벼운 정리)
+
+## Plan (2026-03-09 기본정보 흐름 배지 UI 단순화 Phase 94)
+- [x] 1단계: 기본정보 흐름 배지 표기(`(1)`)를 원형 숫자(`1`)로 변경
+- [x] 2단계: 프론트 흐름 파서에서 노이즈 단계(`-`) 제외로 표시 단순화
+- [x] 3단계: 프론트 렌더 테스트 갱신 및 회귀 실행
+- [x] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-09 기본정보 흐름 배지 UI 단순화 Phase 94)
+- [06:20] 작업 시작: 커뮤니케이션 흐름 숫자 배지/단순 표시 개선 착수
+- [06:21] 완료: 기본정보 흐름 배지를 `(1)`→`1`로 변경(원형 숫자 유지)
+- [06:21] 완료: 흐름 파서에서 `from/to` 누락 또는 `-` 단계 제외로 노이즈 표시 완화
+- [06:21] 완료: 프론트 회귀 통과(`tests/test_taskpane_messages_render.cjs` 77 passed)
+
+## 현재 작업
+기본정보 단순화 Phase 93(로그 기반 표시 우선, 복잡 예외 파싱 제거)
+
+## Plan (2026-03-09 기본정보 단순화 Phase 93)
+- [x] 1단계: 기본정보/커뮤니케이션 흐름 생성 경로 점검(백엔드 파서 + 프론트 렌더)
+- [x] 2단계: 복잡 예외 파싱 제거 및 로그 기반 값 우선 표시로 단순화
+- [x] 3단계: 수신자 역할 섹션 표시 조건 점검 및 누락 케이스 보정
+- [x] 4단계: TDD 추가/수정 후 회귀 테스트 실행
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-09 기본정보 단순화 Phase 93)
+- [06:13] 작업 시작: 기본정보 가공 로직 단순화 및 로그 기반 표시 우선화 착수
+- [06:15] 완료: `커뮤니케이션 흐름`은 모델값보다 `mail_context.route_flow`를 항상 우선 적용하도록 보정
+- [06:15] 완료: route step 파서에서 `from/to`가 모두 없는/누락된 단계 제거(`박철환 -> -` 같은 노이즈 차단)
+- [06:16] 완료: TDD/회귀 통과(`tests/test_mail_text_utils.py`, `tests/test_answer_postprocessor_contract_utils.py`, `tests/test_taskpane_messages_render.cjs`)
+
+## 현재 작업
+기본정보 커뮤니케이션 흐름 구분자 충돌/모바일 가독성 보정 Phase 92
+
+## Plan (2026-03-09 커뮤니케이션 흐름 보정 Phase 92)
+- [x] 1단계: 흐름 직렬화 구분자를 Markdown-safe 값으로 변경하고 하위 호환 파싱 유지
+- [x] 2단계: 모바일 타임라인에서 발신→수신 화살표/한줄 가독성 유지
+- [x] 3단계: TDD 업데이트 및 회귀 테스트 실행
+- [x] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-09 커뮤니케이션 흐름 보정 Phase 92)
+- [05:53] 작업 시작: `||` 구분자 테이블 충돌 및 모바일 2줄 분리 렌더 보정 착수
+- [05:54] 완료: route_flow 구분자를 `%%`로 변경(테이블 셀 파손 방지), 프론트는 `%%`/`||` 모두 파싱하도록 하위호환 유지
+- [05:55] 완료: 모바일 타임라인 CSS에서 화살표 숨김/2줄 분리 제거, 한 줄 흐름 유지
+- [05:56] 완료: TDD/회귀 통과(`tests/test_mail_text_utils.py` 8 passed, `tests/test_taskpane_messages_render.cjs` 77 passed)
+- [05:57] 완료: 커뮤니케이션 흐름 렌더를 단순 스레드 포맷으로 고정(`(1) 발신자 → 수신자`, 날짜/아이콘 제거)
+- [05:58] 완료: `수신자 역할` 섹션 위치를 기본정보 바로 아래로 이동
+- [05:59] 완료: JSON 파서에 invalid backslash escape 보정 추가(`Invalid \\escape` 완화)
+- [06:00] 완료: 회귀 통과(`tests/test_answer_postprocessor_contract_utils.py`, `tests/test_answer_postprocessor_routing.py`, `tests/test_mail_text_utils.py`, `tests/test_taskpane_messages_render.cjs`)
+
+## 현재 작업
+현재메일 요약에 수신자 역할(Recipient Roles) 섹션 노출 Phase 91
+
+## Plan (2026-03-09 Recipient Roles 노출 Phase 91)
+- [x] 1단계: 표준 요약 렌더 경로에서 `recipient_roles` 노출 규칙 추가
+- [x] 2단계: 기존 섹션 스타일과 톤을 맞춰 markdown 섹션 렌더링
+- [x] 3단계: TDD 추가 및 회귀 테스트 실행
+- [x] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-09 Recipient Roles 노출 Phase 91)
+- [05:49] 작업 시작: recipient_roles 요약 섹션 노출 작업 착수
+- [05:50] 완료: 표준 요약 렌더에 `### 👥 수신자 역할` 섹션 추가(`recipient_roles` 기반)
+- [05:51] 완료: 항목 렌더 포맷 적용(`N. 수신자 — 역할`, `- 근거: ...`)
+- [05:52] 완료: TDD/회귀 통과(`tests/test_answer_postprocessor_routing.py` 2 passed, `tests/test_mail_text_utils.py` 8 passed)
+
+## 현재 작업
+기본정보 체인 타임라인 날짜 포함 보강 Phase 90(단계별 날짜 + 발신자→수신자)
+
+## Plan (2026-03-09 기본정보 체인 타임라인 날짜 포함 보강 Phase 90)
+- [x] 1단계: 메일 헤더 파서에서 단계별 `sent` 날짜 추출 및 route_flow 직렬화 확장
+- [x] 2단계: 기본정보 타임라인 렌더러에서 날짜 라벨 표시 및 하위 호환 파싱 유지
+- [x] 3단계: Python/JS TDD 보강 및 회귀 테스트 실행
+- [x] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-09 기본정보 체인 타임라인 날짜 포함 보강 Phase 90)
+- [05:43] 작업 시작: 사용자 피드백 반영(단계별 날짜 누락) 수정 착수
+- [05:45] 완료: route_flow 직렬화를 `YYYY-MM-DD::발신=>수신` 형식으로 확장(기존 `발신=>수신`도 유지)
+- [05:46] 완료: 기본정보 타임라인에 단계 날짜 라벨(`basic-info-route-step-date`) 렌더 추가
+- [05:47] 완료: TDD/회귀 통과(`tests/test_mail_text_utils.py` 7 passed, `tests/test_taskpane_messages_render.cjs` 76 passed)
+- [05:49] 완료: 영문 `Sent:` 날짜 파싱(`Thu, 5 Mar 2026 ...`) 지원 추가
+- [05:50] 완료: 기본정보 이름 정규화 보강(한글 이름 우선, 없으면 이메일 fallback)으로 `izocuna` 단독 노출 케이스 수정
+- [05:51] 완료: 추가 회귀 통과(`tests/test_mail_text_utils.py` 8 passed, `tests/test_taskpane_messages_render.cjs` 77 passed)
+
+## 현재 작업
+기본정보 체인 타임라인 Phase 89(회신/전달 단계별 발신자→수신자)
+
+## Plan (2026-03-09 기본정보 체인 타임라인 Phase 89)
+- [x] 1단계: 본문 헤더 기반 단계별 발신/수신 파서 추가(이름 우선, 없으면 이메일)
+- [x] 2단계: mail_context/basic_info에 체인 정보 주입
+- [x] 3단계: 기본정보 카드에서 체인 타임라인 UI 렌더 추가
+- [x] 4단계: TDD 추가 및 회귀 테스트 실행
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-09 기본정보 체인 타임라인 Phase 89)
+- [05:24] 작업 시작: 메일 회신/전달 단계별 발신자→수신자 타임라인 표시 기능 착수
+- [05:31] 완료: 본문 헤더 기반 체인 파서(`extract_mail_route_steps`)와 이름/이메일 정규화(`extract_person_name_or_email`) 추가
+- [05:34] 완료: `route_flow`를 `mail_context`에 주입하고 summary `basic_info`의 `커뮤니케이션 흐름` 필드로 전달
+- [05:37] 완료: 기본정보 카드에 단계형 타임라인 UI(`basic-info-route-*`) 추가 및 모바일 대응 스타일 반영
+- [05:39] 완료: 프론트 이름 정규화에서 이름 미존재 시 이메일 전체 노출하도록 보강
+- [05:42] 완료: TDD/회귀 통과(`tests/test_mail_text_utils.py`, `tests/test_answer_postprocessor_routing.py`, `tests/test_taskpane_messages_render.cjs`)
+
+## 현재 작업
+현재메일 배너 중요도 아이콘 보강 Phase 88(중요/긴급/회신요망/일반 4종 배지)
+
+## Plan (2026-03-08 현재메일 배너 중요도 아이콘 보강 Phase 88)
+- [x] 1단계: 배너 중요도 라벨 매핑을 4종(`중요/긴급/회신요망/일반`)으로 확장
+- [x] 2단계: 중요도 값 미존재 시 기본 `일반` 배지 노출
+- [x] 3단계: 배지 스타일 추가(`중요`, `일반`) 및 기존 톤 정렬
+- [x] 4단계: 프론트 TDD 보강 및 회귀 실행
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-08 현재메일 배너 중요도 아이콘 보강 Phase 88)
+- [21:04] 작업 시작: 중요/긴급/회신/일반 아이콘 미노출 이슈 수정 착수
+- [21:05] 완료: 중요도 배지 매핑을 `중요/긴급/회신요망/일반` 4종으로 확장하고 값 미존재 시 `일반` 기본 표시 적용
+- [21:06] 완료: 배지 스타일(`important`, `normal`) 추가 및 기존 배지 톤과 시각 정렬
+- [21:06] 완료: 프론트 회귀 통과(`node --test tests/test_taskpane_messages_render.cjs tests/test_taskpane_bootstrap.cjs` 77 passed)
+
+## 현재 작업
+현재메일 배너 중요도 아이콘 Phase 87(긴급/회신요망 배지 스타일 추가)
+
+## Plan (2026-03-08 현재메일 배너 중요도 아이콘 Phase 87)
+- [x] 1단계: 선택 메일 배너 데이터 경로에서 중요도(category/importance) 필드 전달 여부 점검
+- [x] 2단계: 배너 렌더러에 긴급/회신요망 아이콘 배지 추가(기존 스타일 톤 유지)
+- [x] 3단계: 배너 CSS 확장(아이콘/배지 레이아웃 및 컬러 토큰 반영)
+- [x] 4단계: TDD 추가/수정 후 회귀 테스트 실행
+- [x] 5단계: Action Log 및 체크리스트 완료 처리
+
+## Action Log (2026-03-08 현재메일 배너 중요도 아이콘 Phase 87)
+- [20:54] 작업 시작: 현재메일 상단 배너에 중요도(긴급/회신요망) 아이콘 배지 추가 작업 착수
+- [20:56] 완료: `/mail/context` 응답에 `importance/category` 필드를 추가하고 bootstrap 배너 전달 경로를 연결
+- [20:57] 완료: 선택 메일 배너에 중요도 배지 UI(`긴급`, `회신요망`) 및 스타일 추가
+- [20:58] 완료: TDD 추가 및 회귀 통과(`node --test` 77 passed, `./venv/bin/python -m pytest` 16 passed)
+
+## 현재 작업
+프롬프트 명확화 + current_mail 요약 안정화 Phase 86(JSON 강제/히스토리 슬림/재시도)
+
+## Plan (2026-03-08 프롬프트 명확화 + current_mail 요약 안정화 Phase 86)
+- [x] 1단계: current_mail 요약 전용 strict JSON 프롬프트 variant 추가 및 라우팅 연결
+- [x] 2단계: current_mail 요약 질의에서 모델 입력 히스토리 슬림(직전 요약 누적 방지)
+- [x] 3단계: JSON 파싱 실패 시 1회 재생성(repair) 경로 추가
+- [x] 4단계: TDD 추가 및 회귀 테스트 실행
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-08 프롬프트 명확화 + current_mail 요약 안정화 Phase 86)
+- [20:32] 작업 시작: 사용자 요청 반영(모호 프롬프트 개선 + 히스토리 편향 차단 + 파싱 실패 재시도) 구현 착수
+- [20:34] 완료: strict JSON 전용 프롬프트 variant(`quality_structured_json_strict`) 추가 및 현재메일 요약 라우팅 연결
+- [20:35] 완료: 현재메일 요약 + 선택메일 존재 조건에서 agent 실행 thread를 fresh 분기(`::cms::...`)로 분리해 히스토리 누적 편향 차단
+- [20:36] 완료: JSON 파서 1회 복구 재시도 추가(이스케이프 JSON `\\n`, `\\\"` 복원) 및 parse 안정화 보강
+- [20:37] 완료: 현재메일 요약 응답에서 contract 파싱 실패 시 1회 retry 메시지 재생성 경로 추가(조건: action=current_mail)
+- [20:38] 완료: TDD/회귀 통과(`tests/test_answer_postprocessor_contract_utils.py`, `tests/test_search_chat_flow_overlap_tokens.py`, `tests/test_search_chat_intent_routing.py`, `tests/test_search_chat_selected_mail_context.py` 총 34 passed)
+- [20:41] 이슈: 1차 응답이 이미 정상 렌더된 경우에도 retry 조건이 과하게 동작해 2차 재호출 발생
+- [20:42] 완료: retry 조건을 `최종답변이 raw JSON 형태일 때`로 제한해 불필요 재호출 차단, 회귀 통과(`tests/test_search_chat_flow_overlap_tokens.py`, `tests/test_search_chat_selected_mail_context.py`, `tests/test_search_chat_intent_routing.py` 총 26 passed)
+
+## 현재 작업
+JSON 파싱 안정화 Phase 85(content block 원문 파싱 + fallback 분기 개선)
+
+## Plan (2026-03-08 JSON 파싱 안정화 Phase 85)
+- [x] 1단계: content block(list/dict)에서 text만 추출하는 공통 정규화 함수 추가
+- [x] 2단계: code fence 제거 + JSON 파서 입력 경로를 raw_model_content 우선으로 보강
+- [x] 3단계: 파싱 성공 시 fallback 강제복구 우회 동작 검증
+- [x] 4단계: 파싱 실패 시 repr 대신 원본 block 텍스트가 로그/디버그에 남는지 보강
+- [x] 5단계: TDD 추가 및 회귀 테스트 실행
+
+## Action Log (2026-03-08 JSON 파싱 안정화 Phase 85)
+- [20:10] 작업 시작: content block 기반 JSON 파싱 안정화 및 fallback 경로 점검 착수
+- [20:12] 완료: `parse_llm_response_contract`가 str/list/dict 입력을 직접 처리하도록 보강하고 code fence 제거를 일반화
+- [20:12] 완료: `guard_model_output`에서 content block text 우선 추출(`repr` 오염 차단) 및 state raw 텍스트 저장 보강
+- [20:13] 완료: `postprocess_final_answer`에 `raw_model_content` 우선 파싱 경로 연결(파싱 성공 시 fallback 우회)
+- [20:13] 완료: TDD 추가/통과(`tests/test_answer_postprocessor_raw_model_content.py`, `tests/test_answer_postprocessor_contract_utils.py`, `tests/test_agent_middlewares.py`, `tests/test_search_chat_metadata.py`)
+- [20:15] 이슈: 운영 로그에서 `json_decode_error` 지속 확인 — `raw_model_content` 저장 경로에 trace truncate(`...(truncated)`)가 섞여 JSON 파손됨
+- [20:16] 완료: `raw_model_content` 저장 경로를 무손실 정규화로 분리(`_normalize_raw_model_content`), trace 로그 전용 truncate와 분리
+- [20:16] 완료: 무손실 저장/trace truncate 분리 TDD 추가 및 통과(`tests/test_agent_middlewares.py` 포함 총 10 passed)
+- [20:18] 이슈: truncate 제거 후에도 일부 응답에서 `json_decode_error` 재발(모델 JSON 미세 문법 오염 가능성)
+- [20:19] 완료: JSON 파서를 관용 보정으로 강화(제어문자 제거, 후행 콤마 보정, decode 상세 로그 추가)
+- [20:19] 완료: 관용 보정 TDD 추가 및 통과(`tests/test_answer_postprocessor_contract_utils.py` 포함 총 12 passed)
+- [20:22] 이슈: decode 상세 로그 `pos=1` 확인 — 응답 시작부 비정상 래핑(`{{...}}`) 가능성
+- [20:23] 완료: 직접 파싱 우선 경로 + 이중 중괄호 언랩(`_unwrap_double_braces`) 추가, decode 실패 프리뷰 로그 강화
+- [20:23] 완료: 이중 중괄호 보정 TDD 추가 및 통과(`tests/test_answer_postprocessor_contract_utils.py` 포함 총 13 passed)
+- [20:25] 이슈: 재실행 로그에서 `pos=1` 재발 — `{` 직후 비가시 유니코드 제어문자 혼입 가능성 확인
+- [20:26] 완료: JSON sanitize 단계에 invisible unicode control(Cf/Cs/Co/Cn) 제거 추가
+- [20:26] 완료: zero-width 혼입 케이스 TDD 추가 및 통과(`tests/test_answer_postprocessor_contract_utils.py` 8 passed, 연관 회귀 6 passed)
+
+## 현재 작업
+모델 직출력(raw) 추적 강화 Phase 84(후처리 전/후 텍스트 분리 관찰)
+
+## Plan (2026-03-08 모델 직출력(raw) 추적 강화 Phase 84)
+- [x] 1단계: 모델 응답 생성 경로에서 “진짜 직출력” 캡처 지점 식별(미들웨어/agent state)
+- [x] 2단계: API metadata에 `raw_model_output`(직출력)과 기존 `raw_answer`(후단 텍스트)를 분리 노출
+- [x] 3단계: Taskpane “원문 보기” 팝업에 두 필드를 명확 라벨로 표시
+- [x] 4단계: TDD 테스트 추가(백엔드 메타데이터 + 프론트 렌더/인터랙션)
+- [x] 5단계: 테스트 실행 후 Action Log 업데이트
+
+## Action Log (2026-03-08 모델 직출력(raw) 추적 강화 Phase 84)
+- [19:47] 작업 시작: 사용자가 요청한 “진짜 모델 직출력” 추적을 위해 raw capture/전달 경로 점검 착수
+- [19:50] 완료: `@after_model`에서 후처리 전 텍스트를 `raw_model_output`으로 state 저장(모델 직출력 캡처)
+- [19:52] 완료: `DeepChatAgent`에 raw getter(`get_last_raw_model_output`) 추가 및 `/search/chat` metadata로 전달
+- [19:54] 완료: Taskpane 원문 비교 모달에 `raw_answer`와 `raw_model_output` 동시 표기 적용
+- [19:56] 완료: 캐시 반영 강화를 위해 `taskpane.html`의 composer/interactions 스크립트 버전 갱신
+- [19:57] 완료: 테스트 통과(`pytest` 28 passed, `node --test` 10 passed)
+- [20:01] 이슈: `raw_model_output`도 가공 답변과 동일하게 보이는 사례 확인(캡처 시점이 여전히 문자열 정규화 이후로 보임)
+- [20:04] 완료: `@wrap_model_call`에서 `last_message.content` 객체 자체를 `raw_model_content`로 state 캡처하도록 보강
+- [20:07] 완료: `DeepChatAgent`/`search_chat` metadata에 `raw_model_content` 전달 추가
+- [20:09] 완료: 원문 비교 모달에 `raw_model_content` 섹션 추가(문자열/객체 JSON 확인 가능)
+- [20:11] 완료: 보강 테스트 통과(`pytest` 18 passed, `node --test` 11 passed)
+
+## 현재 작업
+Chat UI Pilot Phase 83(LLM 원문 비교 버튼)
+
+## Plan (2026-03-08 Chat UI Pilot Phase 83)
+- [x] 1단계: API metadata에 raw_answer 노출
+- [x] 2단계: assistant 액션에 원문보기 아이콘 추가
+- [x] 3단계: 원문/가공 비교 모달 추가
+- [x] 4단계: 테스트/회귀 및 Action Log 업데이트
+
+## Action Log (2026-03-08 Chat UI Pilot Phase 83)
+- [19:36] 작업 시작: 사용자 요청 기반 원문/가공 비교용 파일럿 아이콘 버튼 구현 착수
+- [19:39] 완료: `/search/chat` completed/pending/clarification 응답 metadata에 `raw_answer` 필드 추가
+- [19:40] 완료: assistant 액션 버튼에 `원문 보기` 아이콘(`data-action=raw`) 추가
+- [19:41] 완료: 메시지 카드에 hidden raw payload(`.msg-raw-answer`) 삽입 및 클릭 시 원문/가공 비교 모달 표시
+- [19:42] 완료: 회귀 통과(`node --test tests/test_taskpane_messages_shell.cjs tests/test_taskpane_messages_composer.cjs tests/test_taskpane_interactions.cjs` 10 passed, `PYTHONPATH=. .venv/bin/pytest -q tests/test_search_chat_selected_mail_context.py` 12 passed, `node --test tests/test_taskpane_messages_render.cjs` 74 passed)
+
+## 현재 작업
+Chat Eval grounded 안정화 Phase 82(인명 하드코딩 제거)
+
+## Plan (2026-03-08 Chat Eval grounded 안정화 Phase 82)
+- [x] 1단계: 공통 의도 정책에서 특정 인명 토큰 제거
+- [x] 2단계: 역할/담당자 질의는 일반 토큰 기반으로만 판별 유지
+- [x] 3단계: 관련 테스트 회귀 실행 및 Action Log 업데이트
+
+## Action Log (2026-03-08 Chat Eval grounded 안정화 Phase 82)
+- [19:34] 작업 시작: 사용자 피드백 반영(조영득 토큰 과적합)으로 공통 정책 인명 하드코딩 제거 착수
+- [19:33] 완료: `ROLE_TOKENS`에서 `조영득` 제거(인명 하드코딩 제거, 공통 토큰 기반 유지)
+- [19:33] 완료: 회귀 통과(`tests/test_current_mail_request_intent.py` + `tests/test_answer_postprocessor_current_mail.py` = 17 passed)
+
+## 현재 작업
+Chat Eval grounded 안정화 Phase 81(현재메일 안전가드 공통정책화)
+
+## Plan (2026-03-08 Chat Eval grounded 안정화 Phase 81)
+- [x] 1단계: current_mail 안전가드 의도 분류를 공통 모듈(`current_mail_request_intent`)로 이전
+- [x] 2단계: 후처리는 공통 정책 호출만 수행하도록 단순화(로컬 예외 제거)
+- [x] 3단계: 요약 질의 가드 비적용 정책을 공통 규칙으로 반영
+- [x] 4단계: TDD/회귀 실행 및 Action Log 업데이트
+
+## Action Log (2026-03-08 Chat Eval grounded 안정화 Phase 81)
+- [19:28] 작업 시작: 사용자 피드백(테스트 과적합/로컬예외 지양) 반영해 current_mail 안전가드 공통정책화 착수
+- [19:30] 완료: `current_mail_request_intent`에 공통 정책 추가(`should_apply_current_mail_grounded_safe_guard`, `render_current_mail_grounded_safe_message`)
+- [19:31] 완료: `answer_postprocessor_current_mail`의 로컬 의도판별/응답문구 로직 제거 후 공통 정책 호출로 단순화
+- [19:32] 완료: 요약 질의 가드 비적용 정책 반영 및 회귀 통과(`tests/test_current_mail_request_intent.py` + `tests/test_answer_postprocessor_current_mail.py` + `tests/test_current_mail_pipeline.py` = 27 passed, `tests/test_answer_postprocessor_routing.py -k \"current_mail or retrieval or summary\"` = 48 passed)
+
+## 현재 작업
+Chat Eval grounded 안정화 Phase 80(current_mail 안전응답 의도적합화)
+
+## Plan (2026-03-08 Chat Eval grounded 안정화 Phase 80)
+- [x] 1단계: current_mail 안전응답을 질문 의도별 최소근거 템플릿으로 분기
+- [x] 2단계: 역할/이유/오류/ESG/비용 질문에서 과생성 방지 강화
+- [x] 3단계: TDD 추가 및 회귀 실행
+- [x] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-08 Chat Eval grounded 안정화 Phase 80)
+- [19:08] 작업 시작: 최신 chat-eval-log 기준 의도 미스매치(pass=false) 다발 케이스를 질문타입별 안전응답으로 보정 착수
+- [19:21] 완료: `render_current_mail_grounded_safe_response`를 의도별 안전응답(역할/이유/오류/ESG/총비용/기본) 템플릿으로 분기
+- [19:22] 완료: current_mail 위험질의 판별 토큰 확장(수신자/발신자/담당자/왜/이유/오류/ESG 등)으로 과생성 차단 범위 보강
+- [19:24] 완료: TDD 추가/회귀 통과(`tests/test_answer_postprocessor_current_mail.py` + `tests/test_chat_eval_service_utils.py` 13 passed, `tests/test_answer_postprocessor_routing.py -k \"current_mail or retrieval or solution\"` 19 passed)
+- [19:25] 완료: `current_mail_pipeline`에 다건/비교 성격 질의 자동 global 승격 규칙 추가(메일들/비교/패턴/추이 등)
+- [19:26] 완료: 스코프 편향 완화 TDD 추가(`tests/test_current_mail_pipeline.py` 2건) 및 회귀 통과(총 23 passed)
+
+## 현재 작업
+Chat Eval grounded 안정화 Phase 79(current_mail 과생성 차단 + hard-fail 오탐 제거)
+
+## Plan (2026-03-08 Chat Eval grounded 안정화 Phase 79)
+- [x] 1단계: current_mail 안전가드 강화(근거 대비 답변 과생성 탐지 시 안전 템플릿 강제)
+- [x] 2단계: retrieval hard-fail 가드에서 current_mail 쿼리 오탐 차단
+- [x] 3단계: 관련 테스트(TDD) 추가/갱신 및 회귀 실행
+- [x] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-08 Chat Eval grounded 안정화 Phase 79)
+- [19:03] 작업 재개: 공유된 전체 chat-eval-log 기준 current_mail 과생성/grounding_guard 오탐 재현 분석 및 보정 패치 시작
+- [19:45] 작업 시작: 공유 로그 기반 current_mail grounded 실패 다발(q1~q20)과 hard-fail 오탐(q26) 동시 보정 착수
+- [19:04] 완료: `build_judge_context`에 `query_type/resolved_scope/used_current_mail_context` 포함 및 retrieval hard-fail 가드에서 current_mail 스코프 선제 제외
+- [19:05] 완료: `render_current_mail_grounded_safe_response`를 토큰 겹침 기반으로 강화(저근거+수치/인명 과생성 답변 차단)
+- [19:06] 완료: TDD 보강(`tests/test_chat_eval_service_utils.py`, `tests/test_answer_postprocessor_current_mail.py`) 및 회귀 통과(11 passed)
+
+## 현재 작업
+Chat Eval 타임아웃 내구성 개선 Phase 78(케이스 단위 실패 격리)
+
+## Plan (2026-03-08 Chat Eval 타임아웃 내구성 개선 Phase 78)
+- [x] 1단계: `/qa/chat-eval/run` 케이스별 호출 실패 시 전체 중단 대신 케이스 실패로 기록
+- [x] 2단계: `run_error` 케이스 행 생성(로그/필터/복사 호환)
+- [x] 3단계: 최종 상태에 실패 건수 표기
+- [x] 4단계: 페이지 테스트 회귀 실행
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-08 Chat Eval 타임아웃 내구성 개선 Phase 78)
+- [19:31] 작업 시작: 502/timeout 발생 시 전체 실행 중단되지 않도록 케이스 단위 실패 격리 수정 착수
+- [19:33] 완료: `chat-eval.html` 실행 루프를 케이스 단위 try/catch로 변경해 타임아웃/502 발생 시 `run_error` 케이스로 기록 후 다음 케이스 계속 진행
+- [19:34] 완료: `run_error` 케이스 스키마 추가(guard/filter/로그/복사 포맷과 호환)
+- [19:35] 완료: 완료 상태 문구에 `run_error` 건수 표시
+- [19:35] 완료: 페이지 테스트 통과(`node --test tests/test_chat_eval_page.cjs` 2 passed)
+
+## 현재 작업
+Chat Eval 로그 전체 복사 개선 Phase 77(결과 복사 → 디버그 로그 일괄 복사)
+
+## Plan (2026-03-08 Chat Eval 로그 전체 복사 개선 Phase 77)
+- [x] 1단계: copy 버튼 동작을 로그 전용 일괄 복사 포맷으로 전환
+- [x] 2단계: 케이스별 로그 텍스트(로그 팝업 동일 포맷) 통합 복사 구현
+- [x] 3단계: 페이지 테스트 갱신 및 회귀 실행
+- [x] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-08 Chat Eval 로그 전체 복사 개선 Phase 77)
+- [19:22] 작업 시작: 사용자 요청 기준 `결과 복사`를 디버그 로그 일괄 복사 방식으로 전환 착수
+- [19:23] 완료: `chat-eval.html` copy 포맷을 TSV 결과표에서 케이스별 디버그 로그(`buildCaseDebugText`) 일괄 텍스트로 전환
+- [19:23] 완료: 버튼 라벨을 `로그 전체 복사`로 변경하고 상태 메시지를 로그 복사 기준으로 갱신
+- [19:24] 완료: 페이지 테스트 통과(`node --test tests/test_chat_eval_page.cjs` 2 passed)
+
+## 현재 작업
+Chat Eval 디버그 UX 확장 Phase 76(guard 필터 + 상세 로그 팝업)
+
+## Plan (2026-03-08 Chat Eval 디버그 UX 확장 Phase 76)
+- [x] 1단계: 케이스 결과에 judge_context 핵심(`evidence_top_k`) 노출 필드 추가
+- [x] 2단계: chat-eval 테이블에 `guard` 필터 UI 추가
+- [x] 3단계: 케이스별 `로그 보기` 팝업 추가(라우팅/근거/가드/timing/증거 top-k 표시)
+- [x] 4단계: 테스트(TDD) 갱신 및 회귀 실행
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-08 Chat Eval 디버그 UX 확장 Phase 76)
+- [18:46] 작업 시작: 사용자 요청 기준 개선용 디버그 UX(guard 필터/상세 로그 팝업) 구현 착수
+- [18:49] 완료: `chat_eval_service` 케이스 결과에 `evidence_top_k` 포함(리포트에 judge 근거 top-k 직접 노출)
+- [18:51] 완료: `chat-eval.html`에 `guard 필터` 추가 및 렌더 필터링 적용
+- [18:53] 완료: 케이스별 `로그 보기` 팝업 추가(라우팅/intent/tool/guard/timing/retrieval/evidence_top_k 표시)
+- [18:54] 완료: 테스트 통과(`pytest tests/test_chat_eval_service.py tests/test_chat_eval_routes.py tests/test_chat_eval_history_store.py` 28 passed, `node --test tests/test_chat_eval_page.cjs` 2 passed)
+- [19:01] 완료: `chat-eval.html`에 `Pass 필터(전체/PASS/FAIL)` 및 `실패만 체크` 버튼 추가(재실행 루프 단축)
+- [19:03] 완료: 로그 상세 팝업에 `metadata_snapshot(JSON)` 추가로 원인 분석 정보 확장
+- [19:04] 완료: 회귀 재검증 통과(`pytest tests/test_chat_eval_service.py tests/test_chat_eval_routes.py tests/test_chat_eval_history_store.py` 28 passed, `node --test tests/test_chat_eval_page.cjs` 2 passed)
+- [19:13] 완료: 현재메일 근거 안전 가드 추가(`answer_postprocessor_current_mail.render_current_mail_grounded_safe_response`) — 근거가 summary 1줄 수준일 때 과도 추론 답변을 `확인 불가` 템플릿으로 강제
+- [19:14] 완료: 후처리 연동(`answer_postprocessor._try_render_deterministic_answer`) 및 단위 테스트 추가(`tests/test_answer_postprocessor_current_mail.py`)
+- [19:15] 완료: 회귀 통과(`pytest tests/test_answer_postprocessor_current_mail.py tests/test_chat_eval_service.py tests/test_chat_eval_routes.py` 29 passed, `pytest tests/test_answer_postprocessor_routing.py -k \"current_mail or cause or solution\"` 19 passed)
+
+## 현재 작업
+Chat Eval 답변 렌더/진단로그 확장 Phase 75(answer_format 표시 + 개선용 로그)
+
+## Plan (2026-03-08 Chat Eval 답변 렌더/진단로그 확장 Phase 75)
+- [x] 1단계: Chat Eval 케이스 결과에 answer_format/raw answer 및 진단 메타 추가
+- [x] 2단계: chat-eval 답변 모달을 answer_format 블록 렌더 기반으로 전환
+- [x] 3단계: 로그 컬럼에 개선용 진단정보(스코프/intent/tool/retrieval/evidence/guard/timing) 표시
+- [x] 4단계: 테스트(TDD) 갱신 및 회귀 실행
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-08 Chat Eval 답변 렌더/진단로그 확장 Phase 75)
+- [18:30] 작업 시작: 사용자 요청 기준 answer_format 렌더 적용 및 개선용 진단 로그 확장 착수
+- [18:33] 완료: `chat_eval_service.CaseRunResult` 확장(raw_answer/answer_format/guard_name/query_type/resolved_scope/intent/tool_action/server_elapsed_ms/evidence_blank_snippet_count)
+- [18:34] 완료: `/search/chat` 응답 metadata에 `tool_action` 추가(`extract_tool_action` 기반)
+- [18:36] 완료: `chat-eval.html` 답변 모달을 `answer_format.blocks` 렌더 기반으로 전환(heading/paragraph/quote/list/table 지원, fallback raw 텍스트)
+- [18:37] 완료: 케이스 로그 칩을 개선용 진단 포맷으로 확장(scope/intent/tool/retrieval/evidence blank/guard/timing/checks/score)
+- [18:39] 완료: TDD/회귀 통과(`tests/test_chat_eval_service.py tests/test_chat_eval_routes.py tests/test_search_chat_selected_mail_context.py` 39 passed, `node --test tests/test_chat_eval_page.cjs` 2 passed)
+
+## 현재 작업
+메일조회 오탐 근본원인 분석/수정 Phase 74(라우팅 안정화 + top-k 검증)
+
+## Plan (2026-03-08 메일조회 오탐 근본원인 분석/수정 Phase 74)
+- [x] 1단계: `메일조회` 오탐 분기(의도판별/스텝/후처리) 재현 및 단일 원인 식별
+- [x] 2단계: current_mail 질문이 mail_search로 전이되는 공통 경로 최소 수정
+- [x] 3단계: evidence top-k 설정/판정 타이트니스 점검 및 필요 시 완화
+- [x] 4단계: TDD 추가/수정 후 회귀 테스트 실행
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-08 메일조회 오탐 근본원인 분석/수정 Phase 74)
+- [18:02] 작업 시작: 사용자 요청 기준 `메일조회` 오탐과 evidence top-k 타이트니스 동시 점검 착수
+- [18:06] 완료: 원인 식별 — `의도판정(메일에서)` + `mail_search deterministic 목록 강제 렌더` 결합으로 비조회 질의에도 메일조회형 출력 발생 확인
+- [18:09] 완료: `intent_rules._is_mail_search_query`에 deictic current-mail 판별 추가(`이메일/해당메일/이견적/이프로젝트` 문맥은 search 오분류 차단)
+- [18:11] 완료: `answer_postprocessor_mail_search.render_mail_search_deterministic_response`를 조회형 질의에만 적용하도록 축소(비조회 질의는 강제 목록 렌더 생략)
+- [18:13] 완료: evidence 추출 상한을 3→5로 확장(`search_chat_metadata.EVIDENCE_MAILS_TOP_K=5`)해 top-k 타이트니스 완화
+- [18:15] 완료: TDD/회귀 통과(`tests/test_intent_rules.py tests/test_answer_postprocessor_mail_search.py tests/test_search_chat_metadata.py` 45 passed, `tests/test_chat_eval_service_utils.py tests/test_chat_eval_service.py tests/test_middleware_policies.py` 35 passed)
+
+## 현재 작업
+Chat Eval 중지 제어 Phase 73(실행 중 중지 버튼)
+
+## Plan (2026-03-08 Chat Eval 중지 제어 Phase 73)
+- [x] 1단계: chat-eval UI에 중지 버튼 추가
+- [x] 2단계: 실행 루프 중지 플래그(`중지 요청됨 → 현재 케이스 완료 후 중지`) 반영
+- [x] 3단계: 페이지 테스트 갱신 및 회귀 실행
+- [x] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-08 Chat Eval 중지 제어 Phase 73)
+- [17:31] 작업 시작: 사용자 요청 기준 Chat Eval 실행 중단 버튼 최소 변경 구현 착수
+- [17:32] 완료: `chat-eval.html`에 `중지` 버튼/중지요청 플래그 추가(현재 케이스 완료 후 다음 케이스부터 중단)
+- [17:32] 완료: 상태 문구 반영(`중지 요청됨`, `중지됨: 완료 n건 / 선택 m건`) 및 버튼 활성/비활성 제어 추가
+- [17:32] 완료: 페이지 테스트 갱신/통과(`node --test tests/test_chat_eval_page.cjs` 2 passed)
+
+## 현재 작업
+Chat Eval 로그 가독성 개선 Phase 72(의미 로그 재정의)
+
+## Plan (2026-03-08 Chat Eval 로그 가독성 개선 Phase 72)
+- [x] 1단계: 케이스 리포트에 의미 로그 필드(current_mail 사용 여부, 검색/근거 건수, judge checks) 포함
+- [x] 2단계: chat-eval UI 로그 컬럼을 진단 중심 포맷으로 변경
+- [x] 3단계: 테스트(TDD) 갱신 및 회귀 실행
+- [x] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-08 Chat Eval 로그 가독성 개선 Phase 72)
+- [17:29] 작업 시작: 사용자 피드백(현재 로그 무의미) 기준 진단형 로그 포맷으로 개편 착수
+- [17:30] 완료: 케이스 리포트에 `used_current_mail_context/search_result_count/evidence_count` 추가
+- [17:30] 완료: UI 로그 컬럼을 `scope/retrieval/evidence/I-F-G/score` 포맷으로 변경
+- [17:30] 완료: 테스트 통과(`node --test tests/test_chat_eval_page.cjs`, `PYTHONPATH=. .venv/bin/python -m pytest -q tests/test_chat_eval_service.py tests/test_chat_eval_service_utils.py` -> 21 passed)
+
+## 현재 작업
+Chat Eval UX/근거 안정화 Phase 71(체크 실행 + 답변 팝업 + current_mail 컨텍스트 강화)
+
+## Plan (2026-03-08 Chat Eval UX/근거 안정화 Phase 71)
+- [x] 1단계: chat-eval 페이지에 체크 케이스 실행/답변 팝업/요약 로그 컬럼 추가
+- [x] 2단계: chat-eval current_mail 컨텍스트 부착 규칙 강화(선택 메일 기준 기본 current_mail)
+- [x] 3단계: evidence snippet 비어있을 때 subject fallback 보강
+- [x] 4단계: 관련 테스트(TDD) 갱신 및 회귀 실행
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-08 Chat Eval UX/근거 안정화 Phase 71)
+- [17:21] 작업 시작: 사용자 요청 기준 UI(체크 실행/답변 팝업/로그)와 chat-eval current_mail/snippet 안정화 수정 착수
+- [17:23] 완료: `chat_eval_service.should_attach_current_mail_context`를 보강해 선택 메일이 있을 때 비검색형 질의는 기본 current_mail로 부착(명시 global 질의는 제외)
+- [17:23] 완료: evidence snippet fallback 보강(`chat_eval_service_utils`, `search_chat_flow`): 모든 fallback 공백 시 subject 사용
+- [17:24] 완료: `chat-eval.html` UI 개선(체크 케이스 실행, 답변 보기 팝업, 로그 컬럼, 긴 reason 축약)
+- [17:25] 완료: 테스트 통과(`node --test tests/test_chat_eval_page.cjs`, `PYTHONPATH=. .venv/bin/python -m pytest -q tests/test_chat_eval_service.py tests/test_chat_eval_service_utils.py tests/test_mail_search_service.py` -> 33 passed)
+
+## 현재 작업
+Chat Eval mail_search 정밀도 보강 Phase 70(인물 조건 하드필터 + 무관 결과 차단)
+
+## Plan (2026-03-08 Chat Eval mail_search 정밀도 보강 Phase 70)
+- [x] 1단계: 질의에서 인물명 앵커를 추출하는 공통 유틸 추가
+- [x] 2단계: mail_search 재랭크 후 인물 앵커 불일치 결과를 하드 필터링
+- [x] 3단계: TDD 추가(조영득 질의 무관 결과 차단/정상 매칭 유지) 및 회귀 실행
+- [x] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-08 Chat Eval mail_search 정밀도 보강 Phase 70)
+- [17:01] 작업 시작: 공유된 FAIL 로그 기준 `조영득` 등 인물 조건 질의에서 무관 메일이 통과하는 문제 보강 착수
+- [17:02] 완료: `mail_search_utils`에 인물 앵커 추출/매칭 유틸 추가 및 `mail_search_service` 재랭크 후 인물 앵커 하드필터 적용
+- [17:03] 완료: TDD/회귀 통과(`tests/test_mail_search_service.py` 12 passed, `tests/test_chat_eval_service.py tests/test_chat_eval_service_utils.py tests/test_search_chat_e2e_samples.py -k \"retrieval or no_result or sample\"` 4 passed, `tests/test_search_chat_metadata.py tests/test_current_mail_request_intent.py tests/test_middleware_policies.py` 37 passed)
+
+## 현재 작업
+Current-Mail 라우팅/근거 품질 보강 Phase 69(deictic 앵커 확장 + evidence snippet 주입)
+
+## Plan (2026-03-08 Current-Mail 라우팅/근거 품질 보강 Phase 69)
+- [x] 1단계: 현재메일 evidence 항목에 snippet(summary/body_excerpt) 주입 경로 추가
+- [x] 2단계: 미들웨어/현재메일 의도 판별의 앵커 토큰을 deictic 질의까지 확장
+- [x] 3단계: TDD 추가(정책/의도/evidence) 및 회귀 실행
+- [x] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-08 Current-Mail 라우팅/근거 품질 보강 Phase 69)
+- [16:14] 작업 시작: E2E 실패 리포트 기반 공통 원인(`snippet` 공백, deictic 질의 global 이탈) 보강 착수
+- [16:44] 이슈 분석 재개: 최신/실패 chat-eval 리포트(run 60~82)와 관련 코드(`search_chat_metadata`, `policies`, `current_mail_request_intent`) 대조 점검 시작
+- [16:48] 완료: `search_chat_metadata.extract_evidence_from_tool_payload`에 `snippet/summary_text/body_excerpt/body_preview` fallback 기반 snippet 주입 추가
+- [16:49] 완료: deictic 질의의 current_mail 앵커 확장(`policies`, `current_mail_request_intent`) 및 search step 정규화 경로 보강
+- [16:50] 완료: TDD/회귀 통과(`tests/test_search_chat_metadata.py`, `tests/test_current_mail_request_intent.py`, `tests/test_middleware_policies.py`, `tests/test_chat_eval_service_utils.py`, `tests/test_chat_eval_case_loader.py`, `tests/test_chat_eval_service.py` -> 58 passed)
+
+## 현재 작업
+Chat Eval 프롬프트셋 확장 Phase 68(`testprompt.md` 30문항 정리)
+
+## Plan (2026-03-08 Chat Eval 프롬프트셋 확장 Phase 68)
+- [x] 1단계: `testprompt.md` 현재 문항 수/형식 확인
+- [x] 2단계: 기존 톤과 동일한 포맷으로 추가 문항 작성
+- [x] 3단계: 총 30문항(Q1~Q30) 검증
+- [x] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-08 Chat Eval 프롬프트셋 확장 Phase 68)
+- [16:08] 작업 시작: 사용자가 추가 생성한 프롬프트셋을 기준으로 `testprompt.md`를 총 30문항으로 확장 착수
+- [16:09] 이슈 발생: 요청 의도를 `20문항 추가 생성`으로 오해 → 해결 방법: 기존 10문항 유지 + 제공된 20문항을 Q11~Q30으로 재번호하여 재구성
+- [16:10] 완료: `testprompt.md`를 Q1~Q30 전체 등록으로 갱신, 총 30문항 검증 완료
+- [16:11] 이슈 발생: `/qa/chat-eval/cases` 500(`chat_eval_markdown_parse_failed`) 재현 → 해결 방법: parser 패턴(`## Q`)과 맞지 않던 `### Q` 헤더를 `## Q`로 교정
+- [16:11] 완료: `load_chat_eval_cases('testprompt.md')` 파싱 검증(30건, `testprompt-q1`~`testprompt-q30`)
+
+## 현재 작업
+Chat Eval 현재메일 라우팅 안정화 Phase 67(지시대명사 질의 current_mail 고정 + evidence 스니펫 보강)
+
+## Plan (2026-03-08 Chat Eval 현재메일 라우팅 안정화 Phase 67)
+- [x] 1단계: `testprompt.md` 케이스의 current/global 판정 규칙 점검 및 지시대명사 케이스 확장
+- [x] 2단계: eval 실행 payload에서 선택 메일 제공 시 current_mail 우선 정책 적용
+- [x] 3단계: Judge evidence 추출에서 snippet 비어있을 때 fallback 필드 보강
+- [x] 4단계: 테스트(TDD) 추가/수정 및 회귀 실행
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-08 Chat Eval 현재메일 라우팅 안정화 Phase 67)
+- [16:00] 작업 시작: `현재메일/이메일` 뉘앙스 질의가 전체 메일 조회로 흐르는 문제 공통 수정 착수
+- [16:03] 완료: `chat_eval_case_loader` current_mail 판정 확장(이 메일/이 견적/이 프로젝트/이메일) + 전체 메일 지시 우선 배제 규칙 적용
+- [16:04] 완료: `chat_eval_service` payload 주입 정책 개선(선택 메일 존재 시 지시대명사 질의에 `email_id/mailbox_user/runtime_options.scope=current_mail` 자동 주입)
+- [16:05] 완료: `chat_eval_service_utils` evidence snippet fallback 보강(`snippet` 비어있을 때 `summary_text/body_excerpt/body_preview` 순차 사용)
+- [16:06] 완료: 테스트 추가/회귀 통과(`21 passed`: `test_chat_eval_case_loader`, `test_chat_eval_service`, `test_chat_eval_service_utils`)
+
+## 현재 작업
+Chat Eval Judge 파서 강건화 Phase 66(JSON 추출/재시도/원문 로그)
+
+## Plan (2026-03-08 Chat Eval Judge 파서 강건화 Phase 66)
+- [x] 1단계: Judge 응답 파싱 실패 재현 경로 분석 및 파서 요구사항 정의
+- [x] 2단계: Judge 응답 JSON 추출기(코드블록/잡텍스트 허용) 및 1회 재시도 추가
+- [x] 3단계: Judge raw 응답 로그(길이 제한) 추가
+- [x] 4단계: 단위 테스트(TDD) 추가 및 회귀 실행
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-08 Chat Eval Judge 파서 강건화 Phase 66)
+- [15:49] 작업 시작: `judge_llm_error: Expecting value` 대응을 위한 Judge JSON 파싱 강건화 착수
+- [15:50] 완료: `chat_eval_service_utils` Judge 경로를 raw text 호출 기반으로 변경(`invoke_text_messages`)하고 JSON 추출기(`_extract_judge_json_text`) 추가
+- [15:50] 완료: 코드블록(````json`) 제거/첫 JSON 객체 추출/파싱 실패 1회 재시도(`JUDGE_MAX_ATTEMPTS=2`) 적용
+- [15:51] 완료: `chat_eval.judge_raw_response` 로그 추가(길이 제한 1200자)
+- [15:51] 완료: 테스트 추가(`tests/test_chat_eval_service_utils.py`) 및 회귀 통과(`28 passed`)
+
+## 현재 작업
+Chat Eval 진행상태 가시화 + SQLite 이력 관리 Phase 65(차수 저장/조회)
+
+## Plan (2026-03-08 Chat Eval 진행상태 가시화 + SQLite 이력 관리 Phase 65)
+- [x] 1단계: Chat Eval 실행 이력을 SQLite에 차수(run_no) 단위로 저장하는 저장소 추가
+- [x] 2단계: 이력 조회 API(`/qa/chat-eval/history`, `/qa/chat-eval/history/{run_no}`) 추가
+- [x] 3단계: Chat Eval UI에 케이스별 상태(대기/실행중/완료)와 현재 진행 항목 표시
+- [x] 4단계: 테스트(TDD) 추가/갱신 및 실행
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-08 Chat Eval 진행상태 가시화 + SQLite 이력 관리 Phase 65)
+- [15:37] 작업 시작: Chat Eval 진행 가시성 부족 문제와 이력 관리 요구사항 반영을 위한 DB/UI 리팩터링 착수
+- [15:38] 완료: `chat_eval_history_store.py` 추가(SQLite 스키마: `eval_runs`, `eval_case_results`, run_no 차수 저장/목록/상세 조회)
+- [15:39] 완료: `run_chat_eval_session` 저장 경로에 SQLite 이력 기록 연동 및 `meta.run_no` 주입
+- [15:39] 완료: 이력 조회 API 추가(`/qa/chat-eval/history`, `/qa/chat-eval/history/{run_no}`)
+- [15:40] 완료: `chat-eval.html` 진행상태 UX 추가(상태 컬럼, 현재 실행 케이스, 진행률; 케이스별 순차 실행)
+- [15:40] 이슈 발생: 페이지 테스트 문자열 계약 불일치(`requestJsonWithFallback("/qa/chat-eval/run"...`) → 해결 방법: 단순 실행 구조 기준으로 테스트 기대값 갱신
+- [15:41] 완료: 테스트 통과(`node --test tests/test_chat_eval_page.cjs`, `pytest tests/test_chat_eval_history_store.py tests/test_chat_eval_routes.py tests/test_chat_eval_service.py` -> 27 passed)
+
+## 현재 작업
+Chat Eval UI 단순화 Phase 64(env 기본 Judge 주입 + 최소 기능 UX)
+
+## Plan (2026-03-08 Chat Eval UI 단순화 Phase 64)
+- [x] 1단계: Chat Eval 기본 설정 API 추가(`MOLDUBOT_JUDGE_MODEL`, mailbox 기본값 노출)
+- [x] 2단계: `chat-eval.html`을 단순 UX로 축소(실행/복사 + 케이스 결과 표)
+- [x] 3단계: Pipeline/최근불러오기/선택실행/요약패널 제거
+- [x] 4단계: 테스트(TDD) 갱신 및 실행
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-08 Chat Eval UI 단순화 Phase 64)
+- [15:19] 작업 시작: Chat Eval 화면 복잡도 제거 및 env 기반 Judge 기본값 주입 리팩터링 착수
+- [15:20] 완료: `GET /qa/chat-eval/defaults` 추가(`MOLDUBOT_JUDGE_MODEL` + 기본 mailbox 반환)
+- [15:21] 완료: `chat-eval.html` 단순화(실행/복사만 유지, Cases 표에 Prompt/Pass/Judge 사유/실제 답변만 표시)
+- [15:21] 완료: Pipeline/최근불러오기/체크실행/요약패널/다운로드 UI 및 스크립트 제거
+- [15:22] 완료: 테스트 갱신 및 통과(`node --test tests/test_chat_eval_page.cjs`, `pytest tests/test_chat_eval_routes.py tests/test_chat_eval_service.py tests/test_chat_eval_pipeline_service.py`)
+
+## 현재 작업
+Anthropic system message 연속성 회귀 수정 Phase 63(non-consecutive system 방지 + 히스토리 정규화)
+
+## Plan (2026-03-08 Anthropic system message 연속성 회귀 수정 Phase 63)
+- [x] 1단계: `agent_middlewares.before_model`의 system 주입이 메모리 히스토리에서 비연속 system을 만들 수 있는 경로 재현/고정
+- [x] 2단계: 턴 시작 시 intent system 컨텍스트를 단일 블록으로 정규화(중복 제거 + 위치 보정) 로직 추가
+- [x] 3단계: Anthropic 제약 회귀 방지 테스트(TDD) 추가
+- [x] 4단계: 대상 테스트 실행 및 결과 확인
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-08 Anthropic system message 연속성 회귀 수정 Phase 63)
+- [14:57] 작업 시작: `Received multiple non-consecutive system messages` 오류 재현 로그 분석 및 before_model 정규화 리팩터링 착수
+- [14:58] 완료: `before_model`에서 기존 intent system 컨텍스트를 전부 제거 후 선두 system 블록으로 단일 재주입하도록 수정(`_remove_intent_system_contexts`, `_insert_system_context_at_top_block`)
+- [14:58] 완료: TDD 보강(`tests/test_agent_middlewares_intent_injection.py`) - 중복/비연속 system 히스토리 정규화 케이스 추가
+- [14:58] 완료: 대상 회귀 통과(`tests/test_agent_middlewares_intent_injection.py`, `tests/test_middleware_policies.py`, `tests/test_search_chat_intent_routing.py` -> 26 passed)
+- [15:03] 이슈 발생: LangChain `before_model` 반환 merge 동작으로 `human -> system` 순서가 남아 Anthropic 오류가 지속됨 → 해결 방법: 의도 system 주입 시점을 `wrap_model_call` 직전 request.state 정규화로 이동
+- [15:04] 완료: `inject_intent_decomposition_context`를 no-op으로 전환하고 `guard_model_output`에서 `_inject_intent_context_into_request_state` 호출
+- [15:04] 완료: 프롬프트 순서 확인(`system`, `human`) 및 Anthropic 실호출 성공 재현(`agent.respond('안녕')`)
+- [15:05] 완료: 대상 회귀 통과(`tests/test_agent_middlewares_intent_injection.py`, `tests/test_middleware_policies.py`, `tests/test_search_chat_intent_routing.py` -> 26 passed)
+
+## 현재 작업
+프롬프트 주입 구조 안정화 Phase 56(System 컨텍스트 분리 + 턴당 1회 주입 + 회귀테스트)
+
+## Plan (2026-03-08 프롬프트 주입 구조 안정화 Phase 56)
+- [x] 1단계: intent 컨텍스트를 Human 본문 혼합이 아닌 SystemMessage 주입으로 전환
+- [x] 2단계: 같은 턴에서 중복 주입 방지(턴당 1회) 가드 추가
+- [x] 3단계: 기존 후처리/원본 사용자 질의 추출 경로와의 호환성 검증
+- [x] 4단계: 관련 테스트 추가/수정 및 실행(미들웨어/후처리)
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-08 프롬프트 주입 구조 안정화 Phase 56)
+- [12:31] 작업 시작: Human 본문에 라우팅 지시를 섞는 구조를 System 컨텍스트 주입 구조로 전환 착수
+- [12:34] 완료: `policies.compose_intent_system_context` 추가(원본 질의는 유지하고 System용 의도 컨텍스트 생성)
+- [12:36] 완료: `agent_middlewares.before_model`이 Human 본문 재작성 대신 `SystemMessage` 삽입으로 전환, 턴당 중복 주입 방지 가드 추가
+- [12:37] 완료: 테스트 추가 `tests/test_agent_middlewares_intent_injection.py`(system 주입/중복 방지)
+- [12:38] 이슈 발생: 미들웨어 테스트 수집 시 `langchain_core`, `langchain` 의존성 누락 → 해결 방법: `.venv`에 패키지 설치 후 재실행
+- [12:40] 완료: 대상 회귀 통과(`test_agent_middlewares_intent_injection`, `test_agent_middlewares_tool_payload`, `test_middleware_policies`, `test_answer_postprocessor_routing` 선택 실행 10 passed)
+- [12:41] 이슈 발생: `tests/test_answer_postprocessor_routing.py` 전체 실행 시 기존 기대치와 현재 템플릿 정책 차이로 다수 실패(기존 베이스라인 불일치) → 해결 방법: 이번 변경 범위 관련 선택 회귀 세트로 검증 유지
+
+## 현재 작업
+후처리 축약 완화/의도 스텝 정규화 Phase 54(cause 출력 품질 + step 노이즈 감소 + 정책 사유명 정리)
+
+## Plan (2026-03-08 후처리 축약 완화/의도 스텝 정규화 Phase 54)
+- [x] 1단계: template-driven 비활성화 사유명을 예외가 아닌 정책 용어로 정리
+- [x] 2단계: 현재메일 고정 질의에서 불필요 `search_mails` step을 후단 정규화로 제거
+- [x] 3단계: 원인 섹션 강제 렌더 시 과축약(1줄) 완화를 위한 보강 로직 추가
+- [x] 4단계: 관련 TDD 테스트 추가/수정 및 대상 회귀 실행
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-08 후처리 축약 완화/의도 스텝 정규화 Phase 54)
+- [12:02] 작업 시작: 후처리 원인 축약/step 과잉 주입 문제를 공통 코드에서 완화하는 리팩터링 착수
+- [12:05] 완료: `format_exception_policy` 사유명을 `*_policy_override`로 정리해 예외 오해 제거(`cause_analysis`, `solution`)
+- [12:07] 완료: `policies.compose_intent_augmented_text`에 현재메일 고정 질의 step 정규화(`search_mails` 제거) 추가
+- [12:09] 완료: `issue_analysis_renderer`에 원인 섹션 보강 로직 추가(core_issue + major_points 기반 최소 2라인 확보)
+- [12:10] 완료: 테스트 보강(`test_format_exception_policy`, `test_middleware_policies`, `test_answer_postprocessor_routing`) 및 문법 검증 통과(`py_compile`)
+- [12:11] 이슈 발생: 로컬 `.venv`에 `langchain_core` 미설치로 `tests/test_middleware_policies.py` 수집 실패 → 해결 방법: 의존성 설치 전까지 나머지 대상 테스트 우선 실행
+- [12:11] 완료: 대상 회귀 통과(`tests/test_format_exception_policy.py`, `tests/test_answer_postprocessor_routing.py` 선택 실행 8 passed)
+
+## 현재 작업
+표 요청 일관 렌더링 Phase 55(generic table deterministic renderer)
+
+## Plan (2026-03-08 표 요청 일관 렌더링 Phase 55)
+- [x] 1단계: 일반 `표/테이블` 요청 감지 로직 추가
+- [x] 2단계: JSON 계약(`summary_lines/major_points/required_actions`) 기반 공통 markdown 표 렌더 추가
+- [x] 3단계: 기존 현재메일 전용 표 렌더 우선순위 유지(사이드이펙트 방지)
+- [x] 4단계: TDD 테스트 추가 및 대상 회귀 실행
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-08 표 요청 일관 렌더링 Phase 55)
+- [12:18] 작업 시작: 일반 표 요청이 턴마다 다른 형식으로 출력되는 문제를 공통 deterministic renderer로 보정하는 작업 착수
+- [12:21] 완료: `answer_postprocessor_table.py` 신설(일반 표 요청 판별 + 계약 기반 markdown 표 렌더)
+- [12:22] 완료: `answer_postprocessor._try_render_contract_variants`에 generic table 렌더 경로 추가(현재메일 전용 표 렌더 이후 적용)
+- [12:23] 완료: TDD 테스트 추가(`test_generic_table_request_renders_deterministic_markdown_table`, `test_generic_table_request_excludes_chart_keywords`)
+- [12:24] 완료: 검증 통과(`py_compile`, `tests/test_answer_postprocessor_routing.py -k \"generic_table_request or current_mail_recipients_table_request\"` 4 passed)
+
+## 현재 작업
+LLM 응답 원문 로그 강화 Phase 53(raw JSON 여부/본문 출력 로깅)
+
+## Plan (2026-03-08 LLM 응답 원문 로그 강화 Phase 53)
+- [x] 1단계: 모델 응답 직후(raw content)의 JSON 여부/길이/본문 로그 추가
+- [x] 2단계: 계약 파싱 성공 시 정규화된 계약 JSON 로그 추가
+- [x] 3단계: 과도한 로그 폭주 방지를 위한 길이 제한 적용
+- [x] 4단계: 문법 검증(py_compile) 및 영향 범위 테스트 실행
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-08 LLM 응답 원문 로그 강화 Phase 53)
+- [11:42] 작업 시작: LLM 응답(JSON 여부 포함) 원문을 운영 로그에서 직접 확인할 수 있도록 로깅 강화 착수
+- [11:42] 완료: `agent_middlewares.wrap_model_call`에 `llm.raw_response` 로그 추가(is_json/length/content), 길이 제한 4000자 적용
+- [11:42] 완료: `answer_postprocessor`에 `answer_postprocess.parsed_contract_json` 로그 추가(파싱 성공 계약 JSON 출력), 길이 제한 4000자 적용
+- [11:42] 완료: 검증 통과(`python3 -m py_compile app/middleware/agent_middlewares.py app/services/answer_postprocessor.py`, `tests/test_current_mail_request_intent.py` 7 passed)
+- [11:44] 이슈 발생: 강제 섹션 렌더 경로(`forced_render=true`)에서 `parsed_contract_json` 로그가 조기 반환으로 누락됨 → 해결 방법: 계약 로그 출력 위치를 강제 렌더 이전으로 이동
+- [11:44] 완료: `answer_postprocess.parsed_contract_json`이 모든 계약 렌더 경로(강제 섹션 포함)에서 출력되도록 보정 및 문법 검증 통과(`python3 -m py_compile app/services/answer_postprocessor.py`)
+
+## 현재 작업
+프롬프트 모호성 제거 Phase 52(intent 주입 단일화 + scope 분리 + 현재 턴 payload 엄격화)
+
+## Plan (2026-03-08 프롬프트 모호성 제거 Phase 52)
+- [x] 1단계: scope prefix가 intent parse를 오염시키지 않도록 분리 파싱 경로 추가
+- [x] 2단계: 원인 전용 질의의 라우팅 지시를 `원인만`으로 축소(분기 명시)
+- [x] 3단계: after_model tool payload 추출에서 과거 턴 fallback 제거(현재 턴만 허용)
+- [x] 4단계: TDD 테스트 수정/추가(`test_middleware_policies`, `test_agent_middlewares_tool_payload`) 및 회귀 실행
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-08 프롬프트 모호성 제거 Phase 52)
+- [11:34] 작업 시작: 프롬프트 모호화 방지를 위한 middleware/policies/payload strict 모드 리팩터링 착수
+- [11:35] 완료: `policies.compose_intent_augmented_text`가 scope prefix를 분리해 parser에는 원본 질의만 전달하도록 보정, 라우팅 지시에 scope 라벨을 별도 주입
+- [11:35] 완료: 원인 전용 질의(`현재메일 ... 원인 정리`)는 `원인만` 지시로 분기하고 `원인/영향/대응` 강제 문구를 비활성화
+- [11:35] 완료: `agent_middlewares._extract_latest_tool_payload`의 과거 턴 ToolMessage fallback 제거(현재 턴 tool payload만 허용)
+- [11:35] 완료: 테스트 수정/추가(`tests/test_middleware_policies.py`, `tests/test_agent_middlewares_tool_payload.py`)
+- [11:35] 이슈 발생: 로컬 `.venv`에 `langchain_core` 미설치로 middleware 테스트 수집 실패 → 해결 방법: 환경 의존성 설치 전까지 `py_compile` 및 영향 범위 대체 테스트로 검증
+- [11:35] 완료: 검증 통과(`python3 -m py_compile app/middleware/policies.py app/middleware/agent_middlewares.py`, `tests/test_current_mail_request_intent.py` + `tests/test_answer_postprocessor_routing.py` 대상 2 passed)
+
+## 현재 작업
+LLM 입력/계약 오염 점검 Phase 51(프롬프트 전달 본문/트렁케이션/의도치 않은 히스토리 혼입 분석)
+
+## Plan (2026-03-08 LLM 입력/계약 오염 점검 Phase 51)
+- [x] 1단계: 모델 요청 메시지 구성 경로(`before_model`, agent invoke, tool payload) 코드 추적
+- [x] 2단계: 메일 본문 전달 필드(`body_clean/body_excerpt/body_preview`)와 절단 규칙 점검
+- [x] 3단계: 계약 파싱/후처리에서 JSON 혼입·이전 턴 누적 가능성 점검
+- [x] 4단계: 사용자 로그 증상과 코드 근거를 매핑해 리스크/개선안을 정리
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-08 LLM 입력/계약 오염 점검 Phase 51)
+- [11:25] 작업 시작: `현재메일에서 오류 원인 정리` 요청의 프롬프트/계약 오염(잘림·의도치 않은 혼입) 여부 코드 레벨 점검 착수
+- [11:27] 완료: 모델 요청 메시지 구성 경로 확인(`agent_middlewares.before_model`, `policies.compose_intent_augmented_text`, thread memory 누적 상태)
+- [11:28] 완료: 메일 본문 전달 필드 확인(`body_clean`은 직접 전달이 아닌 `body_text=COALESCE(body_clean, body_full, body_preview)` 후 `mail_context.body_excerpt/body_code_excerpt`로 전달)
+- [11:29] 완료: 잘림 규칙 확인(실제 payload `body_preview` 400자, `body_excerpt` 2400자 + `...(truncated)`; 프롬프트 trace 로그는 1200자로 별도 절단)
+- [11:30] 완료: 혼입 리스크 확인(같은 thread_id에서 이전 턴 Human/AI/Tool 메시지 누적 전달, 현재 턴 tool 부재 시 과거 ToolMessage fallback 사용 가능)
+
+## 현재 작업
+LLM 계약 중심 후처리 정리 Phase 50(`current_mail_request_intent` if 체인 축소 + 원인전용 렌더 안정화)
+
+## Plan (2026-03-08 LLM 계약 중심 후처리 정리 Phase 50)
+- [x] 1단계: `현재메일 + 원인 전용` 질의의 섹션 계약 테스트를 추가해 기대 동작을 고정(TDD)
+- [x] 2단계: `current_mail_request_intent.py`의 키워드 `if` 체인을 선언형 규칙(의도 시그널 기반)으로 축소
+- [x] 3단계: 후처리 가드는 계약 부재/파손 시 최소 fallback만 유지하도록 정리
+- [x] 4단계: 대상 회귀 테스트 실행(`test_current_mail_request_intent`, `test_answer_postprocessor_routing`)
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-08 LLM 계약 중심 후처리 정리 Phase 50)
+- [11:15] 작업 시작: `현재메일에서 오류 원인 정리` 질의가 영향/대응까지 과확장되는 문제 재현 로그 분석 및 리팩터링 착수
+- [11:16] 완료: 테스트 추가(TDD) `tests/test_current_mail_request_intent.py`, `tests/test_answer_postprocessor_routing.py`(원인 전용 질의 계약/렌더 고정)
+- [11:17] 완료: `current_mail_request_intent.py`를 의도 시그널(`CurrentMailIntentSignals`) + 정책 테이블(`SECTION_POLICY_ORDER`) 기반으로 리팩터링
+- [11:18] 이슈 발생: 원인 전용 판정이 `이유 설명` 질의까지 과축소(영향 섹션 누락) → 해결 방법: 전용 판정 토큰을 `원인정리/이유정리/원인만/이유만`으로 제한
+- [11:18] 완료: 대상 회귀 통과(`test_current_mail_request_intent` 7 passed, `test_answer_postprocessor_routing -k current_mail_cause` 5 passed, `test_format_exception_policy` 6 passed)
+
+## 현재 작업
+tools.py 500라인 규칙 준수 리팩터링 Phase 49(search/todo helper 분리)
+
+## Plan (2026-03-08 tools.py 500라인 규칙 준수 리팩터링 Phase 49)
+- [x] 1단계: `tools.py`의 검색 fanout/scope 보정 로직을 `tools_search_helpers.py`로 분리
+- [x] 2단계: ToDo 제목/마감일 정규화 로직을 `tools_todo_helpers.py`로 분리
+- [x] 3단계: 기존 함수 시그니처/테스트 패치 호환성 유지(wrapper/adapter) 적용
+- [x] 4단계: agent tools 및 search_chat 연계 회귀 테스트 실행
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-08 tools.py 500라인 규칙 준수 리팩터링 Phase 49)
+- [11:24] 작업 시작: `app/agents/tools.py` 대형 파일 분해 착수
+- [11:31] 완료: `tools_search_helpers.py` 신설(스코프 보정/기술 fanout/병합 payload)
+- [11:34] 완료: `tools_todo_helpers.py` 신설(ToDo 제목/마감일/제목접두어 정규화)
+- [11:36] 완료: `tools.py` 467 lines로 500라인 규칙 충족
+- [11:37] 완료: 테스트 통과(agent tools + intent routing + verification/semantic 대상 30 passed)
+
+## 현재 작업
+search_chat_flow 회귀복구/모듈 경계 안정화 Phase 48(test hook 호환 + next-action clarity)
+
+## Plan (2026-03-08 search_chat_flow 회귀복구/모듈 경계 안정화 Phase 48)
+- [x] 1단계: 리팩터링 후 깨진 테스트 훅(`get_intent_parser`, `search_web_sources` patch 경로) 호환성 복구
+- [x] 2단계: next_action 경로에서 scope clarification 우회 정책 명시
+- [x] 3단계: intent/helper/response_builder 모듈 경계 정리
+- [x] 4단계: 대상 회귀 테스트 재실행 및 500라인 규칙 재확인
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-08 search_chat_flow 회귀복구/모듈 경계 안정화 Phase 48)
+- [11:12] 작업 시작: `search_chat_flow` 분해 이후 의도 라우팅 회귀 실패 원인 분석 착수
+- [11:17] 완료: parser factory 주입(`parse_intent_decomposition_safely`)으로 `search_chat_flow.get_intent_parser` patch 호환성 복구
+- [11:18] 완료: `build_web_search_direct_response`에 `search_web_sources_fn` 주입 및 `search_chat_flow` re-export import로 테스트 패치 경로 복구
+- [11:20] 완료: next_action_id 경로에서 scope clarification 생략 규칙 반영(직접 실행 경로 보장)
+- [11:21] 완료: 테스트 통과(`tests/test_search_chat_intent_routing.py` 8 passed, 대상 회귀 6 passed) 및 `search_chat_flow.py` 500 lines 유지
+
+## 현재 작업
+search_chat_flow 500라인 규칙 준수 리팩터링 Phase 47(flow/helper 모듈 분해)
+
+## Plan (2026-03-08 search_chat_flow 500라인 규칙 준수 리팩터링 Phase 47)
+- [x] 1단계: `search_chat_flow` 반복 블록을 응답 빌더/헬퍼로 분리
+- [x] 2단계: intent 관련 유틸을 별도 모듈(`search_chat_intent_helpers`)로 분리
+- [x] 3단계: 웹 검증/semantic enrichment 결합 코드를 helper화해 흐름 단순화
+- [x] 4단계: 500라인 규칙 충족 여부 확인 및 대상 회귀 테스트 실행
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-08 search_chat_flow 500라인 규칙 준수 리팩터링 Phase 47)
+- [10:52] 작업 시작: `app/api/search_chat_flow.py` 대형 함수/모듈 분해 착수
+- [11:06] 완료: `search_chat_flow_helpers.py`, `search_chat_intent_helpers.py`, `search_chat_response_builders.py`로 책임 분리(clarification/hitl/web-direct/enrichment)
+- [11:08] 완료: `search_chat_flow.py` 499 lines로 500라인 규칙 충족
+- [11:09] 완료: 회귀 테스트 통과(웹검증/의미계약/메타데이터/원인대응 대상 27 passed)
+
+## 현재 작업
+공통 의미계약/검증정책 분리 Phase 46(verification policy service + semantic contract)
+
+## Plan (2026-03-08 공통 의미계약/검증정책 분리 Phase 46)
+- [x] 1단계: 웹 검증 판단 로직을 `verification_policy_service`로 분리하고 기존 호출부는 어댑터화
+- [x] 2단계: `search_chat_flow` metadata에 검증 판단 근거(`web_verification_reasons`) 주입
+- [x] 3단계: 공통 의미계약(`claims/evidence/actions/confidence`) 생성 서비스 추가 및 metadata 주입
+- [x] 4단계: TDD 테스트 추가(`verification_policy_service`, `semantic_answer_contract`) 및 기존 회귀 테스트 통과
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-08 공통 의미계약/검증정책 분리 Phase 46)
+- [10:35] 작업 시작: 검증정책 분리 및 의미계약 공통화 리팩터링 착수
+- [10:41] 완료: `verification_policy_service.decide_web_verification` 신설, `web_source_search_service`는 정책 어댑터(`should_search_web_sources`, `get_web_verification_reasons`)로 단순화
+- [10:42] 완료: `search_chat_flow` metadata에 `web_verification_reasons`와 `semantic_contract` 주입
+- [10:43] 완료: `semantic_answer_contract` 신설(claim/evidence/action/confidence 공통 계약)
+- [10:44] 완료: 테스트 통과(`tests/test_verification_policy_service.py`, `tests/test_web_source_search_service.py`, `tests/test_semantic_answer_contract.py` -> 7 passed, 기존 원인/대응 회귀 4 passed)
+
+## 현재 작업
+공통 검증 정책 리팩터링 Phase 45(intent confidence + 명시 검증요청 기반 web 검증)
+
+## Plan (2026-03-08 공통 검증 정책 리팩터링 Phase 45)
+- [x] 1단계: 웹 검증 트리거를 키워드 단순 매칭에서 정책 함수(검증요청/신뢰도/current_mail scope)로 정리
+- [x] 2단계: `search_chat_flow`에서 intent confidence/answer 문맥을 정책 함수에 전달
+- [x] 3단계: TDD 테스트(검증요청 키워드, low-confidence gating, current_mail 보호) 추가/보강
+- [x] 4단계: 회귀 테스트 실행 및 Action Log 기록
+
+## Action Log (2026-03-08 공통 검증 정책 리팩터링 Phase 45)
+- [10:24] 작업 시작: web 검색 트리거 정책화를 통한 공통 검증 경로 개선 착수
+- [10:27] 완료: `should_search_web_sources`에 검증 요청 키워드/low-confidence/모델 불확실성 기반 정책 추가, current_mail 보호 규칙 유지
+- [10:28] 완료: `search_chat_flow`에서 intent confidence와 model answer를 검증 정책에 전달하도록 연동
+- [10:29] 완료: 테스트 보강 및 회귀 통과(`tests/test_web_source_search_service.py` 3 passed, `tests/test_current_mail_request_intent.py` + `tests/test_answer_postprocessor_routing.py` 대상 4 passed)
+
+## 현재 작업
+AGENTS 룰/목표 명문화 + 코드 규칙 적합성 전수 점검 Phase 44
+
+## Plan (2026-03-08 AGENTS 룰/목표 명문화 + 코드 규칙 적합성 전수 점검 Phase 44)
+- [x] 1단계: AGENTS.MD에 AI Hub 공통 프레임 목표/룰/금지사항 추가
+- [x] 2단계: 코드베이스 전수 스캔(규칙 누적형 if, 템플릿 과의존, 근거 없는 대응 생성 경로)
+- [x] 3단계: 위반/리스크 목록을 파일 단위로 정리하고 우선순위 제시
+- [ ] 4단계: 즉시 수정 가능한 항목 반영 및 테스트 실행
+- [ ] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-08 AGENTS 룰/목표 명문화 + 코드 규칙 적합성 전수 점검 Phase 44)
+- [10:14] 작업 시작: AGENTS 규칙 추가와 현재 코드 규칙 적합성 전수 조사 착수
+- [10:17] 완료: `AGENTS.MD`에 Product 목표/아키텍처 규칙/금지사항 섹션(0번) 추가
+- [10:19] 완료: 전수 스캔 수행(파일 길이, 함수 길이, docstring 누락, broad exception, 키워드 규칙 누적 지점) 및 위반/리스크 목록 정리
+
+## 현재 작업
+응답 사실성/기술검토 강화 Phase 43(원인·대응 품질 및 근거 강화)
+
+## Plan (2026-03-08 응답 사실성/기술검토 강화 Phase 43)
+- [ ] 1단계: 원인/대응 섹션 분류 품질 보강(영향성 문장 대응방안 유입 차단)
+- [ ] 2단계: 대응방안에 기술검토 체크리스트 공통 보강(현재메일 기술 이슈 질의)
+- [ ] 3단계: 필요 시 외부 자료 검증 트리거를 명시적으로 반영(tool 조건 강화)
+- [ ] 4단계: TDD 테스트 추가/수정 및 회귀 실행
+- [ ] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-08 응답 사실성/기술검토 강화 Phase 43)
+- [10:08] 작업 시작: LLM 응답 사실성 검증 및 대응방안 기술검토 상세화 개선 착수
+
+## 현재 작업
+AI Hub 유연 라우팅 리팩터링 Phase 42(이슈 섹션 공통화 + 웹출처 정책/패널 안정화)
+
+## Plan (2026-03-08 AI Hub 유연 라우팅 리팩터링 Phase 42)
+- [x] 1단계: 현재메일 이슈 분석 출력을 요청 섹션 기반 공통 렌더(`원인/대응` 또는 `원인/영향/대응`)로 전환
+- [x] 2단계: current_mail 기본 경로의 웹출처 자동검색 억제(명시 외부 검색 요청 시에만 허용)
+- [x] 3단계: 웹 출처 팝오버 패널 겹침 UI 수정(인플로우 렌더)
+- [x] 4단계: Python/JS 대상 회귀 테스트(TDD) 및 Action Log 업데이트
+
+## Action Log (2026-03-08 AI Hub 유연 라우팅 리팩터링 Phase 42)
+- [09:51] 작업 시작: 원인·대응 카테고리 공통화/품질/출처 UI 깨짐 개선 착수
+- [10:01] 완료: `issue_analysis_renderer.py` 공통 렌더 추가 + `current_mail_request_intent.resolve_current_mail_issue_sections` 도입으로 질의 의도별 섹션 계약(`원인/대응방안` 또는 `원인/영향/대응방안`) 기반 렌더로 전환
+- [10:01] 완료: `web_source_search_service.should_search_web_sources`에 `resolved_scope/tool_payload` 조건을 추가해 `current_mail` 기본 질의의 웹출처 자동검색을 억제하고, 명시 외부요청(`외부/웹/최신/공식문서`)일 때만 허용
+- [10:01] 완료: 웹 출처 패널 CSS를 절대배치에서 인플로우(`position: relative`, `width: 100%`)로 변경해 카드 겹침/스크롤 깨짐 완화
+- [10:01] 완료: 테스트 추가 및 회귀 통과(Python 33 passed + routing 대상 4 passed, Node 3 passed)
+
+## 현재 작업
+AI Hub 유연 라우팅 리팩터링 Phase 41(메일 무관 질의 explicit opt-out + general 렌더 품질 보강)
+
+## Plan (2026-03-08 AI Hub 유연 라우팅 리팩터링 Phase 41)
+- [x] 1단계: current-mail sticky 판별에 `메일 무관/일반 질문` explicit opt-out 규칙 추가
+- [x] 2단계: general 계약 렌더가 단일 source에 과축약되지 않도록 다중 필드 병합 렌더 보강
+- [x] 3단계: TDD 테스트 추가 및 current-mail/scope/후처리 대상 회귀 실행
+- [x] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-08 AI Hub 유연 라우팅 리팩터링 Phase 41)
+- [09:46] 작업 시작: 메일 무관 질의의 명시 opt-out 및 general 응답 품질 보강 착수
+- [09:48] 완료: `current_mail_pipeline`에 메일 무관 explicit 질의(`메일과 상관없이/메일 말고/일반 질문`) 판별 추가 및 sticky 상태 해제 경로 반영
+- [09:48] 완료: `answer_postprocessor_rendering.render_general_contract`에 다중 필드(summary/major/key/action/required) 병합 불릿 렌더 추가로 분석형 `general` 응답의 1줄 축약 완화
+- [09:48] 완료: 테스트 추가(`tests/test_current_mail_pipeline.py` 2건, `tests/test_answer_postprocessor_routing.py` 1건) 및 대상 회귀 통과(`13 passed`, `5 passed`, `22 passed`)
+- [09:49] 완료: `followup_scope`에도 메일 무관 explicit 질의 패턴(`현재메일 말고`, `메일 무관`, `일반질문`)을 global scope 우선 해석으로 반영해 scope clarification 과다 노출을 완화
+- [09:49] 완료: 회귀 테스트 통과(`tests/test_followup_scope.py`, `tests/test_current_mail_pipeline.py` 13 passed / 포맷·후처리 대상 4 passed)
+
+## 현재 작업
+AI Hub 유연 라우팅 리팩터링 Phase 40(분석형 질의의 요약 템플릿 과적용 완화)
+
+## Plan (2026-03-08 AI Hub 유연 라우팅 리팩터링 Phase 40)
+- [x] 1단계: 템플릿 선택 규칙에서 `정리/설명/분석`과 `요약` 신호를 분리해 분석형 기본 경로를 `general`로 조정
+- [x] 2단계: 현재메일 분석형 질의의 템플릿 과적용 방지 회귀 테스트 추가(TDD)
+- [x] 3단계: 기존 current-mail/scope/후처리 대상 회귀 테스트 실행
+- [x] 4단계: 결과를 task.md Action Log에 기록
+
+## Action Log (2026-03-08 AI Hub 유연 라우팅 리팩터링 Phase 40)
+- [09:44] 작업 시작: AI Hub 유연성 강화를 위한 템플릿 과적용 완화 리팩터링 착수
+- [09:45] 완료: `format_policy_selector`에서 명시 요약 신호(`요약`)와 분석 신호(`정리/설명/분석/...`)를 분리하고, current-mail/mail-search 요약 템플릿 적용 조건을 `explicit summary` 기준으로 보정
+- [09:45] 완료: 회귀 테스트 추가(`tests/test_format_policy_selector.py`, `tests/test_format_section_contract.py`)로 `현재메일 ... 정리` 질의가 `general` 계약으로 유지됨을 고정
+- [09:45] 완료: 대상 회귀 테스트 통과(`test_format_policy_selector`, `test_format_section_contract`, `test_format_exception_policy`, `test_current_mail_request_intent`, `test_answer_postprocessor_routing` 대상 5건, `test_current_mail_pipeline`, `test_followup_scope`)
+
+## 현재 작업
+공통 템플릿 리팩터링 점검 및 안전 개선 Phase 39
+
+## Plan (2026-03-08 공통 템플릿 리팩터링 점검 및 안전 개선 Phase 39)
+- [x] 1단계: 공통 템플릿 후처리 경로(정책/가드/렌더) 코드리뷰 및 리스크 식별
+- [x] 2단계: side effect 없는 최소 수정안 적용(품질 저하 지점 보정)
+- [x] 3단계: 대상 회귀 테스트 실행으로 기존 기능 안정성 확인
+- [x] 4단계: Action Log/인수인계 업데이트
+
+## Action Log (2026-03-08 공통 템플릿 리팩터링 점검 및 안전 개선 Phase 39)
+- [09:29] 작업 시작: 지난 세션 공통 템플릿 리팩터링 코드 점검 및 개선 착수
+- [09:30] 완료: `현재메일 원인/해결 요청` 판별 로직을 `current_mail_request_intent.py`로 공통화해 예외 정책과 강제 섹션 렌더의 기준을 일치시킴
+- [09:30] 완료: `answer_postprocessor_guards.py`가 495줄로 감소(500줄 이하), 공통 템플릿 리팩터링 이후 중복 판별 함수 제거
+- [09:30] 완료: 테스트 추가(`tests/test_current_mail_request_intent.py`, `tests/test_format_exception_policy.py` 1케이스 확장) 및 대상 회귀 통과(7 passed, current-mail/scope 11 passed)
+- [09:30] 이슈 발생: 1차 테스트에서 `render_forced_section_response` 함수명 참조 누락(NameError) 발생 → 해결 방법: 공통 유틸 함수명으로 즉시 치환 후 동일 테스트 재실행 통과
+
+## 현재 작업
+원인/영향/대응 후처리 품질 보강 Phase 38(중복 제거 + 섹션 분류 정밀화)
+
+## Plan (2026-03-08 원인/영향/대응 후처리 품질 보강 Phase 38)
+- [x] 1단계: `current_mail` 원인분석 렌더의 중복/오분류 패턴 테스트 추가(TDD)
+- [x] 2단계: 후처리 가드 로직 분류 규칙 개선(원인/영향 배타 분류 + 대응 보강)
+- [x] 3단계: 기존 회귀 테스트 재실행으로 side effect 점검
+- [x] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-08 원인/영향/대응 후처리 품질 보강 Phase 38)
+- [08:56] 작업 시작: 원인/영향/대응 섹션 중복/빈약 출력 문제 개선 착수
+- [09:22] 완료: `answer_postprocessor_guards._render_current_mail_cause_analysis`를 단일 배타 분류(원인/영향/대응) 방식으로 보정해 섹션 간 중복 라인 제거
+- [09:22] 완료: 테스트 추가(`tests/test_answer_postprocessor_routing.py`: 중복/영향 fallback 케이스) 및 대상 회귀 통과(5 passed)
+- [09:22] 완료: 예외 정책 회귀 통과(`tests/test_format_exception_policy.py` 대상 2 passed), current-mail/scope 회귀 통과(11 passed)
+- [09:22] 이슈 발생: `tests/test_answer_postprocessor_routing.py` 전체 스위트는 현 워크트리 기준 기존 실패 케이스 다수(27 fail) 확인 → 해결 방법: 이번 변경 영향 범위와 직접 연관된 대상 케이스만 분리 검증, 전체 스위트 안정화는 별도 정리 필요
+
+## 현재 작업
+현재메일 문맥 고정 Phase 37(암시적 후속 질의를 current_mail로 안전 라우팅)
+
+## Plan (2026-03-08 현재메일 문맥 고정 Phase 37)
+- [x] 1단계: 암시적 현재메일 후속 질의 판별 규칙 설계(명시 전역검색 질의 보호)
+- [x] 2단계: 서버 판별 유틸(`current_mail_pipeline`) 확장 및 `search_chat_flow` 연동
+- [x] 3단계: 회귀 테스트 추가(TDD) 및 기존 scope 테스트 재실행
+- [x] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-08 현재메일 문맥 고정 Phase 37)
+- [08:44] 작업 시작: 현재메일 자유 질의(예: 구축 금액 정리) 암시적 후속 라우팅 보강 착수
+- [08:44] 완료: `current_mail_pipeline`에 thread sticky 상태(기본 TTL 600초/최대 4턴) 기반 암시 후속 질의 판별/소모 로직 추가
+- [08:44] 완료: `search_chat_flow`가 `resolve_current_mail_mode` + `remember_sticky_current_mail`를 사용하도록 연동
+- [08:44] 완료: 테스트 추가(`tests/test_current_mail_pipeline.py`) 및 통과(`tests/test_current_mail_pipeline.py`, `tests/test_followup_scope.py` -> 11 passed)
+- [08:44] 이슈 발생: 환경에 `fastapi` 미설치로 일부 라우트 통합 테스트 수집 실패 → 해결 방법: 현재 세션은 순수 유틸/스코프 회귀 테스트로 검증, 의존성 설치 후 라우트 회귀 재실행 필요
+- [08:50] 이슈 발생: 현재메일 원인 설명 질의가 `current_mail_summary` 템플릿으로 강제 축약되어 분석형 응답이 요약 카드로 노출됨 → 해결 방법: `format_exception_policy`에 원인/해결 질의 템플릿 예외 추가, `answer_postprocessor_guards`의 원인 분석 판별 키워드(실패/오류/차단/지연/설명) 보강
+- [08:50] 완료: 회귀 테스트 통과(`tests/test_format_exception_policy.py`, `tests/test_answer_postprocessor_routing.py` 대상 8 passed)
+
+## 현재 작업
+스코프 선택 Clarification PoC Phase 36(모호 질의 시 현재/전체 2지선다 + 클릭 재실행)
+
+## Plan (2026-03-08 스코프 선택 Clarification PoC Phase 36)
+- [x] 1단계: 서버 scope clarification 규칙을 `현재/전체` 2옵션 중심으로 단순화
+- [x] 2단계: `현재메일 + 유사/관련 메일 조회` 하이브리드 질의를 clarification 대상으로 승격
+- [x] 3단계: 프론트 `scope-select` 버튼 클릭 핸들러 연결(동일 질의 재실행)
+- [x] 4단계: 회귀 테스트(TDD) 추가/실행
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-08 스코프 선택 Clarification PoC Phase 36)
+- [07:27] 작업 시작: 모호 질의 scope 선택(현재/전체) 강제 카드 PoC 구현 착수
+- [07:30] 완료: `followup_scope.build_scope_clarification`을 현재/전체 2옵션 기반으로 단순화하고 하이브리드(`현재메일 + 유사/관련 조회`) 문장에 선택 강제 적용
+- [07:33] 완료: 프론트 `scope-select` 클릭 시 동일 원문+`runtime_options.scope`로 재실행 핸들러 연결(`taskpane.chat_actions.handlers/dispatch.js`)
+- [07:34] 완료: 캐시 버전 갱신(`taskpane.html`: chat_actions handlers/dispatch 버전 상향)
+- [07:35] 완료: 회귀 테스트 통과(`tests/test_followup_scope.py` 6 passed, `tests/test_taskpane_chat_actions.cjs` 16 passed)
+- [08:18] 인수인계: 다음 세션에서 scope 선택 카드 UI 위치(입력창 인접 토스트형/인라인형) 최종 정책 결정 및 E2E 시나리오 재검증 예정
+
+## 현재 작업
+스코프 fallback 보정 Phase 35(복합 검색 질의의 current_mail 오판 차단)
+
+## Plan (2026-03-08 스코프 fallback 보정 Phase 35)
+- [x] 1단계: `search_chat_flow` scope fallback 기준을 `selected_mail 존재`에서 `질의 타입` 중심으로 전환
+- [x] 2단계: scope metadata/UI 문구가 fallback 정책과 동일하게 동작하도록 정렬
+- [x] 3단계: 회귀 테스트 추가(TDD) 및 실행
+- [x] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-08 스코프 fallback 보정 Phase 35)
+- [07:18] 작업 시작: 복합 검색 질의가 `current_mail`로 오판되는 scope fallback 경로 점검 시작
+- [07:20] 완료: `resolve_default_scope` 공용 함수 추가 및 `run_search_chat` 기본 scope 결정 로직 연동
+- [07:21] 완료: `search_chat_flow` fallback을 질의 타입 기반으로 보정(`current_mail` 질의만 current scope 기본값 적용)
+- [07:22] 완료: 회귀 테스트 추가/통과(`tests/test_followup_scope.py`, 5 passed)
+
+## 현재 작업
+스코프 분리 강화 Phase 34(scope metadata/UI 배지 + tool scope guard)
+
+## Plan (2026-03-08 스코프 분리 강화 Phase 34)
+- [x] 1단계: 서버 `metadata`에 scope label/reason 주입
+- [x] 2단계: tool 레벨 scope guard(앵커 없는 기술이슈 전역검색 차단) 적용
+- [x] 3단계: 프론트 공통 meta 블록에 scope 배지 렌더 추가
+- [x] 4단계: 회귀 테스트 실행(TDD)
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-08 스코프 분리 강화 Phase 34)
+- [07:08] 작업 시작: scope contract 가시화/가드 구현 착수
+- [07:15] 완료: `search_chat_flow`에 scope metadata(`scope_label/scope_reason`) 주입 및 tool scope contract 전달 추가
+- [07:16] 완료: `app.agents.tools`에 scope guard/tech query anchor 결합 로직 추가(`current_mail` scope에서 mailbox search 차단)
+- [07:18] 완료: 프론트 공통 메타 블록에 scope 배지 렌더 추가(`taskpane.messages.meta.blocks.js`, `taskpane.messages.composer.js`, `taskpane.chat.evidence.scope.css`)
+- [07:19] 완료: JS 회귀 테스트 통과(`node --test tests/test_taskpane_messages_render.cjs tests/test_taskpane*.cjs`, 180 passed)
+- [07:19] 이슈 발생: Python 테스트 실행 시 `ModuleNotFoundError: langchain`로 수집 실패 → 해결 방법: 현재 세션에서는 JS 회귀만 검증, Python 의존성 설치 후 재검증 필요
+
+## 현재 작업
+프론트 공통 UI 리팩터링 Phase 33(answer_format 미사용 브리지 제거)
+
+## Plan (2026-03-08 프론트 공통 UI 리팩터링 Phase 33)
+- [x] 1단계: `taskpane.messages.answer_format.js` 미사용 evidence 브리지 함수 제거
+- [x] 2단계: public API surface 축소(실사용 export만 유지)
+- [x] 3단계: 프론트 회귀 테스트 실행(TDD)
+- [x] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-08 프론트 공통 UI 리팩터링 Phase 33)
+- [06:52] 작업 시작: answer_format 미사용 브리지 제거 착수
+- [06:55] 완료: `taskpane.messages.answer_format.js` 미사용 evidence 브리지 함수/export 제거로 코드 경량화
+- [06:55] 완료: 스크립트 버전 반영(`taskpane.messages.answer_format.js v=20260308-04`)
+- [06:56] 완료: 프론트 회귀 테스트 통과(`node --test tests/test_taskpane_messages_render.cjs tests/test_taskpane*.cjs`, 179 passed)
+
+## 현재 작업
+프론트 공통 UI 리팩터링 Phase 32(report ready-card 렌더 공통화)
+
+## Plan (2026-03-08 프론트 공통 UI 리팩터링 Phase 32)
+- [x] 1단계: `taskpane.messages.report_cards.js`의 ready-card 중복 렌더 경로 정리
+- [x] 2단계: `appendReadyCard` 단일 경로 사용으로 UI 공통화 강화
+- [x] 3단계: 프론트 회귀 테스트 실행(TDD)
+- [x] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-08 프론트 공통 UI 리팩터링 Phase 32)
+- [06:46] 작업 시작: report ready-card 중복 렌더 정리 착수
+- [06:48] 완료: `addReportReadyCard`가 `appendReadyCard` 공통 렌더 경로를 사용하도록 중복 HTML 제거
+- [06:48] 완료: 스크립트 버전 반영(`taskpane.messages.report_cards.js v=20260308-01`)
+- [06:49] 완료: 프론트 회귀 테스트 통과(`node --test tests/test_taskpane_messages_render.cjs tests/test_taskpane_chat_actions.cjs tests/test_taskpane_send_handlers.cjs tests/test_taskpane*.cjs`, 179 passed)
+
+## 현재 작업
+프론트 공통 UI 리팩터링 Phase 31(answer_format indexed-card fallback 중복 제거)
+
+## Plan (2026-03-08 프론트 공통 UI 리팩터링 Phase 31)
+- [x] 1단계: `taskpane.messages.answer_format.js`의 `renderIndexedSummaryCard` 중복 fallback 제거 설계
+- [x] 2단계: `taskpane.messages.ui_common.js` 의존으로 단일 경로화
+- [x] 3단계: 프론트 회귀 테스트 실행(TDD)
+- [x] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-08 프론트 공통 UI 리팩터링 Phase 31)
+- [06:40] 작업 시작: answer_format 중복 렌더 fallback 제거 착수
+- [06:43] 완료: `taskpane.messages.answer_format.js`가 `ui_common.renderIndexedSummaryCard` 단일 구현만 사용하도록 정리
+- [06:43] 완료: 스크립트 버전 반영(`taskpane.messages.answer_format.js v=20260308-03`)
+- [06:44] 완료: 프론트 회귀 테스트 통과(`node --test tests/test_taskpane_messages_render.cjs tests/test_taskpane*.cjs`, 179 passed)
+
+## 현재 작업
+프론트 공통 UI 리팩터링 Phase 30(helpers 질의 판별 공통화 + meta.blocks basic-info 분리)
+
+## Plan (2026-03-08 프론트 공통 UI 리팩터링 Phase 30)
+- [x] 1단계: `taskpane.helpers.js` 질의 판별기 중복 패턴 공통 함수화
+- [x] 2단계: `taskpane.messages.meta.blocks.js` basic-info 유틸 분리
+- [x] 3단계: 스크립트 로딩/버전 반영
+- [x] 4단계: 프론트 회귀 테스트 실행(TDD)
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-08 프론트 공통 UI 리팩터링 Phase 30)
+- [06:29] 작업 시작: helpers/meta.blocks 공통화 리팩터링 착수
+- [06:37] 완료: `taskpane.messages.meta.basic_info.js` 분리 모듈 HTML 로딩 연결(`taskpane.html`)
+- [06:38] 완료: 프론트 회귀 테스트 통과(`node --test tests/test_taskpane_messages_render.cjs tests/test_taskpane*.cjs`, 179 passed)
+- [06:38] 완료: JS 라인 수 점검 완료(최대 297줄, 300줄 이하 유지)
+
+## 현재 작업
+프론트 공통 UI 리팩터링 Phase 29(chat_actions dispatch change-handler 분리)
+
+## Plan (2026-03-08 프론트 공통 UI 리팩터링 Phase 29)
+- [x] 1단계: `taskpane.chat_actions.dispatch.js` change 분기 분해 설계
+- [x] 2단계: change-handler 보조 모듈 신설 및 이관
+- [x] 3단계: dispatch 오케스트레이터 경량화
+- [x] 4단계: 프론트 회귀 테스트 실행(TDD)
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-08 프론트 공통 UI 리팩터링 Phase 29)
+- [06:26] 작업 시작: chat_actions dispatch change-handler 분리 착수
+- [06:27] 완료: `taskpane.chat_actions.change_handlers.js` 신설로 change 이벤트 로직 분리
+- [06:27] 완료: `taskpane.chat_actions.dispatch.js`에서 change 핸들러 위임 방식으로 경량화
+- [06:28] 완료: 스크립트 로딩/버전 반영(`taskpane.html`: `change_handlers.js v=20260308-01`, `dispatch.js v=20260308-03`, `messages.js v=20260308-03`)
+- [06:29] 완료: 프론트 회귀 테스트 통과(`node --test tests/test_taskpane*.cjs`, 179 passed)
+- [06:29] 이슈 발생: `taskpane.messages.js`가 301줄로 기준(300) 초과 → 해결 방법: 주석/공백 정리로 297줄로 조정 후 `test_taskpane_messages_render.cjs` 재검증
+
+## 현재 작업
+프론트 공통 UI 리팩터링 Phase 28(messages/dispatch 반복 액션 매핑 테이블화)
+
+## Plan (2026-03-08 프론트 공통 UI 리팩터링 Phase 28)
+- [x] 1단계: `taskpane.messages.js` delegate 반환부 반복 매핑 테이블화
+- [x] 2단계: `taskpane.chat_actions.dispatch.js` click 액션 분기 테이블화
+- [x] 3단계: 동작 동일성 검증(핵심 경로)
+- [x] 4단계: 프론트 회귀 테스트 실행(TDD)
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-08 프론트 공통 UI 리팩터링 Phase 28)
+- [06:24] 작업 시작: messages/dispatch 반복 액션 매핑 구조 리팩터링 착수
+- [06:25] 완료: `taskpane.messages.js`의 report/meeting/legacy delegate 매핑을 테이블 방식으로 공통화
+- [06:25] 완료: `taskpane.chat_actions.dispatch.js`의 cancel/단순 click 액션 분기를 맵 기반으로 단순화
+- [06:26] 완료: 캐시 버전 갱신(`taskpane.messages.js v=20260308-03`, `taskpane.chat_actions.dispatch.js v=20260308-02`)
+- [06:26] 완료: 프론트 회귀 테스트 통과(`node --test tests/test_taskpane*.cjs`, 179 passed)
+
+## 현재 작업
+프론트 공통 UI 리팩터링 Phase 27(남은 JS 모듈 로더 패턴 단일화 + 캐시 버전 반영)
+
+## Plan (2026-03-08 프론트 공통 UI 리팩터링 Phase 27)
+- [x] 1단계: `answer_format/richtext/meta/meta.blocks/legacy_cards` 중복 module resolve 제거
+- [x] 2단계: `send.handlers/chat_actions.handlers/selection`까지 module loader 재사용 확장
+- [x] 3단계: `taskpane.html` 스크립트 버전 갱신(캐시 무효화)
+- [x] 4단계: 프론트 회귀 테스트 실행(TDD)
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-08 프론트 공통 UI 리팩터링 Phase 27)
+- [06:18] 작업 시작: 잔여 JS 모듈의 `resolveModule` 공통화 마무리 착수
+- [06:21] 완료: `taskpane.send.handlers.js`, `taskpane.chat_actions.handlers.js`, `taskpane.selection.js`를 `taskpane.module_loader.js` 기반으로 치환
+- [06:22] 완료: `taskpane.messages.answer_format.js`, `taskpane.messages.richtext.js`, `taskpane.messages.meta.js`, `taskpane.messages.meta.blocks.js`, `taskpane.messages.legacy_cards.js` 공통화 치환
+- [06:22] 완료: 캐시 버전 반영(`taskpane.html`의 변경 모듈 버전 갱신)
+- [06:23] 완료: 프론트 회귀 테스트 통과(`node --test tests/test_taskpane*.cjs`, 179 passed)
+
+## 현재 작업
+프론트 공통 UI 리팩터링 Phase 26(JS module loader 적용 범위 확장: taskpane.js/chat_actions.js)
+
+## Plan (2026-03-08 프론트 공통 UI 리팩터링 Phase 26)
+- [x] 1단계: `taskpane.js`, `taskpane.chat_actions.js`의 중복 module resolve 코드 제거 설계
+- [x] 2단계: `taskpane.module_loader.js` 재사용하도록 치환
+- [x] 3단계: dead fallback/중복 분기 점검
+- [x] 4단계: 프론트 회귀 테스트 실행(TDD)
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-08 프론트 공통 UI 리팩터링 Phase 26)
+- [06:16] 작업 시작: module loader 공통화 2차(taskpane.js/chat_actions.js) 착수
+- [06:17] 완료: `taskpane.js`, `taskpane.chat_actions.js`의 `resolveModule` 중복 구현 제거 후 `taskpane.module_loader.js` 재사용으로 치환
+- [06:17] 완료: 프론트 회귀 테스트 통과(`node --test ...`, 118 passed)
+
+## 현재 작업
+프론트 공통 UI 리팩터링 Phase 25(JS 오케스트레이터 공통화 + dead code 정리)
+
+## Plan (2026-03-08 프론트 공통 UI 리팩터링 Phase 25)
+- [x] 1단계: `taskpane.messages.js` 모듈 초기화/위임 중복 코드 분리 설계
+- [x] 2단계: 공통 유틸 모듈 신설 및 기존 오케스트레이터 치환
+- [x] 3단계: 죽은 코드(미사용/중복 fallback) 정리
+- [x] 4단계: 프론트 회귀 테스트 실행(TDD)
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-08 프론트 공통 UI 리팩터링 Phase 25)
+- [06:11] 작업 시작: taskpane.messages.js 오케스트레이터 공통화/중복 제거 착수
+- [06:13] 완료: `taskpane.module_loader.js` 신설로 `resolveModule/createRenderer/delegate` 공통화
+- [06:13] 완료: `taskpane.messages.js` 치환으로 오케스트레이터 중복 초기화 유틸 제거(`296 -> 287 lines`)
+- [06:14] 완료: `taskpane.html` 로딩 반영(`taskpane.module_loader.js v=20260308-01`, `taskpane.messages.js v=20260308-02`) 및 신규 단위테스트 추가(`tests/test_taskpane_module_loader.cjs`)
+- [06:14] 완료: 프론트 JS 회귀 테스트 통과(`node --test tests/test_taskpane*.cjs`, 179 passed)
+
+## 현재 작업
+프론트 공통 UI 리팩터링 Phase 24(JS 분해: taskpane.messages.answer_format.js/ richtext.js 대형 파일 분해)
+
+## Plan (2026-03-08 프론트 공통 UI 리팩터링 Phase 24)
+- [x] 1단계: `taskpane.messages.answer_format.js` 블록 렌더러 분해 설계
+- [x] 2단계: `taskpane.messages.richtext.js` 파서/위젯 렌더 분해 설계
+- [x] 3단계: 분해 우선순위에 맞춰 모듈 이관 + 로딩/버전 반영
+- [x] 4단계: 프론트 회귀 테스트 실행(TDD)
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-08 프론트 공통 UI 리팩터링 Phase 24)
+- [06:37] 작업 시작: answer_format/richtext 대형 파일 분해 설계 착수
+- [06:40] 완료: `taskpane.messages.richtext.utils.js` 신설로 richtext 유틸 분해, `taskpane.messages.richtext.js` 경량화(`475 -> 249 lines`)
+- [06:42] 완료: `taskpane.messages.answer_blocks.js` 신설로 answer format 블록 분해, `taskpane.messages.answer_format.js` 경량화(`363 -> 243 lines`)
+- [06:45] 이슈 발생: answer block 분해 후 렌더 회귀 실패(11건) → 해결 방법: `tech-issue` key/리스트 처리 원본 동작 보존 형태로 모듈 재정렬
+- [06:48] 완료: 로딩/버전 반영(`taskpane.html`: richtext.utils/answer_blocks 추가) 및 회귀 테스트 통과
+
+## 현재 작업
+프론트 공통 UI 리팩터링 Phase 23(JS 분해: taskpane.chat_actions.handlers.js HIL/booking 핸들러 분리)
+
+## Plan (2026-03-08 프론트 공통 UI 리팩터링 Phase 23)
+- [x] 1단계: `taskpane.chat_actions.handlers.js`의 HIL confirm/booking 흐름 분리 설계
+- [x] 2단계: 하위 핸들러 모듈 신설 및 기존 동작 이관
+- [x] 3단계: 오케스트레이터 경량화 + 로딩/버전 반영
+- [x] 4단계: 프론트 회귀 테스트 실행(TDD)
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-08 프론트 공통 UI 리팩터링 Phase 23)
+- [06:31] 작업 시작: taskpane.chat_actions.handlers.js 분해 착수
+- [06:34] 완료: `taskpane.chat_actions.hitl.js` 신설(HIL confirm/회의실/일정 submit 전용)
+- [06:34] 완료: `taskpane.chat_actions.handlers.js` 경량화(`400 -> 264 lines`) 및 `taskpane.html` 스크립트/버전 반영
+- [06:35] 완료: chat actions/message/send 회귀 테스트 통과(`node --test ...`, 96 passed / 90 passed)
+- [06:36] 완료: `taskpane.messages.meeting_options.js` 신설로 meeting card option 렌더 공통화, `meeting_cards.js` 경량화(`345 -> 293 lines`)
+
+## 현재 작업
+프론트 공통 UI 리팩터링 Phase 22(JS 분해: taskpane.selection.js observer/context 모듈화)
+
+## Plan (2026-03-08 프론트 공통 UI 리팩터링 Phase 22)
+- [x] 1단계: `taskpane.selection.js`의 observer 로직 분리 설계
+- [x] 2단계: observer/context 보조 모듈 신설 및 기존 동작 이관
+- [x] 3단계: 오케스트레이터 경량화 + 로딩/버전 반영
+- [x] 4단계: 프론트 회귀 테스트 실행(TDD)
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-08 프론트 공통 UI 리팩터링 Phase 22)
+- [06:26] 작업 시작: selection controller observer/context 분해 착수
+- [06:28] 완료: `taskpane.selection.observer.js`/`taskpane.selection.context.js` 신설 후 observer/context 책임 이관
+- [06:29] 완료: `taskpane.selection.js` 경량화(`430 -> 274 lines`) 및 `taskpane.html` 스크립트 로딩 반영
+- [06:30] 완료: 선택/부트스트랩/API/액션 회귀 테스트 통과(`node --test ...`, 48 passed)
+
+## 현재 작업
+프론트 공통 UI 리팩터링 Phase 21(JS 분해: taskpane.api.js request 유틸 분리)
+
+## Plan (2026-03-08 프론트 공통 UI 리팩터링 Phase 21)
+- [x] 1단계: `taskpane.api.js`의 fetch 요청/응답 처리 공통 함수 분리 설계
+- [x] 2단계: request 헬퍼 모듈 신설 및 `taskpane.api.js` 이관
+- [x] 3단계: 오케스트레이터 경량화 + 로딩/버전 반영
+- [x] 4단계: 프론트 회귀 테스트 실행(TDD)
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-08 프론트 공통 UI 리팩터링 Phase 21)
+- [06:24] 작업 시작: taskpane.api.js request 유틸 분리 착수
+- [06:25] 완료: `taskpane.api.stream.js` 신설로 SSE parsing/stream loop 공통화
+- [06:26] 완료: `taskpane.api.js` 경량화(`311 -> 228 lines`) 및 `taskpane.html` 로딩/버전 반영(`taskpane.api.js v=20260308-01`)
+- [06:26] 완료: API/부트스트랩/메시지/전송 회귀 테스트 통과(`node --test ...`, 86 passed)
+
+## 현재 작업
+프론트 공통 UI 리팩터링 Phase 20(JS 분해: taskpane.js 오케스트레이터 추가 경량화)
+
+## Plan (2026-03-08 프론트 공통 UI 리팩터링 Phase 20)
+- [x] 1단계: `taskpane.js`에서 초기화/바인딩/부트스트랩 분리 설계
+- [x] 2단계: 초기화 전용 모듈 신설 및 기존 동작 이관
+- [x] 3단계: `taskpane.js` 오케스트레이터 경량화 + 로딩/버전 반영
+- [x] 4단계: 프론트 회귀 테스트 실행(TDD)
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-08 프론트 공통 UI 리팩터링 Phase 20)
+- [06:18] 작업 시작: taskpane.js 초기화/바인딩 로직 분해 착수
+- [06:22] 완료: `taskpane.bootstrap.js` 신설로 bindUi/selection banner sync/bootstrap 로직 이관
+- [06:22] 완료: `taskpane.js` 오케스트레이터 경량화(`443 -> 292 lines`) 및 `taskpane.html` 로딩 경로 반영(`taskpane.bootstrap.js v=20260308-01`, `taskpane.js v=20260308-01`)
+- [06:23] 완료: 신규 테스트(`tests/test_taskpane_bootstrap.cjs`) 포함 회귀 통과(`node --test ...`, 119 passed / 선택회귀 24 passed)
+
+## 현재 작업
+프론트 공통 UI 리팩터링 Phase 19(JS 분해: taskpane.chat_actions dispatcher 모듈화)
+
+## Plan (2026-03-08 프론트 공통 UI 리팩터링 Phase 19)
+- [x] 1단계: `taskpane.chat_actions.js` 이벤트 디스패치/핸들링 로직 분리 설계
+- [x] 2단계: `taskpane.chat_actions.dispatch.js` 신설 및 기존 동작 이관
+- [x] 3단계: `taskpane.chat_actions.js` 오케스트레이터 경량화 + 로딩/버전 반영
+- [x] 4단계: 프론트 회귀 테스트 실행(TDD)
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-08 프론트 공통 UI 리팩터링 Phase 19)
+- [05:45] 작업 시작: taskpane.chat_actions dispatcher 모듈화 착수
+- [06:09] 완료: `taskpane.chat_actions.dispatch.js` 신설 및 click dispatch 로직 이관
+- [06:10] 완료: `taskpane.chat_actions.js`를 오케스트레이터로 경량화(모듈 조합 + 위임)
+- [06:11] 완료: 로딩/버전 반영(`taskpane.html`: dispatch 스크립트 추가, `chat_actions.js v=20260308-06`)
+- [06:13] 완료: 프론트 선택 회귀 테스트 통과(`node --test ...`, 95 passed)
+
+## 현재 작업
+프론트 공통 UI 리팩터링 Phase 18(sources.web/next_actions.reply 엔트리 분해)
+
+## Plan (2026-03-08 프론트 공통 UI 리팩터링 Phase 18)
+- [x] 1단계: `taskpane.chat.sources.web.css`를 trigger/panel 파트로 분해
+- [x] 2단계: `taskpane.chat.next_actions.reply.css`를 picker/draft 파트로 분해
+- [x] 3단계: 엔트리 import/버전 반영
+- [x] 4단계: dead selector 점검 + 프론트 회귀 테스트(TDD)
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-08 프론트 공통 UI 리팩터링 Phase 18)
+- [05:31] 작업 시작: sources.web/next_actions.reply 엔트리 분해 착수
+- [05:36] 완료: `sources.web`를 `web.trigger/web.panel` + 엔트리로 분해
+- [05:38] 완료: `next_actions.reply`를 `reply.picker/reply.draft` + 엔트리로 분해
+- [05:39] 완료: import/버전 반영(`taskpane.chat.next_actions.css v=20260308-02`, `taskpane.chat.sources.css v=20260308-03`, `taskpane.chat.css v=20260308-06`, `taskpane.css v=20260308-06`, `taskpane.html`)
+- [05:40] 완료: dead selector 1건(`rich-list-item`) 제거 후 재점검 결과 신규 후보 없음
+- [05:40] 완료: 프론트 회귀 테스트 통과(`node --test ...`, 100 passed)
+
+## 현재 작업
+프론트 공통 UI 리팩터링 Phase 17(base.thread/actions.controls 엔트리 분해)
+
+## Plan (2026-03-08 프론트 공통 UI 리팩터링 Phase 17)
+- [x] 1단계: `taskpane.chat.base.thread.css`를 message/rich 파트로 분해
+- [x] 2단계: `taskpane.chat.actions.controls.css`를 buttons/meta 파트로 분해
+- [x] 3단계: 엔트리 import/버전 반영
+- [x] 4단계: dead selector 점검 + 프론트 회귀 테스트(TDD)
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-08 프론트 공통 UI 리팩터링 Phase 17)
+- [05:07] 작업 시작: base.thread/actions.controls 엔트리 분해 착수
+- [05:11] 완료: `base.thread`를 `thread.message/thread.rich` + 엔트리로 분해
+- [05:13] 완료: `actions.controls`를 `controls.buttons/controls.meta` + 엔트리로 분해
+- [05:14] 완료: dead CSS 제거(`summary-mail-hero*` 4개 셀렉터, 참조 0건 확인 후 삭제)
+- [05:15] 완료: import/버전 반영(`taskpane.chat.base.css v=20260308-02`, `taskpane.chat.actions.css v=20260308-01`, `taskpane.chat.css v=20260308-05`, `taskpane.css v=20260308-05`, `taskpane.html`)
+- [05:16] 완료: dead selector 재점검 결과 신규 후보 없음 + 프론트 회귀 테스트 통과(`node --test ...`, 100 passed)
+
+## 현재 작업
+프론트 공통 UI 리팩터링 Phase 16(rich.typography/sources.evidence 분해 및 엔트리 정리)
+
+## Plan (2026-03-08 프론트 공통 UI 리팩터링 Phase 16)
+- [x] 1단계: `taskpane.chat.rich.typography.css`를 섹션별 파일로 분해
+- [x] 2단계: `taskpane.chat.sources.evidence.css`를 섹션별 파일로 분해
+- [x] 3단계: 엔트리 import/버전 갱신
+- [x] 4단계: dead selector 점검 + 프론트 회귀 테스트(TDD)
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-08 프론트 공통 UI 리팩터링 Phase 16)
+- [04:56] 작업 시작: rich.typography/sources.evidence 파일 분해 착수
+- [05:01] 완료: `rich.typography`를 `lists/code/tables` 3개 파일 + 엔트리로 분해
+- [05:03] 완료: `sources.evidence`를 `base/inline` 2개 파일 + 엔트리로 분해
+- [05:04] 완료: import/버전 반영(`taskpane.chat.rich.css v=20260308-03`, `taskpane.chat.sources.css v=20260308-02`, `taskpane.chat.css v=20260308-04`, `taskpane.css v=20260308-04`, `taskpane.html`)
+- [05:05] 완료: dead selector 점검 결과 신규 dead 후보 없음
+- [05:05] 완료: 프론트 회귀 테스트 통과(`node --test ...`, 100 passed)
+
+## 현재 작업
+프론트 공통 UI 리팩터링 Phase 15(CSS 대형 파일 분해: layout/rich.widgets 300라인 기준 정리)
+
+## Plan (2026-03-08 프론트 공통 UI 리팩터링 Phase 15)
+- [x] 1단계: `taskpane.layout.css`를 섹션별 파일로 분해
+- [x] 2단계: `taskpane.chat.rich.widgets.css`를 기능별 파일로 분해
+- [x] 3단계: 엔트리 import/버전 갱신 및 동작 동일성 확인
+- [x] 4단계: 프론트 회귀 테스트 실행(TDD)
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-08 프론트 공통 UI 리팩터링 Phase 15)
+- [04:44] 작업 시작: CSS 대형 파일 분해 착수(layout/rich.widgets)
+- [04:49] 완료: `layout.css`를 엔트리화하고 `layout.tokens/header/chat_area` 3개 파일로 분해(각 80/139/120 lines)
+- [04:52] 완료: `rich.widgets.css`를 엔트리화하고 `rich.widgets.report/executive` 2개 파일로 분해(285/58 lines)
+- [04:53] 완료: 엔트리 import/버전 갱신(`taskpane.layout.css v=20260308-02`, `taskpane.chat.rich.css v=20260308-02`, `taskpane.chat.css v=20260308-03`, `taskpane.css v=20260308-03`, `taskpane.html`)
+- [04:54] 완료: dead selector 점검 결과 `tone-high/tone-medium`만 후보, `answer_sections.js` 동적 클래스 사용으로 유지
+- [04:54] 완료: 프론트 회귀 테스트 통과(`node --test ...`, 100 passed)
+
+## 현재 작업
+프론트 공통 UI 리팩터링 Phase 14(layout/rich widgets 공통 토큰 확장 + dead selector 점검)
+
+## Plan (2026-03-08 프론트 공통 UI 리팩터링 Phase 14)
+- [x] 1단계: `layout/rich.widgets` 중복 카드/입력/버튼 스타일 추출
+- [x] 2단계: `taskpane.chat.ui_common.css` 공통 토큰 확장
+- [x] 3단계: `taskpane.layout.css`/`taskpane.chat.rich.widgets.css` 토큰 기반 치환
+- [x] 4단계: 변경 파일 기준 dead selector 점검(정적 검색)
+- [x] 5단계: 프론트 회귀 테스트 실행(TDD) + Action Log 업데이트
+
+## Action Log (2026-03-08 프론트 공통 UI 리팩터링 Phase 14)
+- [04:33] 작업 시작: layout/rich widgets CSS 공통화 2차 착수
+- [04:37] 완료: `ui_common.css` 공통 토큰 확장(card warm/control border/bg/radius/height)
+- [04:39] 완료: `layout.css` 배너/툴바 버튼 중복 스타일 통합 및 공통 토큰 참조로 치환
+- [04:40] 완료: `rich.widgets.css` 카드/입력 컨트롤 스타일 공통 토큰 참조로 치환
+- [04:41] 완료: dead selector 점검(정적 스캔) 결과 `tone-high/tone-medium`만 후보였고 `answer_sections.js` 동적 클래스 사용 확인
+- [04:42] 완료: 캐시 버전 반영(`taskpane.css v=20260308-02`, `taskpane.chat.css v=20260308-02`, `taskpane.chat.rich.css v=20260308-01`, `taskpane.html taskpane.css v=20260308-02`)
+- [04:42] 완료: 프론트 회귀 테스트 통과(`node --test ...`, 100 passed)
+
+## 현재 작업
+프론트 공통 UI 리팩터링 Phase 13(CSS 공통 토큰/카드 스타일 통합)
+
+## Plan (2026-03-08 프론트 공통 UI 리팩터링 Phase 13)
+- [x] 1단계: 채팅 카드/패널/버튼 스타일 중복 규칙 추출
+- [x] 2단계: `taskpane.chat.ui_common.css` 공통 토큰/공통 셀렉터 추가
+- [x] 3단계: base/next_actions/sources/evidence CSS를 공통 토큰 기반으로 치환
+- [x] 4단계: 캐시 버전 반영(`taskpane.css`, `taskpane.chat.css`, `taskpane.html`)
+- [x] 5단계: 프론트 회귀 테스트 실행(TDD) 및 Action Log 업데이트
+
+## Action Log (2026-03-08 프론트 공통 UI 리팩터링 Phase 13)
+- [04:23] 작업 시작: 채팅 UI 카드/패널 CSS 공통화 및 중복 제거 착수
+- [04:28] 완료: `taskpane.chat.ui_common.css` 신설(공통 radius/border/bg/shadow 토큰 + 공통 셀렉터 그룹)
+- [04:30] 완료: `sections/major/next_actions/sources(evidence/web)` 스타일을 공통 토큰 참조로 치환해 중복 선언 축소
+- [04:31] 완료: 캐시 버전 반영(`taskpane.chat.css v=20260308-01`, `taskpane.css v=20260308-01`, `taskpane.html taskpane.css v=20260308-01`)
+- [04:31] 완료: 프론트 회귀 테스트 통과(`node --test ...`, 100 passed)
+
+## 현재 작업
+프론트 공통 UI 리팩터링 Phase 12(messages 오케스트레이터 추가 분리)
+
+## Plan (2026-03-07 프론트 공통 UI 리팩터링 Phase 12)
+- [x] 1단계: `taskpane.messages.js`의 메시지 조립/셀 블록 중복 함수 식별
+- [x] 2단계: 메시지 셸/합성 공통 모듈 추가
+- [x] 3단계: 오케스트레이터 치환 + 로딩 순서/버전 반영
+- [x] 4단계: 단위 테스트/회귀 테스트 실행(TDD)
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-07 프론트 공통 UI 리팩터링 Phase 12)
+- [22:56] 작업 시작: `taskpane.messages.js` 조립 로직 추가 분리 착수
+- [23:01] 완료: `taskpane.messages.composer.js` 신설로 메시지 HTML 조립 로직(assistant/user) 분리
+- [23:03] 완료: `taskpane.messages.status.js` 신설로 진행상태/경과시간/세션리셋 UI 로직 분리
+- [23:04] 완료: 로딩 순서/버전 반영(`taskpane.html`: `composer.js`, `status.js`, `rich_bridge.js` 추가, `messages.js v=20260307-08`)
+- [23:05] 완료: 신규 테스트(`tests/test_taskpane_messages_composer.cjs`, `tests/test_taskpane_messages_status.cjs`, `tests/test_taskpane_messages_rich_bridge.cjs`) 포함 회귀 통과(`node --test ...`, 97 passed)
+- [23:05] 완료: `taskpane.messages.js` 라인수 정리(`397 -> 346`, 상태/합성/리치브리지 모듈로 분리)
+- [23:10] 완료: `taskpane.messages.js` 재구성(중복 선언 제거 + renderer 초기화 공통화)으로 추가 슬림화(`346 -> 296`)
+- [23:10] 완료: 버전 반영(`taskpane.html`: `taskpane.messages.js v=20260307-09`) 및 프론트 회귀 통과(`node --test ...`, 100 passed)
+
+## 현재 작업
+프론트 공통 UI 리팩터링 Phase 11(meta/legacy 카드 쉘 공통화)
+
+## Plan (2026-03-07 프론트 공통 UI 리팩터링 Phase 11)
+- [x] 1단계: meta/legacy_cards 카드 쉘 렌더 중복 지점 식별
+- [x] 2단계: 공통 카드 쉘 유틸 모듈 추가
+- [x] 3단계: 기존 렌더 경로 치환 + 로딩 순서/버전 반영
+- [x] 4단계: 단위 테스트/회귀 테스트 실행(TDD)
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-07 프론트 공통 UI 리팩터링 Phase 11)
+- [21:18] 작업 시작: meta/legacy_cards 카드 쉘 HTML 중복 공통화 착수
+- [21:21] 완료: `legacy_cards`가 `card_dom` 공통 유틸을 재사용하도록 치환(중복 DOM 제어 제거)
+- [21:23] 완료: `meta.blocks` 액션 UI(HIL/next_action/reply/source)를 `taskpane.messages.meta_actions.js`로 분리
+- [21:26] 완료: `legacy_cards`를 `legacy_promise`/`legacy_forms` 서브모듈로 분해해 파일 슬림화(`431 -> 149 lines`)
+- [21:27] 완료: 로딩 순서/버전 반영(`taskpane.html`: `meta_actions.js`, `legacy_promise.js`, `legacy_forms.js` 추가, `legacy_cards.js v=20260307-05`)
+- [21:27] 완료: 신규 테스트(`tests/test_taskpane_messages_meta_actions.cjs`, `tests/test_taskpane_messages_legacy_cards.cjs`) 포함 회귀 통과(`node --test ...`, 93 passed)
+- [21:31] 완료: `taskpane.messages.shell.js` 신설로 `messages.js`의 액션 아이콘/시간/코드리뷰 배지 렌더 공통화(`439 -> 414 lines`)
+- [21:31] 완료: 로딩 순서/버전 반영(`taskpane.html`: `taskpane.messages.shell.js` 추가, `taskpane.messages.js v=20260307-05`)
+- [21:31] 완료: 신규 테스트(`tests/test_taskpane_messages_shell.cjs`) 포함 회귀 통과(`node --test ...`, 92 passed)
+
+## 현재 작업
+프론트 공통 UI 리팩터링 Phase 10(Evidence UI 공통 모듈화)
+
+## Plan (2026-03-07 프론트 공통 UI 리팩터링 Phase 10)
+- [x] 1단계: answer_format/summary_cards 중복 Evidence 렌더 함수 식별 및 공통 API 설계
+- [x] 2단계: `taskpane.messages.evidence_ui.js` 신설 및 중복 로직 이관
+- [x] 3단계: 기존 모듈 참조 치환 + 로딩 순서/버전 반영
+- [x] 4단계: 단위 테스트/회귀 테스트 실행(TDD)
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-07 프론트 공통 UI 리팩터링 Phase 10)
+- [21:04] 작업 시작: evidence popover/inline list 중복 렌더 로직 공통 모듈 분리 착수
+- [21:08] 완료: `taskpane.messages.evidence_ui.js` 신설 및 `answer_format`/`summary_cards` Evidence 렌더 로직 공통 모듈로 이관
+- [21:09] 완료: `taskpane.messages.answer_sections.js` 신설로 `answer_format`의 섹션 키/한줄요약 카드 렌더 로직 추가 공통화
+- [21:09] 완료: 로딩 순서/캐시 반영(`taskpane.html`: `evidence_ui.js`, `answer_sections.js` 추가, `summary_cards.js v=20260307-02`, `answer_format.js v=20260307-10`, `messages.js v=20260307-04`)
+- [21:09] 완료: 신규 테스트(`tests/test_taskpane_messages_evidence_ui.cjs`, `tests/test_taskpane_messages_answer_sections.cjs`) 포함 회귀 통과(`node --test ...`, 79 passed)
+
+## 현재 작업
+프론트 공통 UI 리팩터링 Phase 9(JS/CSS 공통 컴포넌트화 + 불필요 중복 정리)
+
+## Plan (2026-03-07 프론트 공통 UI 리팩터링 Phase 9)
+- [x] 1단계: answer_format의 중복 카드 렌더 로직을 공통 JS 유틸로 추출
+- [x] 2단계: 메일 요약/기술이슈 섹션에서 공통 렌더 유틸 적용
+- [x] 3단계: CSS 중복 규칙 정리(공통 클래스 도입, 불필요 규칙 제거)
+- [x] 4단계: 프론트 렌더 회귀 테스트 실행(CJS)
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-07 프론트 공통 UI 리팩터링 Phase 9)
+- [20:21] 작업 시작: taskpane 메시지 렌더 JS/CSS 공통화 및 중복 제거 착수
+- [20:34] 완료: `taskpane.chat_actions.handlers.js`(520 lines)에서 후속작업/회신초안 핸들러를 `taskpane.chat_actions.next_actions.js`로 분리해 400 lines로 축소
+- [20:35] 완료: 로딩 순서 반영(`taskpane.html`에 `taskpane.chat_actions.next_actions.js` 추가, handlers 버전 `v=20260307-05` 상향)
+- [20:36] 완료: 프론트 회귀 테스트 통과(`node --test tests/test_taskpane_chat_actions.cjs tests/test_taskpane_interactions.cjs tests/test_taskpane_messages_render.cjs`, 93 passed)
+- [20:43] 완료: `taskpane.chat_actions.js` click 분기 중복(취소/회의실 back/promise 흐름) 공통 함수로 정리해 유지보수성 향상
+- [20:44] 완료: 신규 분리 모듈 단위 테스트 추가(`tests/test_taskpane_chat_actions_next_actions.cjs`) 및 회귀 통과(96 passed)
+- [20:44] 완료: 캐시 갱신을 위해 `taskpane.chat_actions.js` 버전 `v=20260307-05` 반영
+- [20:53] 완료: `taskpane.send.handlers.js`의 회의/일정 제안 포맷터를 `taskpane.send.suggestion_formatters.js`로 분리(243 lines로 축소)
+- [20:54] 완료: `taskpane.js` 상태 객체를 `taskpane.state.js`로 추출해 오케스트레이터 단순화(`487 -> 443 lines`)
+- [20:55] 완료: 신규 단위테스트 추가(`tests/test_taskpane_send_suggestion_formatters.cjs`, `tests/test_taskpane_state.cjs`) 및 프론트 회귀 통과(최대 118 passed 세트)
+- [20:55] 완료: 정적 리소스 로딩 순서/버전 반영(`taskpane.send.suggestion_formatters.js?v=20260307-01`, `taskpane.send.handlers.js?v=20260307-05`, `taskpane.state.js?v=20260307-01`, `taskpane.js?v=20260307-03`)
+- [20:58] 완료: `taskpane.js`의 state fallback 중복 제거로 오케스트레이터 슬림화(라인수 443 유지), `TaskpaneState` 모듈 의존 경로 고정
+- [21:06] 완료: 카드 DOM 공통 유틸 `taskpane.messages.card_dom.js` 추가(`appendAssistantCard/disableControls/removeCardsBySelector/withChatArea`)
+- [21:07] 완료: `taskpane.messages.report_cards.js`와 `taskpane.messages.meeting_cards.js`를 카드 DOM 유틸 기반으로 공통화
+- [21:08] 완료: 로딩 순서/캐시 반영(`taskpane.messages.card_dom.js?v=20260307-01`, `report_cards.js?v=20260307-04`, `meeting_cards.js?v=20260307-05`)
+- [21:09] 완료: 신규 테스트(`tests/test_taskpane_messages_card_dom.cjs`) 및 UI 렌더 회귀 통과(92 passed 세트)
+
+## 현재 작업
+정형 포맷 선택기 Phase 8 안정화(예외 경로 명시 정책 고정)
+
+## Plan (2026-03-07 정형 포맷 선택기 Phase 8)
+- [x] 1단계: template-driven contract 적용 예외 정책 모듈 추가
+- [x] 2단계: 코드리뷰/리포트/표강제 요청 경로에서 공통 템플릿 적용 차단
+- [x] 3단계: 정책 단위 테스트 추가(TDD)
+- [x] 4단계: 후처리 회귀 테스트 실행
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-07 정형 포맷 선택기 Phase 8)
+- [20:16] 작업 시작: 예외 경로(코드리뷰/리포트/표강제) 보호 정책 추가 착수
+- [20:18] 완료: `format_exception_policy` 추가 및 `answer_postprocessor`에 예외 정책(코드리뷰/리포트/수신자표/한단락/이슈액션분리) 연동
+- [20:18] 완료: 테스트 통과(`test_format_exception_policy`, `test_answer_postprocessor_routing` 선택 회귀, 공통화 회귀셋 41건)
+
+## 현재 작업
+정형 포맷 선택기 Phase 7 확장(Contract 렌더 공통화 + metadata 대형 함수 분리)
+
+## Plan (2026-03-07 정형 포맷 선택기 Phase 7)
+- [x] 1단계: contract 렌더에 template/section contract 적용 경로 추가
+- [x] 2단계: `search_chat_metadata` 관계자 빌더 묶음을 서비스 모듈로 분리
+- [x] 3단계: 공통화 회귀 테스트 추가(TDD)
+- [x] 4단계: 핵심 테스트/정적 검사 실행
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-07 정형 포맷 선택기 Phase 7)
+- [20:03] 작업 시작: contract 렌더 공통화와 metadata 대형 함수 분리 착수
+- [20:08] 완료: `format_contract_renderer` 추가로 current_mail summary 계열을 template/section contract 기반으로 렌더링 가능하게 확장
+- [20:08] 완료: `search_chat_metadata`의 stakeholders 대형 묶음을 `search_chat_stakeholders` 서비스로 분리해 오케스트레이션만 유지
+- [20:09] 완료: 테스트 37건 통과 + 린트 통과(`test_format_contract_renderer`, `test_search_chat_metadata`, format/mail_search 회귀셋)
+- [20:10] 완료: `search_chat_metadata.py` 라인수 500로 정리(경보 기준 준수)
+
+## 현재 작업
+정형 포맷 선택기 Phase 6 정리(과대 파일 분해 + 중복 렌더 경로 축소)
+
+## Plan (2026-03-07 정형 포맷 선택기 Phase 6)
+- [x] 1단계: `answer_postprocessor_mail_search.py`의 과대 렌더 로직을 섹션 단위 모듈로 분리
+- [x] 2단계: 기존 호출부/테스트를 새 모듈 경로로 치환(동작 불변)
+- [x] 3단계: 파일 길이 500라인 이하 목표 달성 확인
+- [x] 4단계: 회귀 테스트 실행(TDD)
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-07 정형 포맷 선택기 Phase 6)
+- [19:53] 작업 시작: mail_search 후처리 과대 파일 분해 및 중복 렌더 경로 축소 착수
+- [19:59] 완료: `answer_postprocessor_mail_search`를 `..._utils`/`..._digest`로 분리하고 기존 API 시그니처 유지
+- [19:59] 완료: 라인수 목표 달성(`241/308/250`) 및 회귀 테스트 통과(22 passed), 린트 통과
+
+## 현재 작업
+정형 포맷 선택기 Phase 5 정리(템플릿 라우터 도입으로 분산 규칙 축소)
+
+## Plan (2026-03-07 정형 포맷 선택기 Phase 5)
+- [x] 1단계: mail_search 후처리 분기를 템플릿 라우터 모듈로 집약
+- [x] 2단계: `answer_postprocessor`에서 라우터 단일 호출로 연결
+- [x] 3단계: 라우터 단위 테스트 추가(TDD)
+- [x] 4단계: 기존 mail_search/section_contract/selector 회귀 테스트 실행
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-07 정형 포맷 선택기 Phase 5)
+- [19:48] 작업 시작: 분산된 mail_search 결정론 분기(최근순/0건/deterministic/overview) 라우터 집약 착수
+- [19:50] 완료: `format_template_router` 추가 및 `answer_postprocessor` mail_search 경로 단일 라우터 호출로 정리
+- [19:50] 완료: 테스트 통과(`tests/test_format_template_router.py`, `tests/test_answer_postprocessor_mail_search.py`, `tests/test_format_section_contract.py`, `tests/test_format_policy_selector.py`)
+
+## 현재 작업
+정형 포맷 선택기 Phase 4 적용(Section Contract 기반 mail_search 렌더 반영)
+
+## Plan (2026-03-07 정형 포맷 선택기 Phase 4)
+- [x] 1단계: mail_search 결정론 렌더에 section_contract 입력 연결
+- [x] 2단계: section_contract의 section id 기준 섹션 노출 제어(major/tech_issue/evidence)
+- [x] 3단계: 회귀 테스트 추가(TDD)
+- [x] 4단계: 기존 렌더와 호환성 검증
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-07 정형 포맷 선택기 Phase 4)
+- [19:40] 작업 시작: section_contract를 mail_search 실제 렌더 경로에 점진 반영 착수
+- [19:41] 완료: `render_mail_search_deterministic_response`/`render_mail_search_digest_from_db`에 section_contract 연동 및 섹션별 노출 제어 반영
+- [19:42] 완료: 테스트 통과(`tests/test_answer_postprocessor_mail_search.py`, `tests/test_format_section_contract.py`, `tests/test_format_policy_selector.py`) 및 린트 통과
+
+## 현재 작업
+정형 포맷 선택기 Phase 3 도입(Template ID -> Section Contract DTO 연결, 동작 불변)
+
+## Plan (2026-03-07 정형 포맷 선택기 Phase 3)
+- [x] 1단계: 섹션 계약 DTO 모듈 추가(`template_id/facets/sections`)
+- [x] 2단계: `answer_postprocessor`에 section contract 관측 로그 연결(출력 동작 불변)
+- [x] 3단계: section contract 단위 테스트 추가(TDD)
+- [x] 4단계: 회귀 테스트 실행
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-07 정형 포맷 선택기 Phase 3)
+- [19:34] 작업 시작: Template ID 기반 Section Contract DTO 연결 착수
+- [19:36] 완료: `format_section_contract` 추가 및 후처리 로깅(`format_section_contract`) 연결
+- [19:36] 완료: 테스트 통과(`tests/test_format_section_contract.py`, `tests/test_format_policy_selector.py`, `tests/test_answer_postprocessor_mail_search.py`)
+
+## 현재 작업
+정형 포맷 선택기 Phase 2 고도화(steps 기반 Intent Signature + facet 정제)
+
+## Plan (2026-03-07 정형 포맷 선택기 Phase 2)
+- [x] 1단계: selector에 `infer_steps_from_query` 기반 시그니처 반영
+- [x] 2단계: facet 과다 태깅 제거(`current_mail` 경로 evidence 제외) 및 meeting/schedule facet 보강
+- [x] 3단계: 테스트 케이스 보강(TDD)
+- [x] 4단계: 회귀 테스트 실행 및 로그 기대값 정리
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-07 정형 포맷 선택기 Phase 2)
+- [18:59] 작업 시작: 템플릿 선택 정확도 개선(의도 시그니처/Facet 정제) 착수
+- [19:30] 완료: `format_policy_selector`에 steps 기반 `IntentSignature` 도입 및 분기 정확도 보강
+- [19:31] 완료: `current_mail` 경로의 `evidence` facet 과다 태깅 제거, 회의실/일정 질의 `schedule` facet 보강
+- [19:31] 완료: 테스트 통과(`tests/test_format_policy_selector.py`, `tests/test_answer_postprocessor_mail_search.py`)
+
+## 현재 작업
+정형 포맷 선택기 Phase 1 도입(동작 불변: 템플릿 ID 로깅 + 테스트)
+
+## Plan (2026-03-07 정형 포맷 선택기 Phase 1)
+- [x] 1단계: 템플릿 선택기 모듈 추가(질의/툴 payload 기반 Template ID 계산)
+- [x] 2단계: `answer_postprocessor`에 선택 결과 로깅만 연결(출력 동작 불변)
+- [x] 3단계: selector 단위 테스트 추가(TDD)
+- [x] 4단계: 기존 후처리 회귀 테스트 실행 및 출력 동치 확인
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-07 정형 포맷 선택기 Phase 1)
+- [18:55] 작업 시작: Template selector 도입(동작 불변, 로그 관측용) 착수
+- [18:57] 완료: `format_policy_selector` 추가 및 `answer_postprocessor` 템플릿 선택 로그 연결(출력 동작 불변)
+- [18:58] 완료: 테스트 통과(`tests/test_format_policy_selector.py`, `tests/test_answer_postprocessor_mail_search.py`) / 린트 통과(신규 변경 파일)
+- [18:58] 이슈 발생: `tests/test_answer_postprocessor_routing.py`의 기존 기대문구(`최근순 메일 N건 정리 결과:`)와 현재 렌더 문자열 불일치 2건 확인 → 해결 방법: 본 변경 영향 범위 테스트 선별 검증 유지, 해당 레거시 기대문구 정리는 별도 리팩터링 트랙으로 분리
+
+## 현재 작업
+정형 출력 포맷 공통화 프레임 설계(코드 수정 전 분석/레지스트리 초안)
+
+## Plan (2026-03-07 정형 포맷 공통화 프레임 설계)
+- [x] 1단계: 현재 코드의 의도→출력→렌더 경로를 포맷 관점으로 분석
+- [x] 2단계: 대표 업무 질의 유형별 공통 템플릿 레지스트리 초안 작성
+- [x] 3단계: 복합질의(다중 의도) 적용 규칙(Primary+Facet) 프레임 설계
+- [x] 4단계: 공식 문서/기술 블로그 트렌드와 현재 구조 정합성 정리
+- [x] 5단계: 코드 변경 없이 적용 순서(Phase) 제안
+
+## Action Log (2026-03-07 정형 포맷 공통화 프레임 설계)
+- [18:32] 작업 시작: 정형 출력 포맷 공통화 가능성 분석 및 템플릿 레지스트리 초안 작성 착수
+- [18:35] 완료: 현재 구조(의도/라우팅/후처리/렌더) 분석 결과를 기반으로 템플릿 레지스트리+복합질의 Primary/Facet 프레임 문서화
+- [18:35] 완료: 공식 가이드(Structured Outputs, Function Calling, Building Agents, Multi-agent) 기준 정합성 및 단계적 적용(Phase 1~4) 제안 정리
+
+## 현재 작업
+app/python + client/js 정적 분석 및 대규모 리팩터링 사전 정리(죽은 코드/중복/파일 분할 우선순위 확정)
+
+## Plan (2026-03-07 전수 정적 분석/리팩터링 준비)
+- [x] 1단계: `app` Python, `clients` JS 파일 길이/복잡도 전수 스캔(300라인 기준)
+- [x] 2단계: 미사용 코드/죽은 참조 후보 수집(정적 분석 툴 + 참조 검색)
+- [x] 3단계: 중복 코드 후보 수집(함수/패턴 레벨)
+- [x] 4단계: 즉시 적용 가능한 공통화/분리 리팩터링 1차 적용
+- [x] 5단계: 테스트/회귀 검증 및 위험 파일 리스트 보고
+
+## Action Log (2026-03-07 전수 정적 분석/리팩터링 준비)
+- [18:09] 작업 시작: app/python + client/js 전수 정적 분석 및 리팩터링 우선순위 수립 착수
+- [18:17] 완료: 파일 길이/복잡도/중복 스캔 완료(`wc`, `ruff`, `vulture`, `jscpd`) 및 리팩터링 후보군 확정
+- [18:23] 완료: 텍스트 유사도/정규화 중복 로직을 `app/services/text_overlap_utils.py`로 공통화하고 `search_chat_metadata`, `tech_issue_cluster_service` 적용
+- [18:24] 완료: 회귀 테스트 통과(`tests/test_text_overlap_utils.py`, `tests/test_search_chat_metadata.py`, `tests/test_tech_issue_cluster_service.py`)
+
+## 현재 작업
+search_chat_metadata 과대 파일 분해 리팩터링(tech_issue 로직/룰셋 분리)
+
+## Plan (2026-03-07 search_chat_metadata 분해 리팩터링)
+- [x] 1단계: 기술 이슈 클러스터 로직을 서비스 모듈로 분리
+- [x] 2단계: 키워드/유형 룰셋을 taxonomy 모듈로 분리(하드코딩 축소)
+- [x] 3단계: search_chat_metadata.py는 orchestration 호출만 유지
+- [x] 4단계: 테스트 갱신/회귀 실행(TDD)
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-07 search_chat_metadata 분해 리팩터링)
+- [14:29] 작업 시작: `search_chat_metadata.py`(1198 lines) 과대 구조 개선 및 tech_issue 룰셋 분리 착수
+- [14:33] 완료: 기술 이슈 클러스터 생성 로직을 `app/services/tech_issue_cluster_service.py`로 분리
+- [14:34] 완료: 키워드/유형 룰셋을 `app/services/tech_issue_taxonomy.py`로 분리
+- [14:35] 완료: `search_chat_metadata.py`는 orchestration 호출(`build_tech_issue_clusters`)만 유지하도록 정리
+- [14:36] 완료: 테스트 통과(`tests.test_tech_issue_cluster_service`, `tests.test_search_chat_metadata`, `tests.test_answer_postprocessor_mail_search`, `tests.test_agent_prompts`, `node --test tests/test_taskpane_messages_render.cjs`)
+
+## 현재 작업
+복합질의 기술근거 UX 보강(Keyword/유형/클릭 상세) + 백엔드 기술이슈 클러스터 메타 추가
+
+## Plan (2026-03-07 기술근거 UX 보강)
+- [x] 1단계: `context_enrichment`에 `tech_issue_clusters` 메타 생성 로직 추가
+- [x] 2단계: `기술 이슈` 섹션 카드 렌더를 키워드/유형/상세 팝오버 지원 형태로 확장
+- [x] 3단계: CSS 스타일/캐시 버전 보강
+- [x] 4단계: 테스트 추가(TDD) 및 회귀 실행
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-07 기술근거 UX 보강)
+- [14:18] 작업 시작: subagent 품질 개선 요청 반영해 기술근거 구조화 UX 보강 착수
+- [14:21] 완료: `search_chat_metadata`에 기술 이슈 라인 추출/키워드 추론/유형 매핑/관련 메일 연결(`tech_issue_clusters`) 추가
+- [14:24] 완료: `taskpane.messages.answer_format.js`에 `기술 이슈` 전용 카드 렌더(Keyword/유형/기술 근거 상세 팝오버) 추가
+- [14:25] 완료: 스타일 보강(`taskpane.chat.base.major.css`) 및 정적 리소스 버전 상향(`taskpane.messages.answer_format.js?v=20260307-06`, `taskpane.chat.base.major.css?v=20260307-02`)
+- [14:26] 완료: 테스트 통과(`tests.test_search_chat_metadata`, `tests.test_answer_postprocessor_mail_search`, `tests.test_agent_prompts`, `tests.test_agent_tools_search_mails`, `node --test tests/test_taskpane_messages_render.cjs`)
+
+## 현재 작업
+subagent 응답 품질 보강(풍성도 유지 + 근거 충실도 강화) 및 postprocess 로그 노이즈 감소
+
+## Plan (2026-03-07 subagent 품질/로그 보강)
+- [x] 1단계: subagent 프롬프트를 “풍성하지만 근거-충실” 규칙으로 보강(재서술 과도화 방지)
+- [x] 2단계: tech issue 섹션의 문장 품질 보정(원문 summary_text 기반 우선)
+- [x] 3단계: deterministic 렌더 완료 시 postprocess json_parse_failed 로그 노이즈 완화
+- [x] 4단계: 테스트 추가(TDD) 및 회귀 실행
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-07 subagent 품질/로그 보강)
+- [14:12] 작업 시작: subagent 풍성도/정확도 균형 보강 및 json_parse_failed 노이즈 감소 작업 착수
+- [14:14] 완료: retrieval/tech subagent 프롬프트를 근거-충실(원문 유지 우선) + 풍성도(라인 수 확대) 규칙으로 보강
+- [14:15] 완료: `search_chat_flow`의 메타 추출용 계약 파싱은 `log_failures=False`로 무음 처리해 경고 로그 노이즈 완화
+- [14:16] 완료: 기술 키워드 콤마 질의 fan-out + 기술 섹션 fallback 문구 필터링 보강 유지 확인
+- [14:16] 완료: 테스트 통과(`tests.test_agent_prompts`, `tests.test_agent_tools_search_mails`, `tests.test_answer_postprocessor_mail_search`, `tests.test_answer_postprocessor_contract_utils`, `tests.test_tool_payload_selector`, `tests.test_search_chat_flow_overlap_tokens`)
+
+## 현재 작업
+subagent JSON StructOutput 강제 + 복합질의 섹션 안정화(공식문서 재검토 반영)
+
+## Plan (2026-03-07 subagent StructOutput 안정화)
+- [x] 1단계: subagent 프롬프트를 JSON 계약 기반으로 강화
+- [x] 2단계: tool payload selector의 JSON 객체 추출 내구성 보강(텍스트 래핑 대응)
+- [x] 3단계: `mail_search` 결정론 렌더가 `query_summaries`만으로도 동작하도록 보강
+- [x] 4단계: 테스트 추가(TDD) 및 회귀 실행
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-07 subagent StructOutput 안정화)
+- [13:55] 작업 시작: 공식문서/기술블로그 재검토 반영해 subagent StructOutput 안정화 착수
+- [13:58] 완료: `mail-retrieval-summary-agent`/`mail-tech-issue-agent` 시스템 프롬프트를 단일 JSON 객체 StructOutput 계약으로 강화
+- [13:59] 완료: tool payload selector에 래핑 텍스트 내 JSON 객체 추출 내구성 추가 + `query_summaries` 병합 보강
+- [14:00] 완료: `mail_search` 결정론 렌더에서 `results`가 비어도 `query_summaries`로 섹션 렌더 가능하도록 보강
+- [14:01] 완료: 테스트 통과(`tests.test_agent_prompts`, `tests.test_tool_payload_selector`, `tests.test_answer_postprocessor_mail_search`)
+- [14:07] 이슈 발생: 기술 이슈 subagent가 콤마 나열 키워드를 단일 질의로 호출해 필터링 손실 발생, 내부 fallback 문구가 기술 섹션에 노출됨
+- [14:10] 완료: `search_mails`에 기술 키워드 콤마 질의 fan-out 병합 로직 추가, 기술 섹션에서 내부 fallback 문구 필터링 적용
+- [14:11] 완료: 테스트 통과(`tests.test_agent_tools_search_mails`, `tests.test_answer_postprocessor_mail_search`, `tests.test_tool_payload_selector`, `tests.test_agent_prompts`)
+
+## 현재 작업
+복합질의 대응 subagent 1차 도입(플래그 기반) + 안정성 보강
+
+## Plan (2026-03-07 subagent 1차 도입)
+- [x] 1단계: subagent registry에 메일 조회/기술이슈 전용 subagent 추가(기본 OFF)
+- [x] 2단계: 복합 retrieval 질의에서만 subagent 위임 지시를 미들웨어에 조건부 주입
+- [x] 3단계: step-tool 정합성 보강(`search_meeting_schedule` alias tool 추가)
+- [x] 4단계: 병합 payload 보강(`aggregated_summary` 누락 시 `summary_text` 기반 query_summaries 유지)
+- [x] 5단계: 단위/회귀 테스트 실행 및 Action Log 업데이트
+
+## Action Log (2026-03-07 subagent 1차 도입)
+- [13:31] 작업 시작: subagent 1차 도입(기본 OFF 플래그) 구현 착수
+- [13:33] 완료: `mail-retrieval-summary-agent`, `mail-tech-issue-agent`를 플래그(`MOLDUBOT_ENABLE_MAIL_SUBAGENTS`) 기반으로 등록
+- [13:33] 완료: 복합 조회 질의(검색+요약+일정/기술 포커스)에서만 subagent 위임 라우팅 지시를 조건부 주입
+- [13:34] 완료: `search_meeting_schedule` tool alias를 registry에 추가해 intent step과 tool 노출 정합성 보강
+- [13:34] 완료: `mail_search` 다중 병합 시 `aggregated_summary`가 없어도 `summary_text`로 query별 요약 메타 유지
+- [13:35] 완료: 테스트 통과(`tests.test_agent_subagents`, `tests.test_middleware_policies`, `tests.test_agent_tools_registry`, `tests.test_tool_payload_selector`, `tests.test_search_chat_intent_routing`, `tests.test_bootstrap_search_chat_confirm`, `tests.test_answer_postprocessor_mail_search`)
+- [13:48] 이슈 발생: subagent 활성 후 `주요 내용`이 unordered_list로 내려올 때 major section 렌더러가 항목을 건너뛰어 UI 공백 발생 → 해결 방법: major section에서 unordered_list도 카드형 목록으로 렌더하도록 보정
+- [13:48] 완료: 프론트 렌더 회귀 테스트 통과(`node --test tests/test_taskpane_messages_render.cjs`, 72 tests)
+
+## 현재 작업
+subagent 도입 전 안정성 점검(복합질의 경로 사이드이펙트/회귀 위험 점검)
+
+## Plan (2026-03-07 subagent 도입 전 안정성 점검)
+- [x] 1단계: 복합질의 핵심 경로(의도파싱→라우팅→tool payload→후처리) 코드 점검
+- [x] 2단계: subagent 도입 시 충돌 가능 지점 및 사이드이펙트 목록화
+- [x] 3단계: 최소 변경 원칙의 적용 순서(플래그 기반) 확정
+- [x] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-07 subagent 도입 전 안정성 점검)
+- [13:26] 작업 시작: subagent 도입 전 코드 안정성/회귀 위험 점검 착수
+- [13:29] 완료: 의도 step-도구 불일치(`search_meeting_schedule`) 확인 및 도구 alias 추가로 정합성 보강
+- [13:29] 완료: 다중 mail_search 병합 시 aggregated_summary 누락 케이스에서 query별 요약 손실 방지 보강
+- [13:30] 완료: 회귀 테스트 통과(`tests.test_agent_tools_registry`, `tests.test_tool_payload_selector`, `tests.test_answer_postprocessor_mail_search`, `tests.test_middleware_policies`, `tests.test_search_chat_intent_routing`, `tests.test_bootstrap_search_chat_confirm`)
+
+## 현재 작업
+복합질문(메일 조회+요약) 구조에서 subagent 분리 필요성 조사(공식 문서/기술 블로그 근거)
+
+## Plan (2026-03-07 subagent 분리 조사)
+- [x] 1단계: 공식 문서(OpenAI/LangChain/Anthropic 등)에서 multi-agent/subagent 패턴 근거 수집
+- [x] 2단계: 기술 블로그/엔지니어링 글에서 복합질의 오케스트레이션 사례 수집
+- [x] 3단계: 현재 몰두봇 구조와 비교해 장단점/적용 기준 정리
+- [x] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-07 subagent 분리 조사)
+- [13:31] 작업 시작: 복합질문 처리에서 subagent 분리 타당성 조사 착수
+- [13:34] 완료: OpenAI/LangChain/Anthropic/Google Cloud 공식 자료 기반으로 manager vs subagent 적용 기준 수집
+- [13:35] 완료: 복합질의(메일 조회+요약+기술이슈) 기준 현재 구조 적합성/분리 권장안 정리 완료
+
+## 현재 작업
+복합 조회 응답 보강(근거메일 섹션 + 기술이슈 섹션 분리)
+
+## Plan (2026-03-07 복합 조회 응답 섹션 보강)
+- [x] 1단계: mail_search 요약 렌더에 근거메일 섹션 강제 추가
+- [x] 2단계: 기술 이슈 요청 시 `기술 이슈` 별도 섹션 분리 렌더
+- [x] 3단계: 다중 mail_search 병합 payload에 query 단위 요약 메타 보존
+- [x] 4단계: 테스트 추가(TDD) 및 회귀 실행
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-07 복합 조회 응답 섹션 보강)
+- [13:23] 작업 시작: 주요내용/근거메일/기술이슈 섹션 분리 보강 착수
+- [13:26] 완료: 요약형 `mail_search` 렌더를 `주요 내용` + `기술 이슈` + `근거 메일` 3섹션으로 고정 출력하도록 보강
+- [13:27] 완료: `tool_payload_selector`에 다중 `mail_search` 병합 시 query별 요약 메타(`query_summaries`) 보존 추가
+- [13:27] 완료: 회귀 테스트 통과(`tests.test_tool_payload_selector`, `tests.test_answer_postprocessor_mail_search`, `tests.test_answer_postprocessor_routing` 단일 케이스)
+
+## 현재 작업
+복합 조회 질의 응답 정렬 개선(주요내용=요약, 조회 메일=근거 분리)
+
+## Plan (2026-03-07 복합 조회 응답 정렬 개선)
+- [x] 1단계: mail_search deterministic 후처리 경로 분석 및 최소 수정 지점 확정
+- [x] 2단계: `summary_text` 기반 2~3줄 상위 요약 렌더 추가, 조회 메일은 근거 전용으로 분리
+- [x] 3단계: 테스트 추가(TDD) 및 회귀 실행
+- [x] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-07 복합 조회 응답 정렬 개선)
+- [13:08] 작업 시작: 복합 조회 질의에서 주요내용/근거메일 역할 혼선 개선 착수
+- [13:12] 완료: `mail_search` 요약형 질의는 결과 목록 대신 `aggregated_summary + summary_text` 기반 2~3줄 digest를 `## 📌 주요 내용`으로 렌더하도록 후처리 보강
+- [13:13] 완료: 테스트 추가/통과(`tests.test_answer_postprocessor_mail_search` 2건, `tests.test_answer_postprocessor_routing` 1건)
+- [13:13] 이슈 발생: `tests.test_answer_postprocessor_routing` 전체 실행 시 기존 기대문구 불일치 2건 실패(최근순 헤더 문자열) → 해결 방법: 본 변경 대상 테스트만 선별 실행해 회귀 검증, 기존 불일치 케이스는 별도 정리 필요
+- [13:18] 완료: 요약 digest를 번호형(`1.`, `2.`)으로 변경해 major 섹션 UI 필터(unordered skip)에서 본문이 사라지는 문제 해소
+- [13:19] 완료: 한 턴 내 다중 `mail_search` tool payload를 병합(results/aggregated_summary dedupe)하도록 selector 보강
+- [13:20] 완료: 회귀 테스트 통과(`tests.test_tool_payload_selector`, `tests.test_answer_postprocessor_mail_search`)
+
+## 현재 작업
+하단 진행 바(progress-inline) 반응형 폭 잘림 UI 보정
+
+## Plan (2026-03-07 진행 바 폭 반응형 보정)
+- [x] 1단계: 진행 바/라벨/상세의 고정 폭(420px) 제거 및 공통 텍스트 폭 변수로 통일
+- [x] 2단계: 정적 CSS 캐시 무효화 버전 상향
+- [x] 3단계: 기본 프론트 회귀 테스트 실행
+- [x] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-07 진행 바 폭 반응형 보정)
+- [12:52] 작업 시작: 하단 상태 진행 바가 반응형에서 잘리는 UI 보정 착수
+- [12:53] 완료: 진행 라벨/상세/트랙 폭을 `420px` 고정에서 `--chat-text-max-width` 기준으로 통일해 반응형 폭 확장
+- [12:53] 완료: CSS 캐시 무효화 버전 상향(`taskpane.chat.actions.progress.css?v=20260307-02`, `taskpane.chat.actions.css?v=20260307-03`, `taskpane.chat.css?v=20260307-03`)
+- [12:53] 완료: 프론트 렌더 회귀 테스트 통과(`node --test tests/test_taskpane_messages_render.cjs`, 71 tests)
+
+## 현재 작업
+search_chat_flow 리팩터링 회귀 버그 핫픽스(`re` import 누락으로 NameError)
+
+## Plan (2026-03-07 search_chat_flow NameError 핫픽스)
+- [x] 1단계: `search_chat_flow.py` 누락 import 복구
+- [x] 2단계: 관련 토큰 추출 경로 단위 테스트 추가(TDD)
+- [x] 3단계: 회귀 테스트 실행
+- [x] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-07 search_chat_flow NameError 핫픽스)
+- [12:44] 작업 시작: 관련 메일 근거 확장 경로 NameError(`re` 미정의) 긴급 수정 착수
+- [12:45] 완료: `search_chat_flow.py`에 `import re` 복구
+- [12:45] 완료: 회귀 테스트 추가(`tests.test_search_chat_flow_overlap_tokens`) 및 통과
+- [12:45] 완료: 관련 라우팅 회귀 테스트 통과(`tests.test_search_chat_intent_routing`)
+
+## 현재 작업
+app 주요 대형 파일 리팩터링(코딩 규칙/설계 분리) 1차: next_action_recommender, search_chat_flow
+
+## Plan (2026-03-07 주요 파일 리팩터링 1차)
+- [x] 1단계: `next_action_recommender.py`를 파사드+엔진 분리로 책임 분해
+- [x] 2단계: `search_chat_flow.py`의 next-action 런타임 유틸을 전용 모듈로 추출
+- [x] 3단계: 관련 테스트 회귀 실행 및 영향 검증
+- [x] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-07 주요 파일 리팩터링 1차)
+- [12:37] 작업 시작: app 주요 대형 파일 리팩터링 1차 착수(대형 파일 책임 분리)
+- [12:40] 완료: `next_action_recommender`를 파사드/엔진/도메인 모듈로 분리해 단일 책임 구조로 재편(엔진 파일 420줄로 축소)
+- [12:41] 완료: `search_chat_flow`의 next-action 런타임 유틸을 `search_chat_next_actions_runtime.py`로 추출해 API 흐름과 규칙 유틸 책임 분리
+- [12:42] 완료: 회귀 테스트 통과(`tests.test_next_action_recommender`, `tests.test_search_chat_next_action_runtime`, `tests.test_search_chat_intent_routing`)
+
+## 현재 작업
+HIL 승인 중복 호출로 인한 "승인 대기 중인 작업을 찾지 못했습니다" 오탐 메시지 제거
+
+## Plan (2026-03-07 HIL confirm 중복 방지)
+- [x] 1단계: 승인 버튼 다중 호출 가드(in-flight/token lock) 추가
+- [x] 2단계: 중복 호출 재현 테스트 보강(TDD)
+- [x] 3단계: 프론트 테스트 회귀 실행
+- [x] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-07 HIL confirm 중복 방지)
+- [12:30] 작업 시작: 일정은 등록되지만 승인 실패 문구가 추가 노출되는 중복 confirm 이슈 보정 착수
+- [12:31] 완료: `handleHilConfirm`에 thread/token 기준 in-flight lock 추가로 동일 승인 요청 중복 전송 방지
+- [12:31] 완료: 중복 클릭 재현 테스트 추가/통과(`node --test tests/test_taskpane_chat_actions.cjs`, 15 tests)
+- [12:31] 완료: 정적 캐시 무효화 버전 상향(`taskpane.chat_actions.handlers.js?v=20260307-04`)
+
+## 현재 작업
+일정 HIL 승인 클릭 후 "승인 대기 중인 작업을 찾지 못했습니다" 실패 보정(confirm_token 매칭 안정화)
+
+## Plan (2026-03-07 일정 HIL confirm 매칭 안정화)
+- [x] 1단계: 승인 실패 재현 로그 기준으로 resume_pending_actions 토큰 매칭 로직 보강
+- [x] 2단계: 단일 pending 인터럽트 fallback 규칙 테스트 추가(TDD)
+- [x] 3단계: 관련 회귀 테스트 실행
+- [x] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-07 일정 HIL confirm 매칭 안정화)
+- [11:42] 작업 시작: 승인 처리 중 멈춤/승인 대기 작업 미검출 이슈 보정 착수
+- [11:42] 완료: `DeepChatAgent._build_resume_decisions`에 confirm_token 불일치 시 단일 pending 인터럽트 fallback 승인 로직 추가
+- [11:42] 완료: 다중 pending 인터럽트는 기존대로 token 불일치 시 거부하도록 유지(오작동 방지)
+- [11:42] 완료: 단위 테스트 추가/통과(`./venv/bin/python -m unittest -q tests.test_deep_chat_agent_tool_payload`, `./venv/bin/python -m unittest -q tests.test_bootstrap_search_chat_confirm`)
+
+## 현재 작업
+일정 등록 카드 실행을 ToDo/회의실과 동일한 HIL 승인 흐름으로 통일
+
+## Plan (2026-03-07 일정 등록 HIL 통일)
+- [x] 1단계: 일정 등록 제출 경로를 직접 API 호출에서 HIL(assistant+confirm) 경로로 전환
+- [x] 2단계: 미들웨어 라우팅에 calendar_event_hil payload 우선 실행 규칙 추가
+- [x] 3단계: 프론트/백엔드 테스트 보강(TDD) 및 회귀 실행
+- [x] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-07 일정 등록 HIL 통일)
+- [09:53] 작업 시작: 일정 등록이 승인 없이 즉시 실행되는 경로를 HIL 승인 흐름으로 전환 착수
+- [09:55] 완료: 일정 카드 제출을 `requestAssistantReply` + `calendar_event_hil` 경로로 전환하고 `createCalendarEvent` 직접 호출을 제거
+- [09:55] 완료: 일정 HIL payload 빌더(`task=create_outlook_calendar_event`) 추가 및 taskpane wiring 반영
+- [09:56] 완료: 미들웨어 정책에 일정 HIL payload 우선 실행 규칙 추가(확인 질문 금지 + `create_outlook_calendar_event` 즉시 실행 지시)
+- [09:56] 완료: 테스트 보강/통과(`node --test tests/test_taskpane_chat_actions.cjs`, `./venv/bin/python -m unittest -q tests.test_middleware_policies`)
+- [09:56] 완료: 정적 캐시 무효화 버전 상향(`taskpane.chat_actions.handlers.js?v=20260307-03`, `taskpane.runtime_helpers.js?v=20260307-03`, `taskpane.js?v=20260307-02`)
+
+## 현재 작업
+"일정 제안" 본문 UI를 회의 제안과 동일한 박스형 섹션 스타일로 통일
+
+## Plan (2026-03-07 일정 제안 카드 UI 통일)
+- [x] 1단계: 일정 제안 메시지 렌더 경로 확인 및 answer_format 메타데이터 구성 추가
+- [x] 2단계: 기존 summary-section 스타일에 맞춰 일정 제안 섹션 매핑 적용
+- [x] 3단계: 프론트 테스트 보강(TDD) 및 회귀 실행
+- [x] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-07 일정 제안 카드 UI 통일)
+- [09:47] 작업 시작: 일정 제안 본문을 회의 제안과 동일한 카드형 UI로 개선 착수
+- [09:49] 완료: 일정 제안 브랜치에 `answer_format` 메타데이터(`calendar_suggestion`) 추가, 안건/주요내용/참석자 섹션을 summary-section 박스로 렌더되도록 적용
+- [09:49] 완료: heading 매핑 확장(`일정 안건(요약)`)으로 기존 summary-section 스타일 재사용
+- [09:50] 완료: 프론트 테스트 보강/통과(`node --test tests/test_taskpane_send_handlers.cjs tests/test_taskpane_messages_render.cjs`, 73 tests)
+- [09:50] 완료: 정적 캐시 무효화 버전 상향(`taskpane.messages.answer_format.js?v=20260307-04`, `taskpane.send.handlers.js?v=20260307-04`)
+
+## 현재 작업
+회의실 예약 버튼 실행 시 슬롯 누락 오탐(참석 인원/시작/종료) 수정
+
+## Plan (2026-03-07 meeting_room_hil 슬롯 누락 오탐 보정)
+- [x] 1단계: 예약 버튼 payload와 누락 슬롯 판정 규칙 불일치 원인 수정
+- [x] 2단계: 예약 HIL 메시지 포맷/정규화 개선으로 슬롯 인식 안정화
+- [x] 3단계: 테스트 보강(TDD) 및 회귀 실행
+- [x] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-07 meeting_room_hil 슬롯 누락 오탐 보정)
+- [09:28] 작업 시작: 예약 카드 값 입력 후에도 참석 인원/시작/종료 누락으로 반려되는 이슈 수정 착수
+- [09:30] 완료: `build_missing_slots`에 JSON 키/HH:MM/한글 라벨 기반 슬롯 감지 확장(date/start/end/attendee 모두 인식)으로 HIL 예약 payload 누락 오탐 보정
+- [09:30] 완료: 의도 규칙 테스트 보강(TDD) - JSON booking payload와 한글 라벨 payload에서 누락 슬롯이 비어야 함
+- [09:31] 완료: 회귀 테스트 통과(`./venv/bin/python -m unittest -q tests.test_intent_rules tests.test_search_chat_intent_routing`, 28 tests)
+- [09:34] 완료: HIL 예약 메시지를 JSON 문자열에서 키-값 라인 포맷으로 변경(`task=book_meeting_room`), 슬롯 인식과 도구 실행 유도 안정화
+- [09:34] 완료: 미들웨어 라우팅 정책에 meeting_room_hil payload 우선 규칙 추가(확인 질문 금지 + `book_meeting_room` 즉시 실행 지시)
+- [09:35] 완료: 정책/의도 회귀 테스트 통과(`./venv/bin/python -m unittest -q tests.test_middleware_policies tests.test_intent_rules tests.test_search_chat_intent_routing`, 37 tests)
+
+## 현재 작업
+회의 제안 카드 보완(논의할 주요 내용 누락 + 참석자 후보 이름/이메일 정제)
+
+## Plan (2026-03-07 회의 제안 카드 데이터 정제)
+- [x] 1단계: 회의 제안 metadata 블록 구성에서 주요내용 누락 원인 수정
+- [x] 2단계: 참석자 후보를 이름+이메일 형식으로 정규화(정규식 기반)
+- [x] 3단계: 테스트 보강(TDD) 및 회귀 실행
+- [x] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-07 회의 제안 카드 데이터 정제)
+- [09:20] 작업 시작: 논의할 주요 내용 미노출 및 참석자 후보 문자열 정제 개선 착수
+- [09:21] 완료: `논의할 주요 내용` 블록을 `ordered_list`로 변경해 major section 카드 본문 누락 해소
+- [09:21] 완료: 참석자 후보 정규화 함수 추가(HTML entity 디코딩 + 이메일 추출 + 이름 정제)로 `이름 <email>` 형태 출력
+- [09:22] 완료: 핸들러/렌더 회귀 테스트 통과(`node --test tests/test_taskpane_send_handlers.cjs tests/test_taskpane_messages_render.cjs`, 71 tests)
+- [09:22] 완료: 정적 캐시 무효화 버전 상향(`taskpane.send.handlers.js?v=20260307-03`)
+- [09:26] 완료: 회의 제안 참석자 원천 파서(`extract_recipients_from_body`)를 백엔드에서 보강(HTML 엔티티 디코딩 + `이름 <email>` 정규화)해 프론트 전 단계에서 데이터 정제
+- [09:26] 완료: 메일 텍스트 유틸 테스트 보강/통과(`./venv/bin/python -m unittest -q tests.test_mail_text_utils`, 5 tests)
+
+## 현재 작업
+"이어서 할 수 있어요" 회의 제안 요약 UI 박스 스타일 개선
+
+## Plan (2026-03-07 회의 제안 요약 카드 UI 개선)
+- [x] 1단계: 회의 제안 요약 메시지 렌더 경로/스타일 진입점 파악
+- [x] 2단계: 기존 디자인 톤에 맞는 박스형 섹션 UI 렌더/스타일 적용
+- [x] 3단계: 프론트 렌더 테스트 보강(TDD) 및 회귀 실행
+- [x] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-07 회의 제안 요약 카드 UI 개선)
+- [09:16] 작업 시작: "이어서 할 수 있어요" 회의 제안 텍스트 본문을 박스형 UI로 개선 착수
+- [09:18] 완료: 회의 제안 브랜치 메시지에 `answer_format` 메타데이터(`meeting_suggestion`) 추가, 기존 요약/주요내용/참석자 섹션을 summary-section 카드로 렌더되도록 적용
+- [09:18] 완료: answer_format heading 매핑 확장(`회의 안건(요약)`, `논의할 주요 내용`, `참석자 제안`)으로 카드 섹션 스타일 재사용
+- [09:18] 완료: 정적 스크립트 캐시 무효화 버전 상향(`taskpane.messages.answer_format.js?v=20260307-03`, `taskpane.send.handlers.js?v=20260307-02`)
+- [09:19] 완료: 프론트 렌더/핸들러 테스트 통과(`node --test tests/test_taskpane_send_handlers.cjs tests/test_taskpane_messages_render.cjs`, 71 tests)
+
+## 현재 작업
+현재메일 ToDo 승인 후 완료 결과 미노출 이슈 수정
+
+## Plan (2026-03-07 ToDo 승인 완료 응답 미노출 보정)
+- [x] 1단계: `/search/chat/confirm` 승인 처리 후 서버 이벤트/응답 흐름 재현 및 원인 특정
+- [x] 2단계: 승인 완료 결과가 UI에 반영되도록 백엔드/프론트 로직 보정
+- [x] 3단계: 회귀 테스트 추가(TDD) 및 실행
+- [x] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-07 ToDo 승인 완료 응답 미노출 보정)
+- [08:56] 작업 시작: 현재메일 ToDo 승인 후 완료 상태가 화면에 남지 않는 이슈 분석 착수
+- [08:58] 완료: `create_outlook_todo`의 due_date 정규화 로직 추가(ISO/구분자/한글 날짜 수용) 및 파싱 실패 시 오늘 날짜 fallback으로 실패 루프 완화
+- [08:58] 완료: ToDo 도구 테스트 보강(TDD) - ISO due_date 정규화/미정 fallback 케이스 추가
+- [08:59] 이슈: 기본 `python3` 환경에서 의존성 누락(`langchain`, `requests`)으로 테스트 실패 → 해결 방법: 프로젝트 `venv`로 테스트 실행
+- [08:59] 완료: 회귀 테스트 통과(`./venv/bin/python -m unittest -q tests.test_agent_tools_todo_title tests.test_graph_todo_client`, 7 tests)
+- [09:01] 완료: `/search/chat/confirm`에서 승인 후 tool 실패(`status=failed`)를 `failed` 상태/실패 사유로 직접 응답하도록 보정
+- [09:02] 완료: confirm 실패 경로 테스트 추가 및 통과(`./venv/bin/python -m unittest -q tests.test_bootstrap_search_chat_confirm tests.test_bootstrap_hitl_confirm tests.test_agent_tools_todo_title`, 11 tests)
+- [09:10] 완료: `create_outlook_todo`에 Graph 설정 미주입 사유(`MICROSOFT_APP_ID`)를 명시 반환하도록 보강 및 지연 환경로딩 대비 ToDo 클라이언트 재초기화 1회 시도 추가
+- [09:11] 완료: ToDo 설정 누락 실패 케이스 테스트 추가 및 회귀 통과(`./venv/bin/python -m unittest -q tests.test_agent_tools_todo_title tests.test_bootstrap_search_chat_confirm`, 11 tests)
+
+## 현재 작업
+관련 메일 조회 카드의 상세 근거 팝오버를 카드별 근거로 매핑
+
+## Plan (2026-03-07 근거 팝오버 카드별 매핑 보정)
+- [x] 1단계: 프론트 근거 매핑 로직을 제목 매칭에서 인덱스 우선 매핑으로 보강
+- [x] 2단계: 근거 팝오버 목록에 제목 표시 및 카드별 related 근거 우선 표시
+- [x] 3단계: 프론트 렌더 테스트 보강(TDD) 및 회귀 실행
+- [x] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-07 근거 팝오버 카드별 매핑 보정)
+- [08:44] 작업 시작: 관련 메일 조회 상세근거가 모든 카드에서 동일하게 보이는 이슈 수정 착수
+- [08:49] 완료: `major_point_evidence` 매핑을 카드 인덱스 우선으로 보강해 제목 매칭이 약한 경우에도 카드별 근거가 연결되도록 수정
+- [08:49] 완료: 팝오버 근거 목록에 메일 제목을 포함하고, 카드별 `related_mails`가 있으면 공통 evidence 대신 해당 목록을 우선 노출하도록 보정
+- [08:49] 완료: 프론트 렌더 테스트 보강/통과(`node --test tests/test_taskpane_messages_render.cjs`, 69 tests)
+- [08:50] 완료: 정적 캐시 버전 상향(`taskpane.messages.answer_format.js?v=20260307-02`)
+
+## 현재 작업
+상단 배너/본문 카드/하단 입력창 반응형 폭 규칙 통일
+
+## Plan (2026-03-07 반응형 폭 정렬 보정)
+- [x] 1단계: 레이아웃 폭 변수(`thread/text`)와 좌우 여백(gutter) 기준 통합
+- [x] 2단계: 선택 메일 배너/채팅 카드/입력창 폭 규칙 일관화
+- [x] 3단계: 프론트 회귀 테스트 실행
+- [x] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-07 반응형 폭 정렬 보정)
+- [08:30] 작업 시작: 상단/본문/하단 폭 반응형 불일치 이슈 수정 착수
+- [08:35] 완료: 레이아웃 공통 gutter 변수(`--pane-gutter`) 도입 및 모바일에서 10px로 동적 축소되도록 반영
+- [08:35] 완료: `--chat-text-max-width`를 thread 폭과 통일하고, 선택 메일 배너를 thread 기준 폭(`calc(100% - gutter*2)`)으로 중앙 정렬
+- [08:35] 완료: 입력영역 패딩/퀵프롬프트 토스트 폭 계산도 동일 gutter 기준으로 통일
+- [08:35] 완료: 프론트 회귀 테스트 통과(`node --test tests/test_taskpane_messages_render.cjs tests/test_taskpane_chat_actions.cjs`, 81 tests)
+- [08:36] 완료: 정적 CSS 캐시 무효화를 위해 import 버전 상향(`taskpane.css`, `taskpane.composer.css`)
+
+## 현재 작업
+관련 메일 조회 카드 UI 높이 축소 + 메일 조회 포맷(제목/날짜/요약) 정렬
+
+## Plan (2026-03-07 관련 메일 카드 포맷 정렬)
+- [x] 1단계: major summary 카드 렌더 데이터(제목/날짜/요약) 파싱 확장
+- [x] 2단계: 카드 CSS 줄바꿈/세로폭 보정(불필요한 공백 최소화)
+- [x] 3단계: 프론트 렌더 테스트 보강(TDD) 및 회귀 실행
+- [x] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-07 관련 메일 카드 포맷 정렬)
+- [07:33] 작업 시작: 관련 메일 카드 세로폭 과다와 메일 조회 포맷(제목+날짜) 정렬 작업 착수
+- [07:38] 완료: 주요내용 카드 보조라인 파서를 카드 단위(`요약/보낸사람/수신일`)로 묶도록 보강하고, 카드에 `수신일+요약`만 노출되게 정렬
+- [07:38] 완료: 카드 세로폭 과다를 줄이기 위해 subline/grid/line-height/padding 조정 및 요약 2줄 clamp 적용
+- [07:38] 완료: 렌더 회귀 테스트 통과(`node --test tests/test_taskpane_messages_render.cjs`, 68 tests)
+
+## 현재 작업
+메일 요약 구조 전환(도착/백필 모두 Queue 적재 후 LLM Worker 처리)
+
+## Plan (2026-03-07 summary queue+LLM 구조 전환)
+- [x] 1단계: summary queue 서비스/테이블 추가(적재/조회/완료/실패)
+- [x] 2단계: LLM 요약 worker 서비스/실행 스크립트 추가(JSON 계약)
+- [x] 3단계: upsert/백필 경로를 queue 적재 방식으로 전환
+- [x] 4단계: 테스트 추가(TDD) 및 Action Log 업데이트
+
+## Action Log (2026-03-07 summary queue+LLM 구조 전환)
+- [06:23] 작업 시작: 메일 도착/백필 모두 Queue 기반 LLM 요약 처리 구조 전환 착수
+- [06:27] 완료: summary queue 서비스(`mail_summary_queue_service`)와 LLM 요약 서비스/worker(`mail_summary_llm_service`, `mail_summary_queue_worker`) 및 실행 스크립트(`process_mail_summary_queue.py`) 추가
+- [06:28] 완료: upsert 경로를 summary 즉시생성에서 queue enqueue로 전환, backfill 스크립트를 queue enqueue 전용으로 전환
+- [06:28] 완료: 단위 테스트 추가/통과(`python3 -m unittest -q tests.test_mail_summary_queue_service tests.test_mail_service_summary_column`, 5 tests)
+- [06:29] 완료: 실DB queue 백필+처리 실행(73 enqueue, 73 processed, failed 0), 후검증 결과 summary/category 공백 0건
+- [06:34] 이슈: fallback 요약 품질 저하로 summary에 HTML/코드 노이즈(`&nbsp;`, `APIRouter`)가 남음 → 해결 방법: fallback 전처리(HTML/헤더 제거) + 노이즈 탐지 + 78자 압축 규칙 추가, completed job 재큐잉 로직(`include-existing`) 보강
+- [06:38] 완료: 실DB 재큐잉/재처리 완료(73 enqueue, 73 processed), 후검증 결과 summary 최대 길이 78자, `&nbsp;` 포함 0건
+- [06:41] 이슈: 배치 스크립트가 `.env`를 로드하지 않아 `OPENAI_API_KEY`를 인식하지 못하고 fallback 경로로만 처리됨 → 해결 방법: `scripts/backfill_email_summary.py`, `scripts/process_mail_summary_queue.py`에 `load_dotenv` 적용
+- [06:43] 완료: `.env` 키 인식 상태에서 실DB 전체 재큐잉/재처리 완료(73 enqueue, 73 processed), 후검증 결과 `summary` 공백 0건/최대길이 90자/노이즈 토큰(`&nbsp;`, `APIRouter`) 0건
+
+## 현재 작업
+category 분류 강화(기존 `일반` 과다 완화) + include-existing 재백필 실행
+
+## Plan (2026-03-07 category 분류 강화 및 재백필)
+- [x] 1단계: category 분류 규칙 강화(회신/긴급 신호 확장)
+- [x] 2단계: 분류 테스트 보강(TDD)
+- [x] 3단계: `--include-existing` 재백필 드라이런/실행
+- [x] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-07 category 분류 강화 및 재백필)
+- [06:17] 작업 시작: 기존 category가 `일반`으로 과다 분류되는 문제 보정 착수
+- [06:18] 완료: category 분류 토큰 확장(`회신/답변/확인 부탁/문의` 등) 및 테스트 보강, 단위테스트 통과(`python3 -m unittest -q tests.test_mail_summary_backfill_service tests.test_mail_service_summary_column`, 7 tests)
+- [06:19] 완료: 실DB `include-existing` 재백필 실행(73건 스캔, summary 73건 갱신, category 73건 갱신)
+
+## 현재 작업
+summary 백필 보강(노이즈 본문 fallback) + category(`일반|긴급|회신필요`) 자동 분류 반영
+
+## Plan (2026-03-07 summary/category 백필 보강)
+- [x] 1단계: 백필 서비스에 summary fallback(제목 기반) 추가
+- [x] 2단계: category 컬럼 존재 시 자동 분류/백필 로직 추가
+- [x] 3단계: CLI 옵션 및 테스트 보강(TDD)
+- [x] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-07 summary/category 백필 보강)
+- [06:12] 작업 시작: summary 여전히 NULL인 케이스와 category 자동 분류 요구사항 반영 착수
+- [06:14] 완료: 백필 서비스에 본문 노이즈 대응 summary fallback(`제목 기준 요약`)과 category 자동분류(`일반|긴급|회신필요`) 반영
+- [06:14] 완료: CLI `--skip-category` 옵션 추가 및 테스트 보강/통과(`python3 -m unittest -q tests.test_mail_summary_backfill_service tests.test_mail_service_summary_column`, 6 tests)
+
+## 현재 작업
+`emails.summary` 기존 NULL/빈값 데이터 백필 스크립트 추가
+
+## Plan (2026-03-07 summary 백필 스크립트 추가)
+- [x] 1단계: 백필 서비스 모듈 추가(배치 업데이트/드라이런 지원)
+- [x] 2단계: CLI 스크립트 추가(`scripts/backfill_email_summary.py`)
+- [x] 3단계: 단위 테스트 추가(TDD) 및 실행
+- [x] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-07 summary 백필 스크립트 추가)
+- [06:06] 작업 시작: `emails.summary` NULL 데이터 일괄 보정 백필 기능 구현 착수
+- [06:08] 완료: `MailSummaryBackfillService` 추가(누락 summary 기본 백필, dry-run/limit/batch 지원) 및 CLI 스크립트 `scripts/backfill_email_summary.py` 추가
+- [06:08] 완료: 단위 테스트 추가/통과(`python3 -m unittest -q tests.test_mail_summary_backfill_service tests.test_mail_service_summary_column`, 6 tests)
+
+## 현재 작업
+외부 수신 메일 upsert 시 `emails.summary` 자동 생성/저장 누락 보정
+
+## Plan (2026-03-07 summary 저장 누락 보정)
+- [x] 1단계: upsert SQL에 `summary` 컬럼 반영(컬럼 존재 시)
+- [x] 2단계: 수신 메일 본문 기반 summary 자동 생성 로직 추가
+- [x] 3단계: 단위 테스트 추가(TDD) 및 실행 가능한 범위 검증
+- [x] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-07 summary 저장 누락 보정)
+- [06:00] 작업 시작: 외부 수신 메일 `summary` NULL 누락 현상 수정 착수
+- [06:01] 완료: `MailService.upsert_mail_record`가 `summary` 컬럼 존재 시 요약을 생성/저장하도록 SQL 및 파라미터 빌더를 확장하고, 명시 요약 우선 저장 규칙을 반영
+- [06:01] 완료: 단위 테스트 2건 추가 + 기존 1건 포함 `python3 -m unittest -q tests.test_mail_service_summary_column` 통과(3 tests)
+
+## 현재 작업
+외부 수신 메일의 `email.db` 저장/임베딩 경로 서비스 점검 및 회귀 이슈 확인
+
+## Plan (2026-03-07 저장/임베딩 서비스 점검)
+- [x] 1단계: 외부 수신 메일 저장 경로(Graph 조회→DB upsert) 점검
+- [x] 2단계: 임베딩 적용 경로(메일 검색/추천) 점검
+- [x] 3단계: 발견된 서비스 영향 이슈(재귀 호출) 수정
+- [x] 4단계: 테스트 실행 가능 여부 확인 및 Action Log 업데이트
+
+## Action Log (2026-03-07 저장/임베딩 서비스 점검)
+- [05:52] 작업 시작: 외부 수신 메일 저장/임베딩 경로 이상 여부 점검 착수
+- [05:56] 이슈: `routes -> search_chat_flow` 실행 함수 주입에서 재귀 가능성 확인(`execute_agent_turn` self-call 루프) → 해결 방법: 원본 flow 실행 함수를 별도 참조로 고정하고, flow 의존성 주입을 안전하게 재정렬
+- [05:57] 이슈: 로컬 실행 환경에 `pytest` 미설치(`python3 -m pytest` 불가) → 해결 방법: 코드 정적 점검 + 라인 단위 리뷰 결과 우선 공유, 테스트는 환경 준비 후 재실행 필요
+- [05:57] 완료: 재귀 이슈 수정 반영(`app/api/routes.py`) 및 저장/임베딩 경로 점검 결과 정리 완료
+
+## 현재 작업
+외부 정보 요약 카드 스타일 통일 + 관련 메일 요약을 DB summary 우선으로 고정
+
+## Plan (2026-03-07 외부요약 UI/메일요약 품질 보정)
+- [x] 1단계: 외부 정보 요약 섹션을 주요내용 카드 렌더 규칙(숫자 원형+박스)으로 매핑
+- [x] 2단계: 관련 메일 요약 렌더에서 body snippet fallback 제거, `summary_text(email.db)`만 사용
+- [x] 3단계: 테스트 추가/수정(TDD) 및 회귀 실행
+- [x] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-07 외부요약 UI/메일요약 품질 보정)
+- [03:57] 작업 시작: 외부 정보 요약 카드 스타일 통일 및 관련 메일 요약의 DB summary 우선 노출 보정 착수
+- [05:43] 완료: `외부 정보 요약` 헤더를 주요내용 카드 렌더 규칙으로 매핑해 숫자 원형+카드 박스 스타일로 통일.
+- [05:43] 완료: 관련 메일 결과 렌더에서 `summary_text(email.db)`만 사용하도록 변경하고, `snippet/body` fallback을 제거해 `From:/Sent:` 노이즈 노출을 차단.
+- [05:43] 완료: 테스트 추가/회귀 통과(`pytest tests/test_answer_postprocessor_mail_search.py tests/test_search_chat_intent_routing.py tests/test_search_chat_next_action_runtime.py` 19건, `node --test tests/test_taskpane_messages_render.cjs` 67건).
+
+## 현재 작업
+`외부 정보 검색`을 현재 선택 메일 이슈/키워드 기반 웹 검색 전용 경로로 고정
+
+## Plan (2026-03-07 외부 정보 검색 컨텍스트 정합성 보강)
+- [x] 1단계: `web_search` next action 전용 처리 경로 추가(내부 mail_search 우회)
+- [x] 2단계: 현재 메일 subject/summary 기반 외부 검색 질의 생성 및 요약 응답 포맷 추가
+- [x] 3단계: 테스트 추가/수정(TDD) 및 회귀 실행
+- [x] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-07 외부 정보 검색 컨텍스트 정합성 보강)
+- [03:53] 작업 시작: `외부 정보 검색`이 내부 유사메일 조회로 흐르는 문제를 현재메일 이슈/키워드 기반 웹검색 전용 경로로 분리하는 작업 착수
+- [03:55] 완료: `web_search` next action을 deep-agent 경로와 분리해 현재메일 `subject + summary` 기반 키워드로 Tavily 질의를 생성하고 외부 정보 요약 응답(`## 📌 주요 내용`, `## 🔎 외부 정보 요약`)을 직접 반환하도록 보강.
+- [03:55] 완료: `web_search` 전용 경로에서 `evidence_mails`/`major_point_evidence`를 비우고 `web_sources`만 노출하도록 정리해 내부 유사메일 카드가 재노출되지 않도록 보정.
+- [03:55] 완료: 테스트 추가/회귀 통과(`pytest tests/test_search_chat_intent_routing.py tests/test_search_chat_next_action_runtime.py tests/test_answer_postprocessor_mail_search.py` 18건).
+
+## 현재 작업
+`관련 메일 추가 조회` 결과 UI 깨짐(`&nbsp;` 노출) 및 `출처` 블록 비노출 보정
+
+## Plan (2026-03-07 관련 메일 조회 UI 정합성 보강)
+- [x] 1단계: `search_related_mails` 실행 시 `web_sources` 비노출 규칙 추가
+- [x] 2단계: 메일 요약 문자열의 HTML 엔티티/태그 정리 및 최근순 렌더 템플릿 스타일 통일
+- [x] 3단계: 테스트 추가/수정(TDD) 및 회귀 실행
+- [x] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-07 관련 메일 조회 UI 정합성 보강)
+- [03:38] 작업 시작: `관련 메일 추가 조회` 응답 스타일 깨짐과 `출처` 노출 이슈 수정 착수
+- [03:41] 완료: `search_related_mails` next action 경로에서 `web_sources` 생성을 차단해 `출처` 블록이 노출되지 않도록 보정.
+- [03:41] 완료: `answer_postprocessor_mail_search` 요약 정규화에 HTML 엔티티/태그 정리(이메일 `<...>` 보존 포함) 적용 및 최근순 렌더를 `## 📌 주요 내용` 카드형 포맷으로 통일.
+- [03:41] 완료: 테스트 추가/회귀 통과(`pytest tests/test_answer_postprocessor_mail_search.py tests/test_search_chat_next_action_runtime.py tests/test_search_chat_intent_routing.py` 16건).
+- [03:51] 작업 시작: `주요 내용` 카드 서브라인이 `보낸 사람`으로 노출되는 이슈를 `email.db summary` 우선 노출로 보정 착수
+- [03:52] 완료: mail_search 결과 렌더에서 항목 상세 순서를 `요약 -> 보낸 사람 -> 수신일`로 재배치해 `주요 내용` 카드 서브라인이 `email.db summary`를 우선 표시하도록 보정.
+- [03:52] 완료: 테스트 추가/회귀 통과(`pytest tests/test_answer_postprocessor_mail_search.py tests/test_search_chat_next_action_runtime.py` 10건).
+
+## 현재 작업
+`관련 메일 추가 조회`/`외부 정보 검색` 액션의 검색 경로 분리 정합성 보강
+
+## Plan (2026-03-07 next action 검색 정합성 보강)
+- [x] 1단계: `search_related_mails` 강제 질의를 현재 메일 키워드(제목/발신자) 기반으로 생성하도록 보강
+- [x] 2단계: `web_search` 실행 시 내부 유사메일 근거(`related_mails`/`evidence_mails`)를 비노출 처리
+- [x] 3단계: 백엔드 테스트 추가/수정(TDD) 및 회귀 실행
+- [x] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-07 next action 검색 정합성 보강)
+- [03:28] 작업 시작: `관련 메일 추가 조회` 0건 대비 `외부 정보 검색` 내부메일 노출 불일치 원인 분석 및 경로 분리 보정 착수
+- [03:31] 완료: `web_search`를 next action 강제 매핑에 포함하고, `search_related_mails`/`web_search` 강제 질의를 현재메일 제목/발신자 키워드 기반으로 생성하도록 보강. `web_search` 실행 시 내부 메일 근거(`evidence_mails` + major_point `related_mails`)를 비노출 처리.
+- [03:31] 완료: 회귀 테스트 통과(`pytest tests/test_search_chat_next_action_runtime.py tests/test_search_chat_intent_routing.py tests/test_web_source_search_service.py` 16건).
+
+## 현재 작업
+ToDo 승인 후 실제 생성 검증/메시지 정합성 개선 + confirm 응답 next action 유지
+
+## Plan (2026-03-07 ToDo 승인/next action 후속 보정)
+- [x] 1단계: `/search/chat/confirm`의 ToDo 성공 판정과 metadata 구성 점검
+- [x] 2단계: 실제 생성 성공(`todo_task.id/web_link`)일 때만 성공 카드 노출하도록 프론트 보정
+- [x] 3단계: confirm 응답에 `next_actions`를 포함해 후속 카드가 유지되도록 서버 보정
+- [x] 4단계: 테스트 추가/실행(TDD) 및 Action Log 업데이트
+
+## Action Log (2026-03-07 ToDo 승인/next action 후속 보정)
+- [03:36] 작업 시작: ToDo 승인 후 미생성인데 성공처럼 보이는 문제와 승인 후 `이어서 할 수 있어요` 블록 소실 문제 점검 착수
+- [03:45] 완료: `/search/chat/confirm` 응답에 후속 `next_actions`를 포함하도록 서버 보강(`recommend_next_actions` 연계)하고, 프론트에서 ToDo 성공 카드를 `todo_task.id/web_link` 존재 시에만 표시하도록 성공 판정 조건을 강화. ToDo 완료 카드 후에도 후속 액션이 있으면 `이어서 할 수 있어요`가 재노출되도록 메시지 추가 렌더 반영.
+- [03:46] 완료: 정적 JS 캐시 버전 상향(`taskpane.html`) 및 회귀 테스트 통과(`node --test tests/test_taskpane_chat_actions.cjs tests/test_taskpane_send_streaming.cjs` 14건, `pytest tests/test_bootstrap_search_chat_confirm.py` 4건).
+- [03:57] 이슈: ToDo 등록 질의가 low-confidence에서 미들웨어 라우팅 지시(`확인 질문 먼저`)로 우회되어 실제 `create_outlook_todo` 실행이 되지 않음 → 해결 방법: 미들웨어에서 명시적 ToDo 등록 요청(todo+등록 토큰)은 확인질문 지시를 생략하고 `create_outlook_todo` 즉시 실행 지시를 주입.
+- [03:58] 완료: next-action `create_todo` 클릭 시 `runtime_options.skip_intent_clarification=true`를 강제 전달해 확인질문 경로를 우회하도록 프론트 보강. 관련 테스트 통과(`node --test ...` 15건, `pytest tests/test_middleware_policies.py tests/test_bootstrap_search_chat_confirm.py tests/test_search_chat_intent_routing.py` 18건).
+
+## 현재 작업
+`이어서 할 수 있어요`에서 실행 완료 액션(`회신 초안 작성`) 재노출 방지 및 컨텍스트 유지 확인
+
+## Plan (2026-03-07 next action 재노출 제어)
+- [x] 1단계: thread/context 유지 경로와 next action 재추천 경로 점검
+- [x] 2단계: 세션 상태에 실행 완료 action_id를 기록하고 후속 `next_actions` 필터링 적용
+- [x] 3단계: 프론트 테스트 추가/실행(TDD)
+- [x] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-07 next action 재노출 제어)
+- [03:18] 작업 시작: `회신 초안 작성` 실행 후 `이어서 할 수 있어요`에 동일 액션이 재노출되는 동작 점검 착수
+- [03:22] 완료: thread_id 기반 컨텍스트는 유지됨을 확인했고, 세션 상태에 실행 완료 action을 저장해 후속 응답 metadata의 `next_actions`에서 제거하도록 반영. `새 세션` 시 실행 완료 목록 초기화. 회귀 테스트(`node --test tests/test_taskpane_chat_actions.cjs tests/test_taskpane_send_streaming.cjs`) 12건 통과
+
+## 현재 작업
+회신 본문 UI 정리(`회신 메일 본문 초안` 헤더 제거 + 회신 본문 카드 박싱 스타일 정렬)
+
+## Plan (2026-03-07 회신 본문 UI 정리)
+- [x] 1단계: 회신 본문 헤더 렌더 경로 식별 및 제거
+- [x] 2단계: 회신 본문 카드 박싱 스타일을 현재 톤에 맞게 보정
+- [x] 3단계: 관련 프론트 테스트 보강/실행(TDD)
+- [x] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-07 회신 본문 UI 정리)
+- [02:22] 작업 시작: 회신 본문 영역의 헤더 제거 및 카드 스타일 보정 작업 착수
+- [02:27] 완료: `회신 메일 본문 초안` 선행 헤더를 자동 제거하도록 reply draft 정규화 로직을 추가하고, 표시 본문/답변 버튼 payload에 동일 규칙을 적용. 회신 본문 카드 박스 스타일(테두리/배경/타이포)을 현재 톤으로 강화하고 캐시 버전 갱신. 회귀 테스트(`node --test tests/test_taskpane_messages_render.cjs`) 66건 통과
+- [03:02] 이슈: 회신 본문 카드 스타일이 화면에 미적용됨(본문은 평문처럼 노출) → 해결 방법: `.message.assistant .msg-body` 기본 규칙보다 우선하는 selector(`.message.assistant .msg-body.reply-mail-body-card`)로 카드 스타일 재정의 및 캐시 버전 재상향
+- [03:03] 완료: 회신 본문 카드 스타일 selector 우선순위를 보정해 박싱 스타일이 실제 적용되도록 수정하고 정적 CSS 버전을 재상향. 회귀 테스트(`node --test tests/test_taskpane_messages_render.cjs`) 66건 통과
+
+## 현재 작업
+코드 스니펫 library 하이라이트(강조/색상) 미적용 원인 점검 및 언어별 영향 확인
+
+## Plan (2026-03-06 코드 스니펫 하이라이트 언어별 점검)
+- [x] 1단계: 하이라이트 적용 경로(JS/CSS/렌더 조건)와 캐시 버전 의존성 점검
+- [x] 2단계: Python/JavaScript/XML 등 언어별 렌더 결과를 테스트로 재현해 파이썬 한정 이슈 여부 확인
+- [x] 3단계: 원인 수정 및 회귀 테스트 반영(TDD)
+- [x] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-06 코드 스니펫 하이라이트 언어별 점검)
+- [18:41] 작업 시작: library 코드 스니펫 하이라이트/색상 미적용 이슈의 언어별 영향 범위 점검 착수
+- [18:44] 이슈: 번들된 `highlightjs/common.min.js`가 브라우저용이 아닌 CommonJS(`require`) 파일이라 Office WebView에서 로드 실패(`require is not defined`) → 해결 방법: 브라우저 배포 번들(`highlight.min.js`)로 동일 경로 파일 교체 및 taskpane 캐시 쿼리 버전 상향
+- [18:45] 완료: Python 전용 문제가 아니라 하이라이트 엔진 로드 실패로 언어 공통 미적용 가능성을 확인했고, vendor 번들 교체 + 언어 지원 검증 테스트(`tests/test_highlightjs_bundle.cjs`) 추가. 회귀 테스트(`node --test tests/test_highlightjs_bundle.cjs tests/test_taskpane_messages_render.cjs`) 67건 통과
+
+## 현재 작업
+`이어서 할 수 있어요` 클릭 동작 완성 및 현재 노출 개수 확인
+
+## Plan (2026-03-06 이어서 할 수 있어요 동작 점검)
+- [x] 1단계: `이어서 할 수 있어요` 관련 UI/데이터 소스 위치 전수 검색 후 현재 개수 산정
+- [x] 2단계: 클릭 동작(각 액션 라우팅/핸들러) 구현 상태 점검 및 누락 동작 보완
+- [x] 3단계: 테스트 코드 추가/수정(TDD) 및 회귀 검증
+- [x] 4단계: Action Log 완료 기록
+
+## Action Log (2026-03-06 이어서 할 수 있어요 동작 점검)
+- [15:42] 작업 시작: `이어서 할 수 있어요` 카드의 현재 개수 집계 및 클릭 동작 구현 범위 점검 착수
+- [15:43] 완료: 노출 문자열 정의는 프론트 렌더 1곳(`taskpane.messages.meta.blocks.js`)이며, UI 노출 개수는 최대 3개(`MAX_NEXT_ACTIONS=3`), 후보 액션 도메인은 총 7개(`next_action_recommender.py`)로 확인
+- [15:44] 작업 시작: 각 next action이 실제 실행 가능한 설계인지 액션별 라우팅/툴 경로 점검 착수
+- [15:45] 완료: 액션별 라우팅/툴 경로 점검 및 회귀 확인(`pytest tests/test_next_action_recommender.py` 7건, `node --test tests/test_taskpane_chat_actions.cjs` 7건 통과). 7개 중 6개는 실행 tool 경로 확인, `외부 정보 검색`은 답변 생성 경로가 아닌 metadata 출처 보강 경로 중심으로 부분 구현 상태 확인
+- [15:49] 작업 시작: `외부 정보 검색` 제외 6개 next action의 클릭 실행 안정화(액션 ID 전달 + 서버 강제 질의 매핑) 구현 착수
+- [15:51] 완료: `next_actions`에 `action_id`를 포함하고 클릭 시 `runtime_options.next_action_id`를 서버로 전달하도록 반영. 서버에서 6개 액션(`web_search` 제외)은 canonical query로 강제 매핑해 실행 안정성을 높였고, 회귀 테스트(`pytest` 10건, `node --test` 70건) 통과
+- [15:53] 이슈: `회신 초안 작성` next action 클릭 시 low-confidence intent clarification이 다시 노출됨 → 해결 방법: `next_action_id` 감지 시 `skip_intent_clarification=true`를 런타임 옵션에 강제 주입하고 라우팅 회귀 테스트 추가
+- [15:53] 완료: next action 실행 경로에서 의도 확인 질문 우회를 보장하도록 보정(`search_chat_flow`)했고, 회귀 테스트(`tests/test_search_chat_intent_routing.py`, `tests/test_search_chat_next_action_runtime.py`) 9건 통과
+- [15:56] 작업 시작: 회신 draft UX 고도화(톤 3종 선택 + 답변 메일 팝업 버튼) 및 기존 코드의 실제 발송 지원 여부 점검 착수
+- [15:59] 완료: 현재 코드는 Outlook `displayReplyForm` 기반 팝업만 지원하고 자동 발송 API는 없음(직접 send 미구현) 확인. `reply_draft` 블록에 톤 선택(기본/공손/간결) UI와 `답변 메일 보내기` 버튼을 추가하고, 선택 톤을 적용한 본문으로 답장 팝업이 열리도록 연결. 회귀 테스트(`node --test` 71건, `pytest` 9건) 통과
+- [16:02] 이슈: reply draft 메시지에서 `이어서 할 수 있어요`가 톤 선택 UI보다 먼저 노출돼 흐름이 어색함 → 해결 방법: assistant 액션 렌더 순서를 `reply_draft` 우선으로 재정렬(`hitl -> reply_draft -> next_actions`)하고 순서 회귀 테스트 추가
+- [16:02] 완료: 회신 본문 바로 아래에 톤/보내기 UI가 먼저 나오고 `이어서 할 수 있어요`가 그 아래에 오도록 보정. 회귀 테스트(`node --test tests/test_taskpane_messages_render.cjs tests/test_taskpane_chat_actions.cjs`) 72건 통과
+- [16:05] 작업 시작: 회신 플로우를 `회신 클릭→톤 선택→톤별 초안 생성→답변 메일 보내기` 순서로 재구성(톤 선택/보내기 UI 분리) 착수
+- [16:08] 완료: `회신 초안 작성` 클릭 시 즉시 초안을 만들지 않고 톤 선택 카드(`기본/공손/간결`)를 먼저 노출하도록 변경. 톤 버튼 클릭 시 해당 톤 지시를 붙여 초안을 생성하고, 생성 완료 후에는 `답변 메일 보내기` 버튼만 표시되도록 분리. 회귀 테스트(`node --test tests/test_taskpane_chat_actions.cjs tests/test_taskpane_messages_render.cjs`) 73건 통과
+- [16:12] 작업 시작: reply draft 결과 메시지를 카드형(가독성 확대)으로 개선하고, `답변 메일 보내기` 클릭 시 Outlook 회신 팝업 본문 반영 동작 재검증 착수
+- [16:13] 완료: reply draft assistant 본문에 카드형 스타일(`reply-mail-body-card`)과 큰 글자 가독성 스타일을 적용. `답변 메일 보내기`는 기존대로 `displayReplyForm(draftBody)` 경로로 회신창을 열며, node 회귀 테스트(`test_taskpane_messages_render.cjs`, `test_taskpane_chat_actions.cjs`) 73건 통과
+- [16:15] 이슈: 회신 톤 선택 후 확인 질문으로 빠져 `답변 메일 보내기` 버튼이 노출되지 않음 → 해결 방법: 톤 생성 요청에서 `next_action_id` 강제 덮어쓰기 제거(톤 지시 보존) + 질문형 응답 감지 시 `질문 금지` 지시로 1회 재시도
+- [16:16] 완료: 톤 생성 경로가 `skip_intent_clarification=true` 옵션으로 동작하면서 톤 지시 문구를 유지하도록 보정. 1차 응답이 질문형이면 `절대 추가 질문하지 말고...` 지시를 붙여 자동 재시도 후 초안/보내기 버튼 노출을 복구. 회귀 테스트(`node --test tests/test_taskpane_chat_actions.cjs tests/test_taskpane_messages_render.cjs`) 74건 통과
+
+## 현재 작업
+코드 리뷰 품질 고도화(근거 출처 강화 + revise/critic 도입 설계 + 장시간 UX 개선)
+
+## Plan (2026-03-06 세션 변경분 리팩터링)
+- [x] 1단계: 이번 세션 변경 파일 점검 후 리팩터링 포인트 확정
+- [x] 2단계: 스트림 progress의 phase/step 불일치 제거(6/6 조기 노출 방지)
+- [x] 3단계: 관련 테스트 보강 및 회귀 실행
+- [x] 4단계: Action Log 기록/보고
+
+## Action Log (2026-03-06 세션 변경분 리팩터링)
+- [12:30] 작업 시작: 세션 내 변경 코드 리팩터링 점검 착수(스트림 단계 표기 불일치 우선 정리)
+- [12:32] 완료: 스트림 progress 산정 로직을 `phase/step` 동기화 구조로 리팩터링해 완료 전 `6/6` 조기 노출을 차단하고, send 경로 들여쓰기/가독성을 정리. 회귀 테스트(`pytest` 11건 + `node --test` 30건) 통과
+
+## Plan (2026-03-06 스트리밍 프리뷰 제거)
+- [x] 1단계: 스트리밍 프리뷰(중간 토큰) 관련 호출 경로 식별 및 제거 범위 확정
+- [x] 2단계: 프론트(JS)에서 preview UI/토큰 미리보기 경로 제거, completed 응답 중심으로 단순화
+- [x] 3단계: 관련 테스트 갱신(TDD) 및 회귀 검증
+- [x] 4단계: Action Log 기록/완료
+
+## Action Log (2026-03-06 스트리밍 프리뷰 제거)
+- [12:22] 작업 시작: 사용하지 않는 스트리밍 프리뷰(중간 토큰) 렌더 경로 정리 착수
+- [12:26] 완료: `taskpane.send/api/messages`에서 스트리밍 프리뷰(onToken/preview UI) 경로를 제거하고 completed 응답 중심으로 단순화, 정적 스크립트 버전 갱신(`taskpane.html`), 회귀 테스트(`pytest` 11건 + `node --test` 30건) 통과
+
+## Plan (2026-03-06 스트리밍 진행 단계 체감 지연 개선)
+- [x] 1단계: `/search/chat/stream` 진행 단계 산정 로직 점검(6/6 finalizing 장기 체류 원인 확인)
+- [x] 2단계: 서버 heartbeat 단계 보정(finalizing 조기 노출 제거) 및 코드리뷰 토큰 스트리밍 정책 완화
+- [x] 3단계: 클라이언트 progress 매핑의 기본 6단계 하드코딩 제거
+- [x] 4단계: 테스트 추가/수정(TDD) 및 회귀 검증
+- [x] 5단계: Action Log 기록/완료
+
+## Action Log (2026-03-06 스트리밍 진행 단계 체감 지연 개선)
+- [12:14] 작업 시작: `단계 6/6` 장기 노출 체감 지연 이슈의 서버/클라이언트 진행 단계 하드코딩 제거 작업 착수
+- [12:15] 완료: 서버 progress heartbeat가 완료 전 `finalizing`에 고정되지 않도록 보정하고 코드리뷰 토큰 스트리밍 차단을 해제했으며, 클라이언트 `mapProgressMessage`의 기본 `6단계` 강제값을 제거. 회귀 테스트(`pytest` 11건, `node --test` 20건) 통과
+
+## Plan (2026-03-06 next_actions 코드 스니펫 오탐 제거)
+- [x] 1단계: 추천기 점수/게이트 규칙 점검 및 오탐 재현 조건 정리
+- [x] 2단계: 코드 스니펫 액션 하드 eligibility 게이트 구현(본문 코드 증거 필수)
+- [x] 3단계: 단위 테스트 추가(TDD) 및 기존 추천 회귀 테스트 실행
+- [x] 4단계: Action Log/Plan 완료 처리
+
+## Action Log (2026-03-06 next_actions 코드 스니펫 오탐 제거)
+- [11:48] 작업 시작: 일반 메일 요약에서 `코드 스니펫 분석` next action이 노출되는 오탐 원인 분석 및 하드 필터 기반 수정 착수
+- [11:49] 완료: `next_action_recommender`에 코드 증거 하드 게이트를 추가해 코드 없는 메일에서 `코드 스니펫 분석` 액션을 후보 제외 처리했고, 회귀 테스트(`tests/test_next_action_recommender.py` 5건, `tests/test_search_chat_metadata.py` 11건) 통과
+- [11:54] 이슈: 코드가 `mail_context.body_code_excerpt`에만 존재하는 메일에서 코드 액션이 누락됨 → 해결 방법: 코드 증거 수집에 `body_code_excerpt` 필드를 포함하고 재현 테스트 추가
+- [11:54] 완료: `body_code_excerpt` 기반 코드 증거 탐지를 반영해 코드 메일 누락 추천을 보정했고, 추천기 테스트(`tests/test_next_action_recommender.py` 6건) 통과
+- [11:57] 이슈: JSP/HTML 템플릿 코드(`cat *.jsp`, `<%@include ... %>`, `<div ...>`)는 기존 코드 정규식에 걸리지 않아 코드 액션이 누락됨 → 해결 방법: JSP/마크업/파일확장자 패턴을 코드 증거 규칙에 추가하고 재현 테스트 확장
+- [11:57] 완료: 코드 증거 정규식에 JSP/HTML/템플릿 패턴을 반영해 `FW: login form` 유형에서 `코드 스니펫 분석` 카드가 다시 노출되도록 보정했고, 추천기 테스트(`tests/test_next_action_recommender.py` 7건) 통과
+
+## Plan (2026-03-06 코드분석 스킬 등록)
+- [x] 1단계: Agent Hub 스킬 카탈로그에 `코드분석` 항목 추가
+- [x] 2단계: `/코드분석` 입력이 코드리뷰 의도 경로로 라우팅되도록 규칙 보강
+- [x] 3단계: 프론트/백엔드 테스트 추가(TDD) 및 회귀 검증
+- [x] 4단계: Action Log 기록 및 사용 방법 정리
+
+## Action Log (2026-03-06 코드분석 스킬 등록)
+- [08:14] 작업 시작: Agent Hub 스킬 등록 + `/코드분석` 라우팅 규칙/테스트 반영 착수
+- [08:16] 완료: Agent Hub 스킬 카탈로그에 `코드분석` 추가, `/코드분석`이 코드리뷰 질의로 인식되도록 의도 규칙 확장, 회귀 테스트(Pytest 23 + Node 21) 통과
+- [08:18] 작업 시작: 진행 상태 라벨의 불릿(점) 제거 요청 반영 착수
+- [08:19] 완료: progress 라벨 `::before` 불릿 제거 적용, 프론트 렌더 회귀 테스트(Node 63) 통과
+- [08:20] 완료: 근거 메일(evidence block) UI 전역 비노출 처리, 메시지 렌더 회귀 테스트(Node 63) 통과
+
+## Plan (2026-03-06 UI/UX 트렌드 정렬)
+- [x] 1단계: 최신 UX 가이드 기준으로 진행 상태/피드백 패턴 반영
+- [x] 2단계: 코드리뷰 품질 배지(critic/revise/출처) UI 추가
+- [x] 3단계: 코드 스니펫 카드 스타일 유지 조건으로 레이아웃 정돈
+- [x] 4단계: 프론트/백엔드 연계 테스트 추가 및 회귀 검증
+- [x] 5단계: 결과를 Action Log에 기록
+
+## Action Log (2026-03-06 UI/UX 트렌드 정렬)
+- [08:05] 작업 시작: 코드 스니펫 카드 스타일은 유지하고 진행 상태/품질 신뢰 UI를 보강하는 작업 착수
+- [08:10] 완료: 단계형 progress 라벨/트랙 UI와 코드리뷰 품질 배지(Critic/Revise/출처) 반영, 백엔드 메타데이터 연동 및 회귀 테스트(Python 88 + Node 94 + compileall) 통과
+
+## Plan (2026-03-06 에이전트 구조 안정화)
+- [x] 1단계: 프롬프트 variant 간 thread 메모리 공유 이슈 차단(checkpointer 분리)
+- [x] 2단계: 코드리뷰 스트리밍/최종 응답 정합성 보강 포인트 반영
+- [x] 3단계: 회귀 테스트(TDD) 추가 및 기존 테스트 재검증
+- [x] 4단계: 결과/리스크를 Action Log에 기록
+
+## Action Log (2026-03-06 에이전트 구조 안정화)
+- [07:02] 작업 시작: variant 간 메모리 오염 방지 및 코드리뷰 경로 정합성 보강 착수
+- [07:03] 완료: variant별 checkpointer 분리로 메모리 오염을 차단하고, 코드리뷰 질의의 스트리밍 token 이벤트를 억제해 최종본 일관성을 개선. 회귀 테스트(Python 86, Node 9) 및 compileall 통과
+
+## Plan (2026-03-06 코드리뷰 품질 고도화)
+- [x] 1단계: 코드 기반 Tavily 질의 생성/검증 경로 설계 및 서버 연계 지점 구현
+- [x] 2단계: 코드리뷰 전용 revise/critic 체인(초안→비평→개정) 추가
+- [x] 3단계: 장시간 처리 UX용 단계별 진행 이벤트/중간 상태 메시지 개선
+- [x] 4단계: 회귀 테스트(TDD) 추가 및 기존 경로 부작용 검증
+- [x] 5단계: 작업 결과/리스크를 Action Log와 함께 정리
+
+## Action Log (2026-03-06 코드리뷰 품질 고도화)
+- [06:12] 작업 시작: 코드리뷰 품질 고도화(근거 출처, revise/critic, UX) 구현 착수
+- [06:16] 이슈: Node 테스트 파일을 pytest로 실행해 경로 오류 발생 → Python/Node 테스트 명령을 분리해 재실행
+- [06:17] 완료: 코드 기반 Tavily 질의/도메인 제한, 코드리뷰 critic+revise 보정, 스트림 단계형 progress UX를 반영하고 회귀 테스트(Python 77, Node 9) 통과
+
+## Plan (2026-03-05 코드리뷰 서브에이전트 분리)
+- [x] 1단계: `create_deep_agent`/현재 라우팅 구조 재확인 및 분리 지점 확정
+- [x] 2단계: 코드리뷰 전용 subagent 및 프롬프트/라우팅 분리 구현
+- [x] 3단계: 결정론 후처리의 코드리뷰 강제 경로를 안전 모드로 축소
+- [x] 4단계: 관련 테스트(TDD) 추가 및 회귀 실행
+- [x] 5단계: side-effect 분석/정리 및 Action Log 완료 기록
+
+## Action Log (2026-03-05 코드리뷰 서브에이전트 분리)
+- [18:20] 작업 시작: 코드리뷰 결과의 JSP 언어 오표기(Java)와 코드블록 가로 잘림(가독성 저하) 문제 수정 착수
+- [18:23] 완료: richtext 렌더에서 `java` fence라도 JSP 태그 포함 시 언어 라벨을 JSP로 자동 보정하고, 코드블록 줄바꿈(pre-wrap) 스타일 적용으로 가로 잘림 완화. 프론트/백엔드 관련 테스트 133건 통과
+- [22:03] 작업 시작: 코드 스니펫 카드 스타일은 유지한 채 `코드 분석/코드 리뷰` 텍스트 영역을 요약 카드형 UI 톤으로 정렬하는 프론트 렌더/스타일 보정 착수
+- [22:06] 완료: richtext 렌더에서 `코드 분석/코드 리뷰` 헤딩을 `summary-section` 카드로 래핑하고 전용 카드 톤(`section-code-analysis`, `section-code-review`)을 추가. 코드 스니펫(`rich-code-block`) 스타일은 그대로 유지. 프론트 테스트 67건 통과
+- [18:15] 작업 시작: 코드리뷰 응답의 하드코딩 체감 완화를 위해 `LLM 응답 우선 보존` 라우팅과 코드리뷰 프롬프트 간결화 작업 착수
+- [18:17] 완료: 코드리뷰 질의에서 구조화된 LLM 응답을 우선 보존하도록 후처리 라우팅을 전환하고, 코드리뷰 프롬프트를 `짧은 핵심 스니펫(1~3, 각 6줄 이하)+주석/리스크/개선` 규칙으로 간결화. 관련 회귀 테스트 106건 통과
+- [17:22] 작업 시작: 코드리뷰를 deep agent 내 전용 subagent로 분리하고 기존 후처리 경로 부작용을 점검하는 작업 착수
+- [17:28] 이슈: `tests/test_search_chat_intent_routing.py` 실행 중 `routes._execute_agent_turn` 재주입에 따른 재귀 발생 → 테스트에서 실행 래퍼를 patch해 라우팅 검증만 수행하도록 보정
+- [17:28] 완료: 코드리뷰 전용 subagent(`code-review-agent`) 주입, 코드리뷰 prompt variant/라우팅 추가, 전문가형 리뷰 응답의 강제 템플릿 덮어쓰기 방지, 관련 테스트 92건 통과
+- [17:48] 작업 시작: 실서버 로그 기반 후속 보정(코드리뷰 질의 intent 주입 충돌 제거, 코드리뷰 응답 강제 템플릿 덮어쓰기 우회) 착수
+- [17:49] 완료: 코드리뷰 질의는 미들웨어 intent 주입 생략(`should_inject_intent_context=False`)으로 충돌을 제거했고, 코드리뷰 질의의 비-JSON 마크다운 응답은 강제 템플릿 재렌더를 우회하도록 보정. 관련 테스트 100건 통과
+- [17:52] 이슈: 코드리뷰 프롬프트 문장에 `요약` 토큰이 포함되어 fallback이 `summary_text` 경로로 진입, `요약 결과:` 번호 리스트로 재가공됨 → 코드리뷰 질의 fallback 우회 규칙 추가 예정
+- [17:53] 완료: fallback에서 코드리뷰 질의(`is_code_review_query`)의 비-JSON 마크다운 답변을 우선 반환하도록 보정해 `요약 결과:` 붕괴를 차단. 회귀 테스트 101건 통과
+- [18:01] 완료: 코드리뷰 응답을 전체 코드 대신 `주석 리뷰(핵심 구간)` 포맷으로 정규화하는 annotated 렌더러를 추가하고 코드리뷰 질의에서 우선 적용. 관련 테스트 103건 통과
+- [18:08] 완료: 코드리뷰 경로에서 비-JSON 응답의 JSON 파싱을 우회하고, annotated 렌더의 구간별 개선 문구를 위험 유형별로 분기/정제(헤딩 노이즈 제거)하여 반복감을 완화. 관련 테스트 105건 통과
+- [18:06] 작업 시작: 코드리뷰 annotated 렌더 고도화(중복 주석/개선 분기, 분석 라인 헤딩 노이즈 제거) 및 코드리뷰 비-JSON 경로의 JSON 파싱 우회 보강 작업 착수
+
+## Plan (2026-03-05 README.MD 업데이트)
+- [x] 1단계: 프로젝트 디렉터리/핵심 모듈 구조 스캔
+- [x] 2단계: 실행 흐름(API-미들웨어-에이전트-서비스) 및 데이터/클라이언트 경로 정리
+- [x] 3단계: `README.MD` 업데이트 및 문서 검증
+
+## Action Log (2026-03-05 README.MD 업데이트)
+- [04:28] 작업 시작: 루트 task.md 선업데이트 및 README 최신화 작업 착수
+- [04:30] 완료: 현재 코드 구조/주요 API/런타임 흐름 기준으로 README.MD 전면 동기화
 
 ## Plan (회의실/ToDo + HIL 연동)
 - [x] 1단계: LangChain v1 `HumanInTheLoopMiddleware`를 회의실/ToDo 실행 툴에 적용
@@ -2532,3 +4845,960 @@
 - [05:23] 이슈: `test_search_chat_stream.py`가 `app.api.routes`의 patch 대상 심볼(`is_openai_key_configured`, `get_deep_chat_agent`, `_execute_agent_turn`)에 의존해 4건 실패 → 해결 방법: routes 호환 심볼 복원 + flow 모듈 의존성 주입 래퍼 추가
 - [05:26] 완료: `routes.py`(166줄), `intent_parser.py`(241줄), `chat_eval_service.py`(191줄)로 축소 완료, 분리 모듈 포함 전부 500줄 이하 준수
 - [05:26] 완료: Python 회귀 118건 + Node 회귀 47건 통과, `taskpane.js` 중복/불필요 로직 재점검(치명 중복 없음)
+
+## 실행 Plan v44 (요약 UI 고도화: Executive Brief + 근거 팝오버)
+- [x] 1단계: 현재 요약 렌더 경로 파악 및 Executive Brief 카드 설계 반영
+- [x] 2단계: 요약 문장별 근거 아이콘/팝오버 인터랙션 구현
+- [x] 3단계: 스타일 정리(기존 라이트 테마 유지, 가독성/밀도 개선)
+- [x] 4단계: 프론트 테스트 추가/수정(TDD) 및 회귀 실행
+- [x] 5단계: Action Log 반영
+
+## Action Log (v44)
+- [05:35] 작업 시작: 현재메일 요약 UI를 Executive Brief 카드 + 근거 팝오버 구조로 개선 작업 착수
+- [05:37] 이슈: `taskpane messages keeps numbering across fragmented answer_format ordered lists` 테스트 1건 실패(ordered item wrapper 변경 영향) → 해결 방법: 근거 팝오버 미적용 시 기존 `<li><span ...>` 마크업 유지
+- [05:39] 완료: `taskpane.messages.js`에 Executive Brief 카드(`핵심 문제 요약` 문단 변환), `주요 내용` ordered 항목별 근거 popover(`inline-evidence-popover`) 추가
+- [05:39] 완료: `taskpane.chat.css`에 Executive Brief/Inline Evidence 스타일 추가 및 ordered list 숫자 카드 스타일을 네이티브 번호 + 좌측 포인트 라인으로 개선
+- [05:39] 완료: 테스트 통과(Node 57건 + 40건: `test_taskpane_messages_render.cjs`, `test_taskpane_send_streaming.cjs`, `test_taskpane_api_stream.cjs`, `test_taskpane_selection_context.cjs`, `test_taskpane_helpers.cjs`, `test_taskpane_chat_actions.cjs`)
+
+## 실행 Plan v45 (요약 UI 완성도 마감)
+- [x] 1단계: answer_format 블록을 섹션 단위 카드(`요약/주요내용/조치`)로 그룹 렌더링
+- [x] 2단계: 라이트 테마 기준 섹션 카드/타이포/여백/호버 디테일 고도화
+- [x] 3단계: 테스트(TDD) 보강 및 회귀 실행
+- [x] 4단계: Action Log 반영
+
+## Action Log (v45)
+- [05:41] 작업 시작: 요약 UI 최종 마감(섹션 카드화 + 시각 톤 정리) 착수
+- [05:44] 완료: `taskpane.messages.js`에 summary heading 기반 섹션 카드 래핑(`summary-section`) 추가, `기본 정보/주요 내용/조치 필요 사항/핵심 문제` 구간을 문맥별 카드 스타일로 그룹화
+- [05:44] 완료: `taskpane.chat.css`에서 섹션 카드(`section-basic/major/action/executive`) 스타일, 리스트 톤, Executive Brief 시각 계층을 라이트 테마 기준으로 정리
+- [05:44] 완료: 캐시 무효화를 위해 `taskpane.css` import 버전 및 `taskpane.html`/manifest query 버전을 `20260304-05`로 상향
+- [05:44] 완료: 테스트 통과(Node 98건: `test_taskpane_messages_render.cjs`, `test_taskpane_send_streaming.cjs`, `test_taskpane_api_stream.cjs`, `test_taskpane_selection_context.cjs`, `test_taskpane_helpers.cjs`, `test_taskpane_chat_actions.cjs`)
+
+## 실행 Plan v46 (요약 UI 버그 수정 마감)
+- [x] 1단계: Executive Brief 중복/노이즈 렌더(`---`) 방지 로직 보정
+- [x] 2단계: 근거 팝오버를 인라인 확장형에서 오버레이형으로 변경해 본문 밀림 해소
+- [x] 3단계: 테스트 추가/회귀 실행(TDD)
+- [x] 4단계: Action Log 반영
+
+## Action Log (v46)
+- [05:48] 작업 시작: 요약 UI 버그 수정(`---` 카드화, 근거 팝오버 과다 확장) 착수
+- [05:49] 완료: `taskpane.messages.js`에 Executive Brief 1회 렌더 가드(`executiveBriefRendered`) 추가 및 divider/noise 우선 처리로 `---` 카드화 방지
+- [05:49] 완료: `taskpane.chat.css`에서 `inline-evidence-panel`을 absolute 오버레이형으로 변경해 리스트 본문 밀림 제거
+- [05:50] 완료: 회귀 테스트 통과(Node 99건) 및 캐시 무효화 버전 상향(`taskpane.html`/manifest `20260304-06`)
+
+## 실행 Plan v47 (기본 정보 테이블 톤 정합)
+- [x] 1단계: `기본 정보` 섹션 테이블 전용 스타일 재설계(카드형 행/타이포 계층)
+- [x] 2단계: 라이트 톤 기준 border/background/spacing 정합화
+- [x] 3단계: 프론트 회귀 테스트 실행
+- [x] 4단계: Action Log 반영
+
+## Action Log (v47)
+- [05:51] 작업 시작: `기본 정보` 요약 테이블 디자인 정합 개선 착수
+- [05:52] 완료: `taskpane.chat.css`에서 `section-basic` 하위 `rich-table`를 카드형 행 레이아웃으로 재정의(헤더 숨김, 라벨/값 2열, 라벨 강조/값 볼드, 보더/배경 톤 정합)
+- [05:52] 완료: 모바일(<=560px)에서 `기본 정보` 행을 1열 스택으로 전환하도록 반응형 보정
+- [05:53] 완료: 프론트 회귀 테스트 통과(Node 59건) 및 CSS 캐시 무효화(`taskpane.css` import 버전 `20260304-03`)
+
+## 실행 Plan v48 (요약 중복 섹션 제거)
+- [ ] 1단계: `주요 내용`/`조치 필요 사항` 블록 중복 판별 로직 추가
+- [ ] 2단계: 중복 시 `조치 필요 사항` 섹션 자동 제거
+- [ ] 3단계: 테스트(TDD) 추가 및 회귀 실행
+- [ ] 4단계: 캐시 버전/Action Log 반영
+
+## Action Log (v48)
+- [05:54] 작업 시작: `주요 내용`과 `조치 필요 사항` 동일 내용 중복 노출 제거 작업 착수
+- [06:02] 이슈 발생: 렌더러 중복 제거는 근본 해결이 아니고 의미 왜곡 위험 확인 → 해결 방법: v48 중단, 백엔드 LLM 추출 분리(v49)로 전환
+
+## 실행 Plan v49 (LLM 추출 분리: 주요 내용 vs 조치 필요 사항)
+- [x] 1단계: 렌더러 dedupe 임시 코드 제거(표시 계층 로직 단순화)
+- [x] 2단계: 프롬프트/응답 계약에 `주요 내용`(사실)과 `조치 필요 사항`(행동) 비중복 규칙 명시
+- [x] 3단계: 후처리 가드에서 중복 시 재분류/정제 로직 추가(렌더러 비의존)
+- [x] 4단계: TDD(프롬프트/계약/후처리) 추가 및 회귀 테스트 실행
+- [x] 5단계: Action Log 완료 기록
+
+## Action Log (v49)
+- [06:03] 작업 시작: 렌더러 우회가 아닌 백엔드 LLM 추출 분리 기반으로 중복 문제 해결 착수
+- [06:05] 완료: `taskpane.messages.js` 렌더러 dedupe 임시 코드 제거(요약 중복 숨김 로직 삭제)
+- [06:07] 완료: 프롬프트 품질 규칙에 `major_points`/`required_actions` 비중복 및 역할 분리 규칙 추가
+- [06:09] 완료: 응답 계약 정규화에서 `major_points`-`required_actions` 교차 중복 제거 + `required_actions` 실행성 정규화 추가
+- [06:10] 완료: 표준 요약 렌더에서 `required_actions`를 `major_points`로 추론 복제하는 fallback 제거
+- [06:12] 완료: TDD/회귀 통과(Python 72건, Node 48건)
+
+## 실행 Plan v50 (조치 항목 분류 키워드 튜닝)
+- [x] 1단계: `required_actions` 분류 키워드/패턴 보강(실행 문장 인식률 개선)
+- [x] 2단계: 과분류 방지를 위한 테스트 케이스 추가(TDD)
+- [x] 3단계: 회귀 테스트 실행 및 Action Log 반영
+
+## Action Log (v50)
+- [06:15] 작업 시작: 조치 항목 키워드(요청/검토/회신 외) 튜닝 및 테스트 보강 착수
+- [06:09] 완료: 실행형 키워드/패턴(`부탁드립니다`, `해야 함`, `기한:` 등) 기반 `required_actions` 분류 로직 강화
+- [06:10] 완료: TDD 추가(`test_required_actions_detect_imperative_patterns`) 및 회귀 통과(Python 73건)
+
+## 실행 Plan v51 (주요 내용 근거 고도화: 문구/단락 + 기술 웹출처)
+- [x] 1단계: 서버 metadata에 `주요 내용별 근거 문구/단락` 구조 추가
+- [x] 2단계: 기술성 주요 내용에 한해 웹출처를 항목 근거로 연결
+- [x] 3단계: 프론트 근거 팝오버를 항목별 메일근거+웹출처 카드 렌더로 확장
+- [x] 4단계: TDD 추가(backend metadata + frontend render) 및 회귀 실행
+- [x] 5단계: Action Log 반영
+
+## Action Log (v51)
+- [06:17] 작업 시작: `주요 내용` 항목별 근거 문구/단락 + 기술 항목 웹출처 카드 연동 작업 착수
+- [06:22] 완료: `search_chat_metadata`에 `build_major_point_evidence` 추가(주요내용별 메일 근거문구/본문 단락 라벨/기술항목 웹출처 매핑)
+- [06:24] 완료: `search_chat_flow` metadata에 `major_point_evidence` 연결 및 answer_format 재사용으로 중복 계산 제거
+- [06:27] 완료: `taskpane.messages.js` inline 근거 팝오버를 항목별 근거문구/단락 + 웹출처 카드 렌더로 확장
+- [06:28] 완료: 스타일 추가(`inline-evidence-section`, `inline-evidence-web-*`)로 카드형 시각 보강
+- [06:30] 완료: TDD 통과(Python 80건, Node 49건)
+- [06:30] 이슈 발생: `tests/test_search_chat_selected_mail_context.py`는 기존 라우트 patch 경로 재귀(`app.api.routes._execute_agent_turn`↔`search_chat_flow.execute_agent_turn`)로 실패 → 해결 방법: 이번 변경 검증 범위는 metadata/render 테스트로 제한, 해당 스위트는 별도 라우트 mock 정리 태스크에서 분리 대응
+
+## 실행 Plan v52 (1안: 결과 카드 내부 탭 UI)
+- [x] 1단계: Assistant 결과 카드에 `요약/컨텍스트/액션` 탭 구조 추가(기존 채팅 구조 유지)
+- [x] 2단계: 탭 클릭 이벤트/상태 전환 로직 추가(접근성 aria 포함)
+- [x] 3단계: 카드 탭 스타일 고도화(상용 톤/좁은 패널 최적화)
+- [x] 4단계: 프론트 TDD 보강 및 회귀 실행
+- [x] 5단계: Action Log 반영
+
+## Action Log (v52)
+- [06:35] 작업 시작: Outlook 사이드패널 최적화용 카드 내부 탭(요약/컨텍스트/액션) UI 구현 착수
+- [06:38] 완료: `taskpane.messages.js`에 Assistant 카드 내부 탭 구조(`📋 요약 / 🔍 컨텍스트 / ✅ 액션`)와 배지 카운트 렌더 추가
+- [06:39] 완료: `taskpane.interactions.js`에 `message-tab-select` 클릭 핸들러 추가(탭/패널 active 전환 + aria-selected 반영)
+- [06:40] 완료: `taskpane.chat.css`에 탭 네비게이션/패널/빈상태 스타일 추가(좁은 Outlook 패널 톤 최적화)
+- [06:40] 완료: 캐시 무효화 버전 상향(`taskpane.html`, `manifest.xml` -> `20260304-07`)
+- [06:41] 완료: 프론트 회귀 테스트 통과(Node 74건: `messages_render`, `interactions`, `chat_actions`, `helpers`)
+
+## 실행 Plan v53 (근거 팝오버 outside-click 닫힘)
+- [x] 1단계: `근거/출처` 팝오버(`details`) 닫힘 동작 누락 원인 점검
+- [x] 2단계: 바깥 클릭/ESC 시 열린 팝오버 자동 닫힘 로직 추가
+- [x] 3단계: 프론트 테스트(TDD) 추가 및 회귀 실행
+- [x] 4단계: Action Log 반영
+
+## Action Log (v53)
+- [06:56] 작업 시작: 근거 팝오버 outside-click 미닫힘 이슈 수정 착수
+- [06:57] 완료: `taskpane.interactions.js`에 전역 dismiss 추가(`document click`/`Escape`)로 `inline-evidence-popover`, `web-source-popover` outside-click 자동 닫힘 구현
+- [06:57] 완료: `test_taskpane_interactions.cjs`에 outside-click/ESC 닫힘 테스트 추가(TDD)
+- [06:57] 완료: 프론트 회귀 테스트 통과(Node 54건: interactions + messages_render)
+- [06:58] 완료: 캐시 무효화 버전 상향(`taskpane.html`, `manifest.xml` -> `20260304-08`) 및 단일 테스트 재검증(Node 4건)
+
+## 실행 Plan v54 (스트리밍 JSON 노출 차단 보강)
+- [x] 1단계: SSE token 미리보기의 JSON 노출 재현 케이스(````json`/부분 JSON) 점검
+- [x] 2단계: JSON stream 감지 로직 보강(코드펜스/혼합 prefix 포함) 및 미리보기 차단
+- [x] 3단계: 프론트 TDD 추가 및 회귀 실행
+- [x] 4단계: Action Log 반영
+
+## Action Log (v54)
+- [07:36] 작업 시작: SSE 토큰 미리보기에서 JSON이 순간 노출되는 이슈 수정 착수
+- [07:36] 완료: `taskpane.send.js` JSON 스트림 감지 보강(````json` 코드펜스 제거 + 키 기반 탐지)으로 미리보기 JSON 렌더 차단
+- [07:36] 완료: TDD 추가(`test_taskpane_send_streaming.cjs` fenced JSON 케이스) 및 테스트 통과(Node 3건)
+- [07:37] 완료: 캐시 무효화 버전 상향(`taskpane.html`, `manifest.xml` -> `20260304-09`)
+
+## 실행 Plan v55 (컨텍스트 탭 풍부화)
+- [x] 1단계: 백엔드 metadata에 `context_enrichment`(회신 경고/타임라인/관계자) 생성 로직 추가
+- [x] 2단계: 컨텍스트 탭에서 `context_enrichment` 카드형 렌더 추가
+- [x] 3단계: TDD 추가(`search_chat_metadata`, `taskpane_messages_render`) 및 회귀 실행
+- [x] 4단계: 캐시 버전 상향 및 Action Log 반영
+
+## Action Log (v55)
+- [07:40] 작업 시작: 컨텍스트 탭 풍부화(회신 필요/스레드 타임라인/관계자) 구현 착수
+- [07:42] 완료: `search_chat_metadata.py`에 `build_context_enrichment` 추가(회신 경고/타임라인/관계자 힌트 생성)
+- [07:43] 완료: `search_chat_flow.py` metadata에 `context_enrichment` 연결
+- [07:45] 완료: `taskpane.messages.js` 컨텍스트 카드 렌더(`context-enrichment-block`) 추가 및 탭 노출 조건 보강
+- [07:46] 완료: `taskpane.chat.css`에 컨텍스트 카드/타임라인/관계자 스타일 추가
+- [07:46] 완료: TDD 추가 및 통과(`venv/bin/python -m pytest -q tests/test_search_chat_metadata.py`: 8 passed, `node --test tests/test_taskpane_messages_render.cjs`: 50 passed)
+- [07:47] 완료: 캐시 무효화 버전 상향(`taskpane.html`, `manifest.xml` -> `20260304-10`)
+
+## 실행 Plan v56 (컨텍스트 관계자: LLM 추정 매핑 고도화)
+- [x] 1단계: `search_chat_flow`에서 LLM 계약(`recipient_roles`/`recipient_todos`) 안전 파싱 경로 연결
+- [x] 2단계: `context_enrichment.stakeholders`를 LLM 결과 우선 매핑 + fallback 보강
+- [x] 3단계: TDD 추가(`search_chat_metadata`) 및 회귀 실행
+- [x] 4단계: Action Log 반영
+
+## Action Log (v56)
+- [07:48] 작업 시작: 컨텍스트 관계자 카드를 LLM 추정 결과 우선 매핑하도록 고도화 착수
+- [07:50] 완료: `search_chat_flow.py`에서 `parse_llm_response_contract` 기반 `recipient_roles/recipient_todos` 직렬화 후 metadata 빌더로 전달
+- [07:51] 완료: `search_chat_metadata.py`에서 `build_context_enrichment`가 LLM 관계자 결과를 최우선 사용하도록 확장(없으면 기존 fallback)
+- [07:51] 완료: TDD 추가(`test_build_context_enrichment_prefers_llm_stakeholders`) 및 회귀 통과(Pytest 9 passed, Node messages_render 50 passed)
+
+## 실행 Plan v57 (요약 카드 UX 개선: 제목 볼드/근거 상단/주요내용 접기)
+- [x] 1단계: 상단 제목(제목 섹션 본문) 가중치 상향
+- [x] 2단계: 근거 트리거를 카드 상단 정렬로 이동 + 근거 팝오버 폭/높이 축소 및 클리핑 방지
+- [x] 3단계: `주요 내용` 섹션 접기/펼치기 토글 추가
+- [x] 4단계: TDD 추가 및 회귀 실행
+- [x] 5단계: 캐시 버전 상향 및 Action Log 반영
+
+## Action Log (v57)
+- [07:53] 작업 시작: 제목 볼드/근거 상단/주요내용 접기 UX 개선 착수
+- [08:01] 완료: `taskpane.messages.js`에 주요내용 섹션 토글 버튼(`data-action=section-toggle`)과 `근거` 트리거 상단 정렬(`rich-ol-head`) 렌더 적용
+- [08:02] 완료: `taskpane.chat.css`에서 제목 섹션 본문 볼드 강화(`section-title`) + 근거 팝오버 축소/우측 정렬/스크롤 처리(클리핑 완화) + 주요내용 접기 스타일 반영
+- [08:03] 완료: `taskpane.interactions.js`에 섹션 접기/펼치기 클릭 핸들러 추가
+- [08:03] 완료: TDD 추가 및 회귀 통과(Node 55 passed: interactions + messages_render)
+- [08:04] 완료: 캐시 무효화 버전 상향(`taskpane.html`, `manifest.xml` -> `20260304-11`)
+
+## 실행 Plan v58 (관계자 파싱/근거 정리 + 액션 체크리스트)
+- [x] 1단계: 관계자 이름 파싱 보강(도메인 토큰/이메일 단서 정규화)
+- [x] 2단계: 관계자 근거 고정 문구 제거(실제 근거만 노출)
+- [x] 3단계: 액션 탭 체크리스트 UI(체크 토글 포함) 추가
+- [x] 4단계: 백엔드/프론트 TDD 추가 및 회귀 실행
+- [x] 5단계: 캐시 버전 상향 및 Action Log 반영
+
+## Action Log (v58)
+- [08:24] 작업 시작: UI guide v1.0 우선순위(관계자 파싱, 근거 문구 정리, 액션 체크리스트) 반영 착수
+- [08:34] 완료: `search_chat_metadata.py` 관계자 정규화 로직 추가(도메인 토큰 제거, 이메일/이름 매핑, fallback 근거 문장 추출) 및 고정 근거 문구 제거
+- [08:41] 완료: `taskpane.messages.js` 액션 탭 체크리스트 렌더 추가(`action-check-toggle`), `taskpane.interactions.js` 체크 토글 핸들러 연결
+- [08:43] 완료: `taskpane.chat.css` 체크리스트 카드/칩/완료 상태 스타일 추가
+- [08:46] 완료: TDD 통과(`PYTHONPATH=. ./venv/bin/pytest -q tests/test_search_chat_metadata.py` 11 passed, `node --test tests/test_taskpane_messages_render.cjs` 51 passed, `node --test tests/test_taskpane_interactions.cjs` 6 passed)
+- [08:48] 완료: 캐시 무효화 버전 상향(`taskpane.html`, `manifest.xml` -> `20260304-12`, manifest `1.0.2.3`)
+
+## 실행 Plan v59 (주요 내용 보조 불릿 제거)
+- [x] 1단계: `주요 내용` 섹션에서 보조 불릿 렌더링 제거
+- [x] 2단계: 프론트 TDD 추가/수정
+- [x] 3단계: 회귀 테스트 실행
+- [x] 4단계: 캐시 버전/Action Log 반영
+
+## Action Log (v59)
+- [09:02] 작업 시작: 주요 내용 카드 하단 보조 불릿 가독성 이슈 대응(삭제) 착수
+- [09:05] 완료: `taskpane.messages.js`에서 `주요 내용(section-major)`의 unordered 보조 불릿 렌더를 제거해 카드 하단 작은 점 목록 비노출 처리
+- [09:06] 완료: TDD 추가/통과(`node --test tests/test_taskpane_messages_render.cjs` 52 passed)
+- [09:07] 완료: 캐시 무효화 버전 상향(`taskpane.html`, `manifest.xml` -> `20260304-13`, manifest `1.0.2.4`)
+
+## 실행 Plan v60 (근거 트리거 아이콘 전용화)
+- [x] 1단계: 근거 트리거 텍스트 라벨 제거(아이콘-only)
+- [x] 2단계: 아이콘 버튼 가시성/터치 영역 CSS 개선
+- [x] 3단계: 프론트 테스트 회귀
+- [x] 4단계: 캐시 버전/Action Log 반영
+
+## Action Log (v60)
+- [09:10] 작업 시작: 근거 트리거를 한글 라벨 없이 아이콘-only로 전환 착수
+- [09:12] 완료: `taskpane.messages.js` 근거 트리거를 아이콘-only SVG 버튼으로 변경(`근거` 텍스트 라벨 제거)
+- [09:13] 완료: `taskpane.chat.css`에서 근거 아이콘 버튼 크기/호버/포커스/가시성 개선(30x30 터치 영역)
+- [09:14] 완료: 프론트 회귀 테스트 통과(`node --test tests/test_taskpane_messages_render.cjs tests/test_taskpane_interactions.cjs` 58 passed)
+- [09:15] 완료: 캐시 무효화 버전 상향(`taskpane.html`, `manifest.xml` -> `20260304-14`, manifest `1.0.2.5`)
+
+## 실행 Plan v61 (요약 탭 레이아웃 재구성 + 기술 이슈 카드)
+- [x] 1단계: 요약 탭 상단 메일 헤더 카드(제목+발신→수신) 렌더 추가
+- [x] 2단계: `제목` 섹션 표시 제거, `기본 정보`를 표 대신 카드형 key-value로 전환
+- [x] 3단계: `주요 내용`을 카드형(제목+보조설명)으로 재구성, 위험도 라벨 제거
+- [x] 4단계: backend metadata에 기술 이슈(`tech_issues`) 3~5개 추출 추가 및 요약 탭 렌더 연결
+- [x] 5단계: TDD/회귀 테스트 실행 및 캐시 버전/로그 반영
+
+## Action Log (v61)
+- [09:18] 작업 시작: 요청하신 레퍼런스 스타일 기준 요약 탭 구조 재구성 착수
+- [09:23] 완료: `taskpane.messages.js`에 상단 메일 헤더 카드 추가, 제목 섹션 숨김, 기본정보 카드형 렌더(`basic-info-list`) 적용
+- [09:27] 완료: `taskpane.messages.js` 주요내용 렌더를 카드형(`major-summary-card`)으로 재구성하고 보조 bullet을 카드 subtitle로 흡수, 위험도 라벨 제거
+- [09:31] 완료: `search_chat_metadata.py`에 `build_tech_issue_cards` 추가, `search_chat_flow.py` metadata에 `tech_issues` 연결
+- [09:34] 완료: `taskpane.messages.js`에 기술 이슈 섹션(`🛠 기술 이슈`) 렌더 추가(메일 근거 + 웹소스 링크)
+- [09:37] 완료: TDD 통과(`PYTHONPATH=. ./venv/bin/pytest -q tests/test_search_chat_metadata.py` 12 passed, `node --test tests/test_taskpane_messages_render.cjs tests/test_taskpane_interactions.cjs` 60 passed)
+- [09:39] 완료: 캐시 무효화 버전 상향(`taskpane.html`, `manifest.xml` -> `20260304-15`, manifest `1.0.2.6`)
+
+## 실행 Plan v62 (템플릿 정합 재구성 + 기술이슈 웹근거 팝오버)
+- [x] 1단계: 요약 탭 UI를 제공 템플릿 기준으로 1:1 정렬(제목/기본정보/핵심요약/주요내용)
+- [x] 2단계: 기술이슈를 메일 기반 추출 후 이슈별 웹검색 근거를 카드 아이콘+팝오버로 표시
+- [x] 3단계: 기존 중복/비사용 렌더 경로 정리(리팩터링)
+- [x] 4단계: TDD/회귀 테스트 실행
+- [x] 5단계: 캐시 버전/Action Log 반영
+
+## Action Log (v62)
+- [09:45] 작업 시작: 사용자 제공 템플릿 미일치 이슈 재작업 착수(요약 UI 재정렬 + 기술이슈별 웹근거 팝오버)
+- [09:52] 완료: `search_chat_flow.py`에 주요내용 근거별 웹출처 보강 로직 추가(기술 포인트 query 기반 Tavily 검색)
+- [09:57] 완료: `taskpane.messages.js` 요약 템플릿 재정렬(헤더 카드/기본정보 카드형/주요내용 카드형/위험도 제거) 및 `tech-source-popover`(아이콘 스택+팝오버) 추가
+- [10:01] 완료: `taskpane.interactions.js` 팝오버 dismiss 범위에 `tech-source-popover` 추가, `taskpane.chat.css` 템플릿/기술이슈 스타일 보강
+- [10:04] 완료: TDD 통과(`PYTHONPATH=. ./venv/bin/pytest -q tests/test_search_chat_metadata.py` 12 passed, `node --test tests/test_taskpane_messages_render.cjs tests/test_taskpane_interactions.cjs` 60 passed)
+- [10:06] 완료: 캐시 무효화 버전 상향(`taskpane.html`, `manifest.xml` -> `20260304-16`, manifest `1.0.2.7`)
+
+## 실행 Plan v63 (현재메일 요약 화면 개선)
+- [ ] 1단계: `현재 메일 요약해줘` 응답 렌더 구조/스타일 병목 구간 파악
+- [ ] 2단계: 요약 카드 UI/상호작용 개선 구현(기존 패턴 유지)
+- [ ] 3단계: 프론트 테스트(TDD) 보강 및 회귀 실행
+- [ ] 4단계: 캐시 버전/Action Log 업데이트
+
+## Action Log (v63)
+- [14:49] 작업 시작: "현재 메일 요약해줘" 요약화면 개선 작업 착수
+- [14:57] 이슈: 화면 전체 재구성 대신 우선순위를 상단 선택메일 카드(발신→수신 외 N명/화살표 열기)로 재정의 → 해결 방법: 범위를 1차 기능(상단 카드)로 축소해 선반영
+- [x] 1단계: `현재 메일 요약해줘` 응답 렌더 구조/스타일 병목 구간 파악
+- [x] 2단계: 요약 카드 UI/상호작용 개선 구현(기존 패턴 유지)
+- [x] 3단계: 프론트 테스트(TDD) 보강 및 회귀 실행
+- [x] 4단계: 캐시 버전/Action Log 업데이트
+- [15:00] 완료: 상단 선택메일 카드 UX 1차 구현 완료(발신→수신 `외 N명` 표기 + 화살표 클릭 시 원본 메일 열기)
+- [15:00] 완료: `/mail/context` 응답 확장(`from_display_name`, `to_recipients`) 및 Add-in 상단 배너 자동 동기화 연동
+- [15:00] 완료: TDD/회귀 통과(`node --test tests/test_taskpane_messages_render.cjs tests/test_taskpane_interactions.cjs` 62 passed, `PYTHONPATH=. ./venv/bin/python -m compileall app/api/routes.py`)
+- [15:01] 이슈: 상단 선택메일 카드가 텍스트로만 노출(스타일 미적용) → 해결 방법: `taskpane.css` import 버전(구버전 캐시 참조) 상향으로 신규 CSS 로딩 복구
+- [15:01] 완료: `node --test tests/test_taskpane_messages_render.cjs tests/test_taskpane_interactions.cjs` 62 passed
+- [15:07] 완료: `#selectedMailBanner` 클래스 강제 보정(동적 생성 포함) 적용으로 구 HTML 캐시 환경에서도 카드 스타일이 누락되지 않도록 보강
+- [15:07] 완료: 정적 캐시 버전 재상향(`taskpane.css` import + `taskpane.html` css/messages/interactions -> `20260304-18`)
+- [15:10] 이슈: 상단 선택메일 카드 제목 폰트가 크게 보임 + 배너 화살표 클릭이 동작하지 않음(채팅영역 외부 클릭 핸들러 미적용)
+- [15:11] 완료: 상단 선택메일 카드 제목 폰트 13px 적용
+- [15:11] 완료: 상단 배너 화살표 클릭 동작 복구(`selected-mail-open`을 문서 위임으로 처리)
+- [15:17] 작업 시작: 요약 탭 내부 메일 제목 카드 제거(상단 선택메일 카드와 중복 해소)
+- [15:18] 완료: 요약 탭 내부 메일 제목 카드(`summary-mail-hero`) 제거로 상단 카드와의 중복 해소
+- [15:18] 완료: 프론트 회귀 통과(`node --test tests/test_taskpane_messages_render.cjs` 56 passed)
+- [15:30] 완료: 기본정보를 단일 카드형(여러 행)으로 전환하여 이미지 레퍼런스와 동일한 정보 밀도로 정렬
+- [15:30] 완료: 프론트 테스트 통과(`node --test tests/test_taskpane_messages_render.cjs` 57 passed)
+- [15:30] 작업 시작: 기본정보에서 `원본 문의 발신` 항목 제거
+- [15:31] 완료: 기본정보의 `원본 문의 발신` 항목 제거
+- [15:31] 완료: 프론트 회귀 통과(`node --test tests/test_taskpane_messages_render.cjs` 57 passed), 캐시 버전 상향(`taskpane.messages.js` -> `20260304-20`)
+- [15:38] 작업 시작: 핵심 문제 요약(한 줄 결론) 본문 폰트 13px 조정 + 핵심판단 근거 팝오버의 메일제목 라인 제거
+- [15:40] 완료: 핵심 문제 요약의 한 줄 결론 본문 폰트 13px 적용
+- [15:40] 완료: 핵심판단 근거 팝오버에서 메일 제목 라인 제거(날짜/발신자 메타만 유지)
+- [15:40] 완료: 프론트 회귀 통과(`node --test tests/test_taskpane_messages_render.cjs` 57 passed), 캐시 버전 상향 반영
+- [15:45] 완료: 주요내용 카드를 레퍼런스(번호 원형 배지/타이포/근거 아이콘 소형) 스타일로 리디자인
+- [15:45] 완료: 프론트 회귀 통과(`node --test tests/test_taskpane_messages_render.cjs` 57 passed), 캐시 버전 상향 반영
+- [16:05] 완료: 주요내용 제목 폰트 13px 적용
+- [16:05] 완료: 번호 배지 순차값(1..N) 보정
+- [16:05] 완료: 근거 팝오버 중앙 고정 오버레이로 전환(클리핑 해소)
+- [16:05] 완료: 프론트 회귀 통과(`node --test tests/test_taskpane_messages_render.cjs` 57 passed), 캐시 버전 상향 반영
+- [16:11] 이슈: 주요내용 번호 배지가 블록 단위로 초기화되어 모든 카드가 1로 표시됨
+- [16:13] 완료: 주요내용 번호 누적 로직 보정(분절 ordered block에서도 1..N 유지)
+- [16:13] 완료: 프론트 회귀 통과(`node --test tests/test_taskpane_messages_render.cjs` 58 passed)
+- [16:13] 완료: 캐시 버전 상향(`taskpane.messages.js` -> `20260304-24`)
+- [16:16] 완료: 기술이슈에서 summary/인용문 중복 문장 제거(`mail_quote`가 `summary`와 동일하면 비노출)
+- [16:16] 완료: 프론트 회귀 통과(`node --test tests/test_taskpane_messages_render.cjs` 59 passed)
+- [16:16] 완료: 캐시 버전 상향(`taskpane.messages.js` -> `20260304-25`)
+- [16:22] 완료: 기술이슈 근거 팝오버 가로폭 확장 + 중앙 배치 적용
+- [16:22] 완료: 프론트 회귀 통과(`node --test tests/test_taskpane_messages_render.cjs` 59 passed), 캐시 버전 상향(`taskpane.css` -> `20260304-23`)
+
+## 실행 Plan v64 (기술이슈 섹션 제거)
+- [x] 1단계: 백엔드 `tech_issues` 생성/응답 경로 제거
+- [x] 2단계: 프론트 기술이슈 렌더/팝오버/상호작용 코드 제거
+- [x] 3단계: 기술이슈 관련 CSS 정리
+- [x] 4단계: 관련 테스트(TDD) 수정 및 회귀 실행
+- [x] 5단계: 캐시 버전/Action Log 완료 기록
+
+## Action Log (v64)
+- [16:49] 작업 시작: 기술이슈 섹션(백엔드 생성 + 프론트 렌더/팝오버/CSS)을 전면 제거하는 리팩터링 착수
+- [16:53] 완료: 백엔드 `build_tech_issue_cards`/`metadata.tech_issues` 경로 제거 및 관련 메타데이터 테스트 정리
+- [16:53] 완료: 프론트 `buildTechIssuesHtml`/`tech-source-popover` 렌더 경로 제거, popover dismiss selector/CSS 정리
+- [16:53] 완료: TDD 통과(`PYTHONPATH=. ./venv/bin/pytest -q tests/test_search_chat_metadata.py` 11 passed, `node --test tests/test_taskpane_messages_render.cjs` 57 passed, `node --test tests/test_taskpane_interactions.cjs` 7 passed)
+- [16:53] 완료: 캐시 버전 상향(`taskpane.html` -> css/messages/interactions `20260304-26`)
+
+## 실행 Plan v65 (액션 탭 제거 + 요약 탭 통합)
+- [x] 1단계: 액션 탭 네비/패널 렌더 제거(요약/컨텍스트 2탭화)
+- [x] 2단계: 기존 액션 콘텐츠(체크리스트/HIL/다음액션)를 요약 본문 하단에 통합
+- [x] 3단계: 관련 프론트 테스트(TDD) 수정 및 회귀 실행
+- [x] 4단계: 캐시 버전/Action Log 완료 기록
+
+## Action Log (v65)
+- [16:55] 작업 시작: 액션 탭을 제거하고 액션 콘텐츠를 요약 탭(기술이슈 제거 자리)으로 이동하는 UI 재배치 착수
+- [16:56] 완료: `assistant-tabs`를 2탭(요약/컨텍스트)으로 축소하고 `✅ 액션` 탭 버튼/패널 제거
+- [16:56] 완료: 기존 액션 콘텐츠(`action-checklist`/HIL confirm/next-actions)를 요약 패널 하단으로 통합 렌더
+- [16:56] 완료: 프론트 테스트 통과(`node --test tests/test_taskpane_messages_render.cjs` 57 passed, `node --test tests/test_taskpane_interactions.cjs` 7 passed)
+- [16:56] 완료: 캐시 버전 상향(`taskpane.messages.js` -> `20260304-27`)
+
+## 실행 Plan v66 (컨텍스트 탭/코드 제거)
+- [x] 1단계: 메시지 렌더에서 탭 구조/컨텍스트 탭 제거
+- [x] 2단계: 컨텍스트 렌더 헬퍼 및 탭 상호작용 코드 정리
+- [x] 3단계: 관련 CSS/테스트 정리(TDD) 및 회귀 실행
+- [x] 4단계: 캐시 버전/Action Log 업데이트
+
+## Action Log (v66)
+- [16:58] 작업 시작: 컨텍스트 탭과 관련 렌더/상호작용 코드를 전면 제거하는 정리 작업 착수
+- [22:01] 완료: 메시지 렌더의 탭 구조(`assistant-tabs`) 제거, 컨텍스트 탭/컨텍스트 카드 렌더 경로 삭제
+- [22:01] 완료: 상호작용 코드에서 `message-tab-select` 분기 제거, 관련 테스트 케이스 정리
+- [22:01] 완료: 탭/컨텍스트 관련 CSS(`assistant-tab*`, `context-*`) 삭제 및 캐시 버전 상향(`taskpane.html` -> `20260304-28`)
+- [22:01] 완료: 프론트 회귀 통과(`node --test tests/test_taskpane_messages_render.cjs` 57 passed, `node --test tests/test_taskpane_interactions.cjs` 6 passed)
+
+## Plan (기본 정보 UI 압축)
+- [x] 1단계: Add-in 기본 정보 렌더 구조 분석(테이블/행 카드)
+- [x] 2단계: 기본 정보를 1줄 메타 형태(날짜·발신자→수신자)로 렌더링 변경
+- [x] 3단계: 날짜는 YYYY-MM-DD로 축약하고 반응형 스타일 조정
+- [x] 4단계: 회귀 테스트 추가/수정(TDD) 및 실행
+- [x] 5단계: task 로그 정리
+
+## Action Log
+- [22:11] 작업 시작: 현재메일 요약 카드의 기본 정보 섹션을 테이블형에서 1줄 메타형으로 축약하는 작업 시작
+- [22:12] 완료: `taskpane.messages.js` 기본 정보 렌더를 compact 메타(`📅 날짜 · 👤 발신자 → 수신자`)로 전환하고 날짜를 `YYYY-MM-DD`로 축약
+- [22:12] 완료: `taskpane.chat.css`에 compact 기본 정보 스타일 추가 및 모바일 반응형 보정
+- [22:12] 완료: TDD 통과(`node --test tests/test_taskpane_messages_render.cjs` 57 passed)
+- [22:12] 완료: 캐시 버전 상향(`taskpane.messages.js` -> `20260304-29`, `taskpane.chat.css` -> `20260304-29`)
+
+## Plan (현재메일 근거메일 숨김)
+- [x] 1단계: 현재메일 요약 메타데이터 식별 키 확인
+- [x] 2단계: 현재메일 응답에서 근거메일 블록 렌더 비활성화
+- [x] 3단계: 다건 조회 응답에서는 기존 근거메일 렌더 유지 검증
+- [x] 4단계: 프론트 회귀 테스트 추가/수정(TDD) 및 실행
+- [x] 5단계: task 로그 정리
+
+## Action Log
+- [22:14] 작업 시작: 현재메일 요약 응답에서는 근거메일 블록을 숨기고 다건 조회에서만 노출되도록 렌더 분기 수정 시작
+- [22:17] 완료: 백엔드 `search_chat_flow` metadata에 `query_type(current_mail/general)`를 추가해 응답 범위를 명시
+- [22:17] 완료: Add-in `taskpane.messages.js`에서 `query_type=current_mail`(또는 `answer_format.format_type=current_mail`)일 때 `근거 메일` 블록 숨김 처리
+- [22:17] 완료: TDD 통과(`node --test tests/test_taskpane_messages_render.cjs` 58 passed, `PYTHONPATH=. ./venv/bin/pytest -q tests/test_search_chat_metadata.py` 11 passed)
+- [22:17] 완료: 캐시 버전 상향(`taskpane.messages.js` -> `20260304-30`)
+
+## Plan (도메인 기반 Next Action 고도화)
+- [x] 1단계: 기존 `next_actions` 추천 경로/의존 코드 분석 및 제거 대상 식별
+- [x] 2단계: 실행 가능 액션 도메인 카탈로그/스키마 도입(권한·기능 게이트 포함)
+- [x] 3단계: 메일 본문 유사도 기반 후보 추출(하이브리드 점수) + Top3 선별 로직 구현
+- [x] 4단계: 현재 응답 메타데이터/프론트 표시 연동 및 미사용 레거시 코드 정리
+- [x] 5단계: 테스트(TDD) 보강, 회귀 실행, task 로그 업데이트
+
+## Action Log
+- [22:18] 작업 시작: 트렌드/기술분석 기반으로 실행 가능한 도메인 액션 Top3 추천 구조 개편 작업 시작
+- [22:26] 완료: `next_action_recommender`를 LLM 자유생성 방식에서 도메인 카탈로그+실행 가능 게이트+하이브리드 점수(키워드/토큰 유사도+선택적 임베딩) 구조로 교체
+- [22:26] 완료: 구현 불가 액션이 노출되지 않도록 capability env 게이트(`MOLDUBOT_ACTION_ENABLE_*`)와 current-mail 요구조건 게이트를 추가
+- [22:26] 완료: TDD 추가/갱신(`tests/test_next_action_recommender.py`) 및 회귀 통과(`3 passed`, `test_search_chat_metadata.py 11 passed`)
+
+## Plan (실행 체크리스트 제거)
+- [x] 1단계: 체크리스트 렌더/상호작용/스타일/테스트 경로 식별
+- [x] 2단계: `실행 체크리스트` UI 렌더 및 이벤트 처리 코드 제거
+- [x] 3단계: 미사용 CSS/헬퍼 정리 및 중복 섹션(`이어서 할 수 있어요`)만 유지
+- [x] 4단계: 관련 테스트(TDD) 기대값 갱신 및 회귀 실행
+- [x] 5단계: task 로그 업데이트
+
+## Action Log
+- [22:31] 작업 시작: `실행 체크리스트` 섹션과 관련 코드를 제거하고 `이어서 할 수 있어요`만 남기는 정리 작업 시작
+- [04:32] 완료: `taskpane.messages.js`에서 체크리스트 렌더/파생 헬퍼 제거, assistant 액션 영역을 `next_actions` 중심으로 단순화
+- [04:32] 완료: `taskpane.interactions.js`의 `action-check-toggle` 이벤트 처리 제거 및 `taskpane.chat.css`의 `.action-check*` 스타일 블록 삭제
+- [04:32] 완료: 프론트 회귀 통과(`node --test tests/test_taskpane_messages_render.cjs` 57 passed, `node --test tests/test_taskpane_interactions.cjs` 5 passed)
+- [04:32] 완료: 캐시 버전 상향(`taskpane.css`/`taskpane.messages.js`/`taskpane.interactions.js` -> `20260305-01`)
+
+## Plan (주요내용 근거를 벡터 메일 근거로 전환)
+- [x] 1단계: 기존 주요내용 근거(`major_point_evidence`) 생성/렌더 경로 분석 및 웹출처 의존 제거 범위 확정
+- [x] 2단계: 벡터DB 기반 유사 메일 근거 조회 함수 추가(Top-K/중복제거/임계치)
+- [x] 3단계: `major_point_evidence` 메타데이터를 `related_mails` 중심으로 재구성
+- [x] 4단계: 프론트 팝오버에서 `기술 근거 · 웹 출처` 제거 후 `관련 메일 근거` 렌더로 교체
+- [x] 5단계: 미사용 코드 정리 + 테스트(TDD) 보강/회귀 + task 로그 업데이트
+
+## Action Log
+- [04:37] 작업 시작: 주요내용 팝오버의 웹출처를 제거하고 벡터DB 유사 메일 근거 표시로 전환하는 작업 시작
+- [04:46] 완료: `build_major_point_evidence`의 웹출처 의존을 제거하고 `related_mails` 필드를 기본 스키마로 전환
+- [04:46] 완료: `search_chat_flow`에 주요내용 포인트별 유사 메일 조회 보강(`_enrich_major_point_related_mails`)을 추가해 벡터 검색(mail_search 재랭킹) 기반 근거 메일 Top2를 연결
+- [04:46] 완료: 프론트 팝오버에서 `기술 근거 · 웹 출처` 렌더를 제거하고 `관련 메일 근거` 섹션으로 교체
+- [04:46] 완료: 미사용 웹근거 렌더 코드/스타일 정리 및 캐시 버전 상향(`taskpane.css/messages` -> `20260305-02`)
+- [04:46] 완료: 회귀 통과(`test_search_chat_metadata` 11, `test_search_chat_stream` 6, `test_taskpane_messages_render` 57, `test_taskpane_interactions` 5)
+
+## Plan (회신 초안 -> 답장하기 연동)
+- [x] 1단계: `next-action-run` 클릭/응답 처리 경로와 Outlook reply API 사용 가능 지점 분석
+- [x] 2단계: `회신 초안 작성` 액션 전용 후속 UI(`답장하기` 버튼) 설계 및 최소 변경 구현
+- [x] 3단계: 버튼 클릭 시 Outlook 답장 메일 창 오픈 + 초안 본문 주입 처리 구현
+- [x] 4단계: 관련 프론트 테스트(TDD) 추가/갱신 및 회귀 실행
+- [x] 5단계: task 로그 업데이트
+
+## Action Log
+- [04:55] 작업 시작: 도메인 액션 `회신 초안 작성` 완료 후 `답장하기` 버튼으로 Outlook 답장창을 여는 연동 작업 시작
+- [04:58] 완료: `회신 초안 작성` next-action 실행 시 assistant metadata에 `reply_draft`를 주입하고 `답장하기` 버튼을 렌더하도록 구현
+- [04:58] 완료: `답장하기` 클릭 액션(`reply-draft-open`)을 추가해 Outlook `displayReplyForm`으로 답장 작성창을 열도록 연동
+- [04:58] 완료: 관련 UI 스타일 추가 및 캐시 버전 상향(`taskpane.css/chat/messages/chat_actions/taskpane.js` -> `20260305-03`)
+- [04:58] 완료: 프론트 회귀 통과(`test_taskpane_chat_actions` 6, `test_taskpane_messages_render` 58, `test_taskpane_interactions` 5)
+
+## Plan (이어서 할 수 있어요 기본 선택 강조 제거)
+- [x] 1단계: next action 기본/hover 상태 CSS 확인 및 원인 식별
+- [x] 2단계: 기본 상태에서 고정 강조 제거, hover/focus에서만 강조 적용
+- [x] 3단계: 관련 렌더 테스트 회귀 실행
+- [x] 4단계: task 로그 업데이트
+
+## Action Log
+- [05:05] 작업 시작: `이어서 할 수 있어요` 첫 카드가 기본 선택된 것처럼 보이는 스타일 이슈 수정 시작
+- [05:00] 완료: `next-action-btn.priority-high` 기본 강조(테두리/배경)를 제거해 첫 카드가 항상 선택된 것처럼 보이던 UI 이슈 수정
+- [05:00] 완료: 우선순위 카드는 hover 시에만 강화된 강조가 보이도록 `priority-high:hover`로 스타일 이동
+- [05:00] 완료: 렌더 회귀 통과(`node --test tests/test_taskpane_messages_render.cjs` 58 passed), 캐시 버전 상향(`taskpane.css` -> `20260305-04`)
+
+## Plan (코드 스니펫 분석 도메인 가능성 검토)
+- [x] 1단계: `이어서 할 수 있어요` 도메인 등록/노출/클릭 실행 경로 점검
+- [x] 2단계: 현재메일 본문 컨텍스트에서 코드 스니펫 추출 가능 범위 확인
+- [x] 3단계: 구현 가능성/리스크/최소 변경안 정리
+
+## Action Log
+- [05:01] 작업 시작: 코드 분석 도메인 추가 가능성 확인을 위해 next_action/현재메일 컨텍스트/클릭 처리 경로 점검 시작
+- [05:03] 완료: 현재 구조에서 도메인 1개 추가만으로 1차 구현 가능함을 확인했고, 본문 발췌 길이 제한(2400자)으로 인한 정확도 리스크를 식별
+- [05:03] 완료: `이어서 할 수 있어요` 도메인에 `코드 스니펫 분석`을 추가해 코드/보안 조치 문맥에서 추천되도록 반영
+- [05:03] 이슈: `python`/`pytest` 명령 미존재 → 해결 방법: 프로젝트 venv(`./venv/bin/python`)로 테스트 실행
+
+## Plan (회신 초안 답장하기 버튼 노출 조건 보정)
+- [x] 1단계: `회신 초안 작성` 후속 실행 응답에서 `reply_draft` 메타 주입 조건 점검
+- [x] 2단계: 질의형/확인요청 응답에서는 `답장하기` 버튼 미노출로 보정
+- [x] 3단계: 관련 프론트 단위 테스트 보강(TDD) 및 회귀 실행
+
+## Action Log
+- [05:06] 작업 시작: 회신 초안 실행 시 질문형 응답에도 `답장하기` 버튼이 노출되는 UX 이슈 수정 시작
+- [05:09] 완료: `회신 초안 작성` 후속 응답이 질문형일 때 `답장하기` 버튼이 노출되지 않도록 프론트 메타 주입 조건을 보정
+- [05:09] 완료: 회신 도메인 query 템플릿을 `추가 질문 없이 본문만` 지시형으로 강화
+- [05:09] 완료: 회귀 통과(`node --test tests/test_taskpane_chat_actions.cjs` 7 passed, `./venv/bin/python -m pytest -q tests/test_next_action_recommender.py` 4 passed)
+
+## Plan (코드 분석/코드 리뷰 출력 강화 + 라이브러리 조사)
+- [x] 1단계: 코드 스니펫 액션의 출력 포맷(코드 분석/코드 리뷰)과 렌더 요구사항 정리
+- [x] 2단계: `taskpane.messages.js` 코드블록 렌더를 언어 라벨/가독성 강화 형태로 개선
+- [x] 3단계: `코드 스니펫 분석` 추천 질의를 구조화 포맷 지시형으로 강화
+- [x] 4단계: 프론트/추천기 테스트 보강 및 회귀 실행
+- [x] 5단계: 오픈소스 라이브러리(하이라이팅/파싱/보안분석) 비교 조사 정리
+
+## Action Log
+- [05:10] 작업 시작: 코드 스니펫 결과가 작게 보이는 문제를 개선하고 코드 분석/코드 리뷰 형식화를 위한 렌더/질의/라이브러리 조사 작업 시작
+- [05:18] 완료: 코드 스니펫 액션 질의를 `코드 분석/코드 리뷰` 구조화 지시로 강화하고 코드블록 렌더에 언어 라벨+가독성 개선 스타일을 반영
+- [05:18] 완료: 회귀 테스트 통과(`test_taskpane_messages_render` 59, `test_taskpane_chat_actions` 7, `test_next_action_recommender` 4)
+- [05:18] 완료: 코드 하이라이팅/파싱/보안분석 오픈소스 라이브러리(Highlight.js/Prism/Shiki/Tree-sitter/Semgrep/Monaco/CodeMirror/Starry Night) 조사 완료
+
+## Plan (코드펜스 렌더 유실 버그 수정)
+- [x] 1단계: `answer_format` 우선 렌더에서 코드펜스 유실 경로 차단
+- [x] 2단계: 코드펜스가 있으면 `renderRichText` 우선 렌더로 전환
+- [x] 3단계: 렌더 테스트 추가 및 회귀 실행
+
+## Action Log
+- [05:26] 작업 시작: `코드 리뷰` 섹션에서 코드 본문이 사라지는 렌더 버그(블록 파서 경유) 수정 시작
+- [05:27] 완료: 코드펜스 포함 응답에서 `answer_format` 경로로 코드 본문이 사라지던 버그를 수정해 markdown 원문 렌더를 우선 적용
+- [05:27] 완료: 렌더 회귀 테스트 통과(`test_taskpane_messages_render` 60, `test_taskpane_chat_actions` 7)
+- [05:35] 작업 진행: 코드 스니펫 액션을 후처리 결정론 템플릿(코드 분석/코드 리뷰)으로 강제 렌더하는 모듈 추가 착수
+- [05:36] 완료: 코드 스니펫 액션에 후처리 결정론 렌더(`코드 분석/코드 리뷰/코드블록`)를 추가해 요약 리스트 형태로 붕괴되는 문제를 차단
+- [05:36] 완료: 관련 테스트 통과(`test_answer_postprocessor_code_review` 3, `test_answer_postprocessor_routing` 57, `test_taskpane_messages_render` 60)
+- [05:37] 완료: Add-in 캐시 반영을 위해 `taskpane.messages.js` 로더 버전을 `20260305-05`로 상향
+- [05:44] 작업 시작: 코드 리뷰 스니펫 추출을 `body_clean` 우선(메일 헤더/전달문 제거)으로 정교화하고 최대 2200자 제한으로 조정
+- [05:47] 완료: 코드 리뷰 추출을 메일 헤더 제거 + 프로그램 코드 우선 추출로 보강하고, 코드 스니펫 최대 길이를 2200자로 조정
+- [05:47] 완료: 관련 테스트 통과(`test_answer_postprocessor_code_review` 5, `test_answer_postprocessor_routing` 57, `test_taskpane_messages_render` 60)
+
+## Plan (코드 리뷰 품질 강화: highlight.js + 언어 판별 개선)
+- [x] 1단계: 프론트 `highlight.js` 적용(코드블록 syntax highlight)
+- [x] 2단계: 백엔드 언어 판별을 Pygments 기반(옵션) + 규칙 결합으로 개선
+- [x] 3단계: 코드 추출 휴리스틱 보강(본문 clean 기반, 유효 코드 라인 확보)
+- [x] 4단계: 단위/렌더 테스트 추가 및 회귀 실행
+
+## Action Log
+- [05:48] 작업 시작: 코드 언어 미검출(TEXT) 및 코드 스니펫 품질 저하 개선을 위해 highlight.js 도입과 추출/판별 로직 강화 작업 시작
+- [05:53] 완료: `highlight.js`를 Add-in 코드블록 렌더에 연동하고, 코드 언어 판별을 Pygments(fallback) + 규칙 결합으로 보강
+- [05:53] 완료: 코드 추출에서 `...(truncated)` 단독/메일 헤더 노이즈를 제거하고 최대 2200자 제한 정책 유지
+- [05:53] 완료: 회귀 통과(파이썬 테스트 62, 프론트 테스트 67)
+
+## Plan (코드 스니펫 추출 정확도 보정)
+- [x] 1단계: current mail context에 코드분석 전용 본문 소스 추가(body_full 우선)
+- [x] 2단계: 코드 리뷰 후처리에서 전용 본문 소스 우선 사용으로 추출 안정화
+- [x] 3단계: 회귀 테스트 추가/수정 및 실행
+
+## Action Log (코드 스니펫 추출 정확도 보정)
+- [06:30] 작업 시작: 코드가 메일 본문에 존재해도 "코드 스니펫이 없습니다"로 출력되는 이슈를 재현 기준으로 분석 착수
+- [06:34] 완료: `mail_context`에 `body_code_excerpt`를 추가하고(`body_full` 우선), 코드 리뷰 추출은 해당 필드를 1순위로 사용하도록 보정
+- [06:34] 완료: 회귀 테스트 통과(`tests/test_answer_postprocessor_code_review.py`, `tests/test_mail_post_action.py`, `tests/test_answer_postprocessor_routing.py`, `tests/test_mail_context_service.py`, `tests/test_mail_service_summary_column.py`)
+- [06:36] 완료: `body_full` 우선 코드 추출 경로(`body_code_excerpt`)를 추가하고, body_full 누락 캐시는 Graph 재조회로 보정해 코드 스니펫 누락 케이스를 완화.
+- [06:37] 이슈: `tests/test_search_chat_selected_mail_context.py` 실행 시 기존 `app.api.routes` 재귀/patch 타깃 불일치로 10건 실패(본 수정 범위 외). → 해결 방법: 이번 변경 검증은 영향 범위 테스트(`code_review/mail_context/mail_post_action`) 중심으로 완료.
+- [06:39] 완료: `From/Subject` 헤더와 코드가 한 줄에 붙은 본문에서도 코드 꼬리를 복구하도록 후처리 로직을 보강해 `코드 스니펫이 없습니다` 오탐을 수정.
+- [06:45] 작업 시작: 코드 스니펫이 1줄로 축약 노출되는 문제를 해결하기 위해 인라인 JSP/HTML 코드 줄복원 추출 로직 보강 착수
+- [06:47] 완료: 인라인 JSP/HTML 코드 블록 줄복원 추출을 추가해 코드 리뷰 스니펫이 1줄로 축약되는 현상을 완화.
+- [06:49] 작업 시작: 코드 분석 섹션 JSON 원문 노출 및 JSP 하이라이트 미적용 이슈 동시 수정 착수.
+- [08:33] 완료: 코드 분석 섹션 JSON 원문 노출을 차단하고, JSP 코드펜스는 highlight.js 적용 클래스(`language-xml`)로 alias 매핑해 하이라이트 적용성을 개선.
+- [08:34] 작업 진행: highlight.js 외부 CDN 의존 제거(로컬 번들 전환)로 하이라이트 미적용 이슈 대응 시작.
+- [08:36] 완료: highlight.js를 외부 CDN에서 로컬 정적 파일(`/addin/vendor/highlightjs/*`)로 전환하고 manifest taskpane URL 버전을 갱신해 캐시/네트워크 제약 환경에서도 로드되도록 보정.
+- [08:38] 작업 진행: highlight.js 미동작 환경 대응을 위해 JSP/HTML 전용 fallback 하이라이터(태그/속성/문자열 색상) 추가 착수.
+- [08:40] 완료: `hljs` 미동작 시 JSP/HTML fallback 토큰 하이라이트(태그/속성/문자열/주석)를 적용하도록 보강하고 CSS/JS 버전을 상향.
+
+## Plan (대형 파일 역할 분리 1차)
+- [ ] 1단계: 500줄 초과 파일 목록/책임 정리
+- [ ] 2단계: CSS 모듈 분리(chat.css)
+- [ ] 3단계: JS 모듈 분리(messages.js, api.js, composer.css)
+- [ ] 4단계: 미사용 코드 제거 및 회귀 테스트
+
+## Action Log (대형 파일 역할 분리 1차)
+- [08:58] 작업 시작: 디자인 원칙 기준으로 대형 파일 역할 분리 및 미사용 코드 제거 작업 시작
+- [09:19] 완료: chat/composer CSS를 import-entry 구조로 분리해 각 파일을 500줄 미만으로 재구성.
+- [09:20] 완료: API endpoint 레이어를 `taskpane.api.endpoints.js`로 분리하고 `taskpane.api.js`를 오케스트레이션 전용(315줄)으로 정리.
+- [09:24] 완료: runtime helper(`taskpane.runtime_helpers.js`) 분리로 `taskpane.js`를 446줄로 축소하고 중복 selected-mail open 핸들러 제거.
+- [09:29] 완료: chat action 도메인 핸들러를 `taskpane.chat_actions.handlers.js`로 분리해 `taskpane.chat_actions.js`를 332줄로 축소.
+- [09:31] 완료: 회귀 테스트 통과(`node --test tests/test_taskpane_messages_render.cjs tests/test_taskpane_chat_actions.cjs` 67 pass).
+- [09:32] 이슈: `taskpane.messages.js`(2637줄)는 의존 결합이 높아 1회차에서 전량 분리가 어려움. → 해결 계획: 2회차에 `render-core / rich-markdown / domain-cards` 3모듈로 단계 분리.
+- [09:38] 작업 시작: `taskpane.messages.js` 2차 분리(render-core/rich-markdown/domain-cards) 착수.
+- [09:44] 완료: 리치 텍스트/코드 하이라이트 렌더 로직을 `taskpane.messages.richtext.js`로 분리하고 `taskpane.messages.js`는 위임 구조로 전환.
+- [09:49] 완료: answer_format/근거 팝오버 렌더 로직을 `taskpane.messages.answer_format.js`로 분리.
+- [09:50] 완료: 메시지 렌더 회귀 테스트 통과(`test_taskpane_messages_render.cjs`, `test_taskpane_chat_actions.cjs` 67 pass).
+- [09:50] 진행: `taskpane.messages.js` 2034줄로 축소 완료(남은 카드/폼 렌더 블록 3차 분리 예정).
+- [09:56] 작업 시작: messages 카드/폼 렌더 모듈 분리 + 중복 정리(3차) 착수.
+- [10:02] 완료: `taskpane.messages.js`에서 미사용 위임 래퍼(중복 함수) 20+개 제거로 코드량 추가 축소.
+- [10:03] 완료: JS 구문 점검/회귀 테스트 통과(`test_taskpane_messages_render.cjs`, `test_taskpane_chat_actions.cjs` 67 pass).
+- [10:10] 작업 진행: messages 카드/폼 분리 모듈(report+meeting / business) 설계 및 함수 경계 추출.
+
+## Plan (2026-03-05 Add-in 대형 파일 분리 4차)
+- [ ] 1단계: `taskpane.messages.js`의 카드/폼 렌더 블록을 도메인 모듈로 분리
+- [ ] 2단계: 본체 파일에서 중복/미사용 로직 제거 및 위임 구조로 단순화
+- [ ] 3단계: 정적 로더/버전 갱신 및 회귀 테스트 실행
+
+## Action Log (2026-03-05 Add-in 대형 파일 분리 4차)
+- [09:31] 작업 시작: `taskpane.messages.js`(1914줄) 추가 분리/정리 작업 착수
+- [09:42] 완료: `taskpane.messages.js` 카드/폼 렌더를 모듈 3종(`report_cards`,`meeting_cards`,`legacy_cards`)으로 분리하고 메시지 본체를 위임 구조로 단순화.
+- [09:42] 완료: Add-in 로더/manifest 버전 갱신 및 회귀 테스트 통과(67 pass, 0 fail).
+- [09:42] 이슈: `taskpane.messages.js`가 1159줄로 아직 500줄 초과 상태 → 다음 단계에서 상단 메타/배너 렌더 블록 추가 분리 예정.
+- [09:47] 작업 시작: `taskpane.messages.js` 5차 분리(상단 메타/배너/메시지 본문 렌더 모듈화) 착수.
+- [10:03] 완료: `taskpane.messages.js`를 경량 오케스트레이터로 재작성하고 메타/배너 렌더를 `taskpane.messages.meta.js`로 분리(384줄).
+- [10:03] 완료: 로더/manifest 버전 갱신(`taskpane.messages.js v=20260305-12`, taskpane URL `v=20260305-05`).
+- [10:03] 완료: 메시지/액션 회귀 테스트 통과(67 pass, 0 fail).
+- [10:08] 작업 시작: Add-in CSS 리팩터링(대형/중복/미사용 selector 정리) 착수.
+- [10:14] 완료: dead selector(`.major-summary-evidence*`) 제거로 채팅 base CSS 정리(423→401 lines).
+- [10:14] 완료: CSS/애드인 캐시 버전 상향(`taskpane.css chat import`, `taskpane.html v=20260305-09`, manifest `v=20260305-06`).
+- [10:14] 완료: 메시지/액션 회귀 테스트 통과(67 pass, 0 fail).
+- [10:18] 작업 시작: `taskpane.messages.meta.js` 분리(배너/메타블록 2모듈) 착수.
+- [11:12] 완료: `taskpane.messages.meta.js`를 오케스트레이터(73줄)로 축소하고 `meta.banner`/`meta.blocks` 모듈로 책임 분리.
+- [11:12] 완료: Add-in 로더/manifest 버전 갱신(`taskpane.messages.js v=20260305-13`, taskpane URL `v=20260305-07`).
+- [11:12] 완료: 메시지/액션 회귀 테스트 통과(67 pass, 0 fail).
+- [11:16] 작업 시작: `taskpane.chat.sources.css` 세분화(근거/evidence, 웹출처/web-sources) 분리 착수.
+- [11:32] 완료: `taskpane.chat.sources.css`를 엔트리 파일로 축소하고 `sources.evidence`/`sources.web` 모듈로 분리(351→6 lines).
+- [11:32] 완료: CSS 캐시 버전 갱신(`taskpane.chat.css` sources import `v=20260305-02`, `taskpane.css` chat import `v=20260305-09`, `taskpane.html` `taskpane.css?v=20260305-10`).
+- [11:32] 완료: 메시지/액션 회귀 테스트 통과(`test_taskpane_messages_render.cjs`, `test_taskpane_chat_actions.cjs` 67 pass).
+- [11:36] 작업 시작: `taskpane.chat.base.css` 역할 분리(layout/bubble/meta/cards) 착수.
+- [11:40] 완료: `taskpane.chat.base.css`를 엔트리로 축소하고 `base.thread`/`base.sections`/`base.basic_info`/`base.major`로 역할 분리(401 lines 유지, 파일당 분할).
+- [11:40] 완료: CSS/애드인 캐시 버전 상향(`taskpane.chat.css` base import `v=20260305-02`, `taskpane.css` chat import `v=20260305-10`, `taskpane.html` `taskpane.css?v=20260305-11`, manifest taskpane URL `v=20260305-08`).
+- [11:40] 완료: 메시지/액션 회귀 테스트 통과(`test_taskpane_messages_render.cjs`, `test_taskpane_chat_actions.cjs` 67 pass).
+- [15:35] 작업 시작: `taskpane.chat.actions.css` 역할 분리(actions/progress/streaming) 착수.
+- [15:38] 완료: `taskpane.chat.actions.css`를 엔트리로 축소하고 `actions.controls`/`actions.progress`/`actions.streaming`으로 역할 분리(191→7 lines).
+- [15:38] 완료: CSS/애드인 캐시 버전 상향(`taskpane.chat.css` actions import `v=20260305-02`, `taskpane.css` chat import `v=20260305-11`, `taskpane.html` `taskpane.css?v=20260305-12`, manifest taskpane URL `v=20260305-09`).
+- [15:38] 완료: 메시지/액션 회귀 테스트 통과(`test_taskpane_messages_render.cjs`, `test_taskpane_chat_actions.cjs` 67 pass).
+- [15:41] 작업 시작: `taskpane.chat.next_actions.css` 역할 분리(next-actions/reply-draft/scope-choice) 착수.
+- [15:44] 완료: `taskpane.chat.next_actions.css`를 엔트리로 축소하고 `next_actions.list`/`next_actions.reply`/`next_actions.scope`로 분리(142→7 lines).
+- [15:44] 완료: CSS/애드인 캐시 버전 상향(`taskpane.chat.css` next-actions import `v=20260305-02`, `taskpane.css` chat import `v=20260305-12`, `taskpane.html` `taskpane.css?v=20260305-13`, manifest taskpane URL `v=20260305-10`).
+- [15:44] 완료: 메시지/액션 회귀 테스트 통과(`test_taskpane_messages_render.cjs`, `test_taskpane_chat_actions.cjs` 67 pass).
+- [15:45] 작업 시작: `taskpane.chat.evidence.css` 역할 분리(evidence/scope-clarification/hitl-confirm) 착수.
+- [15:48] 완료: `taskpane.chat.evidence.css`를 엔트리로 축소하고 `evidence.core`/`evidence.scope`/`evidence.confirm`으로 분리(121→7 lines).
+- [15:48] 완료: CSS/애드인 캐시 버전 상향(`taskpane.chat.css` evidence import `v=20260305-02`, `taskpane.css` chat import `v=20260305-13`, `taskpane.html` `taskpane.css?v=20260305-14`, manifest taskpane URL `v=20260305-11`).
+- [15:48] 완료: 메시지/액션 회귀 테스트 통과(`test_taskpane_messages_render.cjs`, `test_taskpane_chat_actions.cjs` 67 pass).
+- [15:51] 작업 시작: `taskpane.chat.rich.typography.css`/`taskpane.chat.rich.widgets.css` 경계 손상 복구 및 위젯 selector 이관 정리 착수.
+- [15:55] 완료: `rich.typography`/`rich.widgets` 경계 손상(`weekly-offset-select` 잘림, widgets 선두 dangling 속성) 복구 및 위젯 selector 이관 완료.
+- [15:55] 완료: typography는 텍스트/코드/테이블 전용으로 정리(360→235 lines), widgets는 카드/스트리밍/리포트/회의 위젯 전용으로 정리(221→344 lines, 문법 정상화).
+- [15:55] 완료: 캐시 버전 갱신(`taskpane.chat.rich.css` imports `v=20260305-02`, `taskpane.chat.css` rich import `v=20260305-02`, `taskpane.css` chat import `v=20260305-14`, `taskpane.html` `taskpane.css?v=20260305-15`, manifest taskpane URL `v=20260305-12`).
+- [15:55] 완료: 메시지/액션 회귀 테스트 통과(`test_taskpane_messages_render.cjs`, `test_taskpane_chat_actions.cjs` 67 pass).
+- [16:08] 작업 시작: `taskpane.messages.meeting_cards.js` 중복 빌더/카드 렌더 공통화 리팩터링 착수.
+- [16:10] 완료: `taskpane.messages.meeting_cards.js`에 공통 헬퍼(`mapOptions`, `insertMeetingRoomCard`, `toTrimmedCsv`, `getChatArea`)를 도입해 중복 렌더/옵션 빌더 로직 정리(442→426 lines).
+- [16:10] 완료: 정적 캐시 버전 반영(`taskpane.messages.meeting_cards.js` `v=20260305-02`, manifest taskpane URL `v=20260305-13`).
+- [16:10] 완료: 메시지/액션 회귀 테스트 통과(`test_taskpane_messages_render.cjs`, `test_taskpane_chat_actions.cjs` 67 pass).
+- [16:10] 작업 시작: `taskpane.messages.report_cards.js` 중복 DOM 접근/상태 카드 처리 공통화 리팩터링 착수.
+- [16:14] 완료: `taskpane.messages.report_cards.js`에 공통 헬퍼(`getChatArea`, `withChatArea`, `appendAssistantCard`)를 도입해 카드 렌더/DOM 접근 중복을 정리.
+- [16:14] 완료: 정적 캐시 버전 반영(`taskpane.messages.report_cards.js` `v=20260305-02`, manifest taskpane URL `v=20260305-14`).
+- [16:14] 완료: 메시지/액션 회귀 테스트 통과(`test_taskpane_messages_render.cjs`, `test_taskpane_chat_actions.cjs` 67 pass).
+- [16:16] 작업 시작: `taskpane.messages.legacy_cards.js` 공통 카드 렌더 헬퍼 추출 리팩터링 착수.
+- [16:21] 완료: `taskpane.messages.legacy_cards.js`에 공통 헬퍼(`getChatArea`, `withChatArea`, `appendLegacyAssistantCard`, `disableControls`)를 도입해 카드 삽입/비활성화 중복 정리.
+- [16:21] 완료: 정적 캐시 버전 반영(`taskpane.messages.legacy_cards.js` `v=20260305-02`, manifest taskpane URL `v=20260305-15`).
+- [16:21] 완료: 메시지/액션 회귀 테스트 통과(`test_taskpane_messages_render.cjs`, `test_taskpane_chat_actions.cjs` 67 pass).
+- [16:23] 작업 시작: `taskpane.messages.meeting_cards.js` 장문 함수(`addMeetingRoomScheduleCard`/`addCalendarEventCard`) 헬퍼 분리 리팩터링 착수.
+- [16:25] 완료: `taskpane.messages.meeting_cards.js` 장문 함수를 헬퍼로 분리(`normalizeMeetingSchedulePreset`, `buildMeetingScheduleCandidateFields`, `buildMeetingScheduleInputFields`, `buildMeetingRoomScheduleCardBody`, `normalizeCalendarPreset`, `buildCalendarEventCardBody`, `withChatArea`).
+- [16:25] 완료: 정적 캐시 버전 반영(`taskpane.messages.meeting_cards.js` `v=20260305-03`, manifest taskpane URL `v=20260305-16`).
+- [16:25] 완료: 메시지/액션 회귀 테스트 통과(`test_taskpane_messages_render.cjs`, `test_taskpane_chat_actions.cjs` 67 pass).
+- [16:25] 이슈: `meeting_cards.js` 파일 라인이 426→462로 증가(헬퍼 도입 영향). → 해결 계획: 다음 단계에서 meeting form/schedule 헬퍼를 별도 모듈(`taskpane.messages.meeting_forms.js`)로 분리해 400줄 이하로 재축소.
+- [16:30] 작업 시작: `taskpane.messages.meeting_forms.js` 신설로 meeting form/schedule 헬퍼 분리 착수.
+- [16:32] 완료: `taskpane.messages.meeting_forms.js` 신설로 schedule/calendar 본문 조립 헬퍼를 분리하고 `meeting_cards.js`를 모듈 위임 구조로 전환.
+- [16:32] 완료: `taskpane.messages.meeting_cards.js` 라인 수를 462→366으로 축소해 400줄 이하로 재정리.
+- [16:32] 완료: 정적 로더/manifest 버전 반영(`meeting_forms.js v=20260305-01`, `meeting_cards.js v=20260305-04`, taskpane URL `v=20260305-17`).
+- [16:32] 완료: 메시지/액션 회귀 테스트 통과(`test_taskpane_messages_render.cjs`, `test_taskpane_chat_actions.cjs` 67 pass).
+- [16:35] 작업 시작: `report_cards`/`legacy_cards` 장문 함수(30줄 초과) 분해 리팩터링 착수.
+- [16:36] 작업 시작: `report_cards`/`legacy_cards` 장문 함수(30줄+) 분해 및 중복 렌더 헬퍼 정리 계속 진행.
+- [16:41] 이슈: `renderPromiseSummaryList` 테스트 실패(`class="rich-table"` 기대값 불일치). → 해결: 공통 테이블 빌더에서 클래스 결합 로직을 수정해 공백 클래스 문자열 제거.
+- [16:42] 완료: `legacy_cards`/`report_cards` 장문 함수 분해 및 공통 헬퍼 적용(format/ready-card/disable-controls), 중복 렌더 로직 정리.
+- [16:42] 완료: 정적 버전 반영(`taskpane.messages.report_cards.js?v=20260305-03`, `taskpane.messages.legacy_cards.js?v=20260305-03`, manifest taskpane URL `v=20260305-18`).
+- [16:42] 완료: 회귀 테스트 통과(`test_taskpane_messages_render.cjs`, `test_taskpane_chat_actions.cjs` 67 pass).
+- [16:45] 작업 시작: `chat-eval.html` 보류, `taskpane.selection.js`/`taskpane.messages.richtext.js` 역할 분리 리팩터링 착수.
+- [16:47] 완료: `taskpane.selection.js` 이벤트타입 해석/옵저버 실패로깅/미지원로깅 헬퍼 분리로 역할 정리(`resolveOfficeEventTypeMap`, `resolveEventTypeValue`, `logSelectionContextItemChanged`, `logObserverRegistrationFailure`, `logObserverUnavailable`).
+- [16:47] 완료: `taskpane.messages.richtext.js` 코드펜스/테이블 소비 헬퍼 분리(`openCodeBlock`, `closeCodeBlock`, `consumeMarkdownTable`)로 파서 루프 가독성 개선.
+- [16:47] 완료: 정적 버전 반영(`taskpane.messages.richtext.js?v=20260305-02`, `taskpane.selection.js?v=20260305-01`, manifest taskpane URL `v=20260305-19`).
+- [16:47] 완료: 회귀 테스트 통과(`test_taskpane_messages_render.cjs`, `test_taskpane_chat_actions.cjs` 67 pass).
+- [16:50] 작업 시작: 남은 대형 실사용 파일(`taskpane.send.js`, `taskpane.js`, `taskpane.selection.js`, `taskpane.messages.richtext.js`) 모듈 분리/중복 제거 리팩터링 착수.
+- [17:00] 이슈: `node --test`에 Python 파일(`tests/test_mail_post_action.py`)을 함께 지정해 SyntaxError 발생. → 해결: JS 테스트는 node로, Python 테스트는 `./venv/bin/python -m pytest`로 분리 실행.
+- [17:03] 완료: `taskpane.send.js` 분기 핸들러를 `taskpane.send.handlers.js`로 분리해 본체를 449→275 lines로 축소.
+- [17:04] 완료: `taskpane.selection.js` 이벤트 옵저버 보조 로직을 `taskpane.selection.events.js`로 분리해 본체를 483→430 lines로 축소.
+- [17:05] 완료: `taskpane.messages.richtext.js` 하이라이트 보조 로직을 `taskpane.messages.richtext.highlight.js`로 분리해 본체를 448→401 lines로 축소.
+- [17:05] 완료: 정적 로더/manifest 버전 반영(`taskpane.send.handlers.js v=20260305-01`, `taskpane.send.js v=20260305-01`, `taskpane.selection.events.js v=20260305-01`, `taskpane.selection.js v=20260305-02`, `taskpane.messages.richtext.highlight.js v=20260305-01`, `taskpane.messages.richtext.js v=20260305-03`, manifest taskpane URL `v=20260305-22`).
+- [17:05] 완료: 회귀 테스트 통과(JS 67 pass, Python 7 pass).
+
+## Plan (2026-03-06 코드분석 로딩 상태 누수 수정)
+- [x] 1단계: 요약 질의에서 코드분석 로딩 상태가 노출되는 조건 추적
+- [x] 2단계: 상태 누수 차단(스킬/프로그레스 라벨 결정 로직 보정)
+- [x] 3단계: 프론트 테스트 추가/수정(TDD)
+- [x] 4단계: 회귀 테스트 실행 및 Action Log 기록
+
+## Action Log (2026-03-06 코드분석 로딩 상태 누수 수정)
+- [08:24] 작업 시작: 코드 없는 메일 요약 시 코드분석 로딩 UI가 잠깐 노출되는 현상 원인 추적 착수
+- [08:28] 완료: progress 이벤트 메시지 우선 사용 + 일반 질의/코드리뷰 질의 단계 문구 분리 적용(코드/문맥 문구는 코드리뷰에서만 사용)
+- [08:29] 완료: 프론트 회귀 테스트(Node 83) 통과(`test_taskpane_selection_context.cjs`, `test_taskpane_messages_render.cjs`)
+- [08:29] 이슈 발생: 로컬 Python 테스트 환경에 `pytest`, `pydantic`, `fastapi` 미설치로 백엔드 테스트 실행 불가 → 해결 방법: Node 회귀 우선 검증 완료, Python 의존성 설치 후 `tests/test_search_chat_stream_utils.py` 실행 필요
+
+## Plan (2026-03-06 next_actions 맥락 하드게이트)
+- [ ] 1단계: 추천기에서 도메인별 맥락 하드게이트(코드/회신/할일/일정/회의실) 설계
+- [ ] 2단계: `코드 스니펫 분석`은 코드 증거가 있을 때만 추천되도록 로직 수정
+- [ ] 3단계: 관련성 회귀 테스트 추가(TDD) 및 기존 테스트 보강
+- [ ] 4단계: 테스트 실행 후 Action Log 기록
+
+## Action Log (2026-03-06 next_actions 맥락 하드게이트)
+- [08:40] 작업 시작: 코드 없는 메일에서도 `코드 스니펫 분석`이 노출되는 추천 관련성 이슈 수정 착수
+
+## 현재 작업
+전체 회귀 복구 Phase 57(answer_postprocessor/meeting routes/selected-mail metadata 정합성)
+
+## Plan (2026-03-08 전체 회귀 복구 Phase 57)
+- [x] 1단계: 실패 33건을 영역별로 분류하고 공통 원인부터 수정
+- [x] 2단계: `answer_postprocessor_routing` 회귀 복구(기존 템플릿 계약/섹션 렌더 기대치 일치)
+- [x] 3단계: `bootstrap_meeting_routes` 상태 실패 원인 복구
+- [x] 4단계: `search_chat_selected_mail_context` 메타데이터/evidence 처리 복구
+- [x] 5단계: 전체 pytest 재실행 후 Action Log 업데이트
+
+## Action Log (2026-03-08 전체 회귀 복구 Phase 57)
+- [12:48] 작업 시작: 전체 pytest 33 failures 기준으로 회귀 복구 착수
+
+- [12:50] 완료: summary/최근순 렌더 회귀 복구(요약 경로는 기존 summary renderer 유지, 최근순 deterministic 라인 포맷/헤더 양립 보정)
+- [12:54] 완료: scope clarification 정책 보정(명확 조회 질의는 진행, 직전 조회 맥락의 모호 후속질의는 clarification 유지)
+- [12:56] 완료: tool payload merge 보정(mail_search 병합 시 query/count 소실 방지) 및 meeting room booking 테스트 회귀 복구
+- [12:58] 완료: 전체 테스트 통과 확인(`.venv/bin/python -m pytest -q` -> 489 passed, 1 warning)
+
+## 현재 작업
+Chat Eval 자동화 파이프라인 Phase 58(반복 실행 + 회귀 비교 + 품질게이트 + 아카이브)
+
+## Plan (2026-03-08 Chat Eval 자동화 파이프라인 Phase 58)
+- [x] 1단계: 파이프라인 서비스 구현(실행/비교/게이트/저장)
+- [x] 2단계: API 엔드포인트 추가(run/latest/download)
+- [x] 3단계: 실행 스크립트 추가(CI/cron용)
+- [x] 4단계: TDD 테스트 추가 및 회귀 실행
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-08 Chat Eval 자동화 파이프라인 Phase 58)
+- [13:01] 작업 시작: 반복 개선 가능한 chat-eval 자동화 파이프라인(실행+비교+게이트+아카이브) 구현 착수
+- [13:05] 완료: `chat_eval_pipeline_service` 추가(실행→baseline 비교→품질게이트→latest/stamped/history 저장)
+- [13:06] 완료: API 추가(`/qa/chat-eval/pipeline/run`, `/qa/chat-eval/pipeline/latest`, `/qa/chat-eval/pipeline/download?format=json|md`)
+- [13:07] 완료: CI/cron용 실행 스크립트 `scripts/run_chat_eval_pipeline.py` 추가(게이트 실패 시 exit 1)
+- [13:08] 완료: TDD 추가(`tests/test_chat_eval_pipeline_service.py`, `tests/test_chat_eval_routes.py` 확장) 및 대상 통과(9 passed)
+- [13:09] 완료: 전체 회귀 통과(`.venv/bin/python -m pytest -q` → 494 passed, 1 warning)
+
+## 현재 작업
+Chat Eval 파이프라인 UI 통합 Phase 59(chat-eval.html 원클릭 운영 루프 완성)
+
+## Plan (2026-03-08 Chat Eval 파이프라인 UI 통합 Phase 59)
+- [x] 1단계: chat-eval 페이지에 pipeline 실행/조회/다운로드 컨트롤 추가
+- [x] 2단계: pipeline_report 렌더(quality_gate/comparison/action_items) 반영
+- [x] 3단계: 기존 run/load 기능과 충돌 없는 호환 처리
+- [x] 4단계: JS 테스트 보강 및 전체 회귀 실행
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-08 Chat Eval 파이프라인 UI 통합 Phase 59)
+- [13:11] 작업 시작: chat-eval UI에서 pipeline 실행/다운로드를 직접 수행하는 운영 루프 완성 착수
+- [13:12] 완료: `chat-eval.html`에 Pipeline 실행/최근 조회/JSON·MD 다운로드 버튼과 게이트 임계값 입력(min pass rate/avg score/regression) 추가
+- [13:13] 완료: pipeline 결과 패널(`quality_gate/comparison/action_items`) 렌더 및 기존 chat-eval report 렌더와 동시 연동
+- [13:13] 완료: 페이지 테스트 보강(`tests/test_chat_eval_page.cjs`) 및 node 테스트 통과
+- [13:14] 완료: API/서비스 테스트 통과(`tests/test_chat_eval_routes.py`, `tests/test_chat_eval_pipeline_service.py`)
+- [13:14] 완료: 전체 회귀 통과(`.venv/bin/python -m pytest -q` → 494 passed, 1 warning)
+
+## 현재 작업
+Chat Eval 외부 케이스 파일 연동 Phase 60(testprompt.md 직접 로딩 + Judge 파이프라인 연결)
+
+## Plan (2026-03-08 Chat Eval 외부 케이스 파일 연동 Phase 60)
+- [x] 1단계: `testprompt.md` 포맷 파서/케이스 로더 구현
+- [x] 2단계: chat-eval 실행기(run/pipeline)에 `cases_file` 옵션 연동
+- [x] 3단계: API/CLI/UI 입력 경로 추가
+- [x] 4단계: TDD 테스트 추가/수정 및 전체 회귀 실행
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-08 Chat Eval 외부 케이스 파일 연동 Phase 60)
+- [13:16] 작업 시작: `testprompt.md`를 LLM2Judge 입력 케이스로 직접 사용하는 로딩 경로 구현 착수
+- [13:20] 완료: `app/services/chat_eval_case_loader.py` 추가(markdown/json 케이스 로딩, `Qn + 기대 결과` 포맷 파싱, `requires_current_mail` 자동 판별)
+- [13:23] 완료: `chat_eval_service`/`chat_eval_pipeline_service`에 `cases_file` 옵션 연동(run·pipeline·case selection 경로)
+- [13:25] 완료: API 계약/라우트/CLI/UI 연동(`contracts.py`, `bootstrap_ops_routes.py`, `run_chat_eval_pipeline.py`, `chat-eval.html`)
+- [13:27] 이슈 발생: `tests/test_chat_eval_service.py`의 기존 monkeypatch(`chat_eval_service.CHAT_EVAL_CASES`) 호환성 깨짐 → 해결 방법: 기본 경로는 모듈 상수 케이스셋 사용, `cases_file` 지정 시에만 외부 로더 사용으로 복구
+- [13:29] 완료: 대상 테스트 통과(`PYTHONPATH=. .venv/bin/pytest -q tests/test_chat_eval_case_loader.py tests/test_chat_eval_service.py tests/test_chat_eval_routes.py tests/test_chat_eval_pipeline_service.py` → 25 passed)
+- [13:29] 완료: UI 테스트 통과(`node --test tests/test_chat_eval_page.cjs` → 2 passed)
+- [13:33] 작업 시작: 현재메일 E2E 테스트용 기본 `selected_email_id`를 지정된 message_id로 고정 반영 착수
+- [13:34] 완료: `clients/outlook-addin/chat-eval.html` 기본값을 `...AFYk6tQAAAA==`로 변경하고 `tests/test_chat_eval_page.cjs` 기대값 동기화
+- [13:34] 완료: UI 테스트 재통과(`node --test tests/test_chat_eval_page.cjs` → 2 passed)
+- [13:27] 작업 시작: Mailbox User placeholder를 테스트 계정(`jaeyoung_dev@outlook.com`)으로 변경
+- [13:28] 완료: `chat-eval.html`의 `mailboxUser` placeholder를 `jaeyoung_dev@outlook.com`으로 변경, UI 테스트 재통과(`node --test tests/test_chat_eval_page.cjs`)
+
+## 현재 작업
+의도 라우팅 공통 보정 Phase 61(`search_mails` 과주입 억제 + 현재메일 질의 직접답변 우선)
+
+## Plan (2026-03-08 의도 라우팅 공통 보정 Phase 61)
+- [x] 1단계: 의도 파싱 결과에서 `search_mails`가 과주입되는 경로(policies/intent 보정기) 추적
+- [x] 2단계: 현재메일 분석/설명형 질의에 대한 공통 step 정규화 규칙 강화(검색형 질의는 예외 유지)
+- [x] 3단계: 회귀 테스트 추가(TDD)로 `메일 나열` 회귀 방지
+- [x] 4단계: 대상 테스트 실행 및 로그/결과 검증
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-08 의도 라우팅 공통 보정 Phase 61)
+- [13:38] 작업 시작: 현재메일 질의에서 `search_mails` 과주입으로 메일 나열형 응답이 발생하는 공통 경로 점검 착수
+- [13:40] 완료: 원인 경로 확인(`selected_email_id`가 있어도 암시 질의에서 `current_mail_mode`가 꺼져 `global_search`로 떨어지는 케이스)
+- [13:42] 완료: `resolve_current_mail_mode` 보정(선택 메일 + 암시 질의 + 참조앵커가 있으면 current_mail 우선)
+- [13:44] 완료: 공통 부작용 방지 보정(`이 견적서/해당/이 메일` 등 참조앵커 없는 일반 질의는 자동 current_mail 미적용)
+- [13:45] 완료: TDD 추가(`tests/test_current_mail_pipeline.py::test_implicit_followup_with_selected_mail_defaults_to_current_mail`)
+- [13:46] 완료: 대상 회귀 통과(`PYTHONPATH=. .venv/bin/pytest -q tests/test_current_mail_pipeline.py tests/test_search_chat_intent_routing.py tests/test_search_chat_selected_mail_context.py` → 28 passed)
+
+## 현재 작업
+LLM Provider 무하드코딩 Phase 62(.env 기반 모델/키 라우팅 통합)
+
+## Plan (2026-03-08 LLM Provider 무하드코딩 Phase 62)
+- [x] 1단계: 공통 LLM 런타임 유틸 추가(모델명 정규화 + provider 키 확인 + JSON/TEXT 호출)
+- [x] 2단계: deep-chat/API/middleware의 OpenAI 전용 게이트를 provider-agnostic으로 교체
+- [x] 3단계: OpenAI SDK 직접 호출 서비스(mail summary/code review/chat eval judge)를 공통 유틸 기반 호출로 전환
+- [x] 4단계: 회귀 테스트 보강/실행(핵심 경로)
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-08 LLM Provider 무하드코딩 Phase 62)
+- [14:39] 작업 시작: `.env` 모델/키만으로 provider 전환 가능하도록 OpenAI 하드코딩 제거 리팩터링 착수
+- [14:43] 완료: `app/core/llm_runtime.py` 추가(모델명 자동 정규화 `claude-* -> anthropic:*`, provider 키 검사, 공통 JSON/TEXT 호출)
+- [14:45] 완료: deep-agent/langgraph/middleware의 OpenAI 전용 키 의존 제거(`resolve_env_model`, `is_model_provider_configured` 적용)
+- [14:48] 완료: `chat_eval_service_utils`, `mail_summary_llm_service`, `code_review_quality_service`를 공통 LLM 호출로 전환
+- [14:50] 완료: `search_chat_flow` OpenAI 전용 오류/문구를 provider 중립화(`missing-llm-key`, 내부 오류 메시지 정리)
+- [14:52] 완료: Claude provider 의존성 추가(`requirements.txt`: `langchain-anthropic`, `anthropic`)
+- [14:54] 완료: 회귀 테스트 통과(66 passed): chat eval/code review/mail summary/middleware/langgraph/search chat/current mail 라우팅 대상
+
+## 현재 작업
+회신 초안 작성 시 current_mail grounded-safe 가드 오작동 수정 (초안 JSON 덮어쓰기 방지)
+
+## Plan (2026-03-09 회신 초안 오작동 수정 Phase 97)
+- [x] 1단계: grounded-safe 가드가 회신 초안 흐름에 적용되는 경로 재현/확인
+- [x] 2단계: 공통 가드 정책에 reply-draft 의도 제외 규칙 추가
+- [x] 3단계: TDD 추가(회신 초안 질의는 가드 미적용)
+- [x] 4단계: 대상 테스트 실행
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-09 회신 초안 오작동 수정 Phase 97)
+- [08:53] 작업 시작: 회신 초안 작성 시 모델 응답이 grounded-safe 문구로 덮이는 현상 원인 분석 착수
+- [08:54] 완료: 원인 경로 확인(`current_mail_grounded_safe` 가드가 회신 초안 질의에도 적용되어 답변을 안전문구로 덮어씀)
+- [08:55] 완료: 공통 가드 정책 수정(`should_apply_current_mail_grounded_safe_guard`) - 회신/답장 초안 생성 질의 제외
+- [08:56] 완료: TDD 추가(`tests/test_current_mail_request_intent.py`, `tests/test_answer_postprocessor_current_mail.py`) 및 대상 테스트 통과(19 passed)
+
+## 현재 작업
+회신 초안 액션 응답 렌더링 정합화(코드펜스/코드리뷰 형태 제거, 본문-only 출력)
+
+## Plan (2026-03-09 회신 초안 렌더링 정합화 Phase 98)
+- [x] 1단계: 회신 초안 액션의 응답 경로(search_chat_flow/answer_postprocessor/UI 메타) 점검
+- [x] 2단계: reply-draft 질의에 대한 본문 정규화(코드펜스/서두 설명 제거) 공통 함수 추가
+- [x] 3단계: TDD 추가(로그 케이스 재현)
+- [x] 4단계: 대상 테스트 실행
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-09 회신 초안 렌더링 정합화 Phase 98)
+- [09:16] 작업 시작: 회신 초안이 코드블록으로 렌더링되어 '코드 리뷰'처럼 보이는 문제 수정 착수
+- [09:17] 완료: 회신 초안 렌더 경로 점검(`reply_draft` 메타일 때 본문 정규화 함수만 거쳐 UI 렌더됨) 및 원인 확인(코드펜스/서두 설명 미제거)
+- [09:18] 완료: `normalizeReplyDraftBodyText` 보강(코드펜스 내부 본문 추출 + 인사/수신호칭 시작점 이전 프리앰블 제거)
+- [09:19] 완료: TDD 추가(`tests/test_taskpane_messages_render.cjs`) 및 대상 테스트 통과(78 passed)
+
+## 현재 작업
+회신 초안 JSON 응답 정규화( reply_draft 우선 추출 + 개행 복원 )
+
+## Plan (2026-03-09 회신 초안 JSON 정규화 Phase 99)
+- [x] 1단계: 회신 초안 질의에서 JSON 원문 노출 경로 재현/확인
+- [x] 2단계: 후처리 공통 경로에 `reply_draft` 우선 추출/복원 로직 추가
+- [x] 3단계: TDD 추가(JSON 문자열에서 reply_draft만 노출)
+- [x] 4단계: 대상 테스트 실행
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-09 회신 초안 JSON 정규화 Phase 99)
+- [09:20] 작업 시작: 회신 초안 액션에서 JSON 전체가 노출되는 문제 수정 착수
+- [09:24] 완료: 계약 모델에 `reply_draft` 필드 추가 및 general 렌더에서 `answer`보다 우선 적용
+- [09:25] 완료: JSON 파싱 실패 fallback에서도 `reply_draft` regex 복구 + unescape 처리 추가
+- [09:26] 완료: 회신 본문 단락 유지 정규화 적용(빈 줄 보존)
+- [09:27] 완료: TDD 추가(`tests/test_answer_postprocessor_reply_draft.py`) 및 대상 테스트 통과(21 passed)
+- [09:25] 이슈: 모델이 plain text(설명 + 코드펜스)로 반환할 때 JSON 복구 경로가 비적용되어 general_text 그대로 노출됨
+- [09:26] 완료: fallback에 plain text 회신 초안 복구 추가(코드펜스 본문 우선 추출, 인사말 시작점 보조 추출)
+- [09:27] 완료: 회신 초안 UI 렌더를 마크다운 해석에서 분리(단락 렌더 전용)하여 1/2/3 템플릿 스타일 노출 제거
+- [09:28] 완료: 회신 초안 복구/렌더 회귀 테스트 추가 및 통과(py 22 passed, node 79 passed)
+
+## 현재 작업
+회신 초안 성공경로 우선순위 수정(JSON parse success 시에도 본문 우선)
+
+## Plan (2026-03-09 회신 초안 우선순위 정합화 Phase 100)
+- [x] 1단계: JSON parse success 경로에서 summary answer가 채택되는 원인 경로 수정
+- [x] 2단계: 회신 초안 요청 시 결정론 본문 추출기를 최우선 적용
+- [x] 3단계: TDD 추가(plain+json 혼합 응답에서 본문 우선)
+- [x] 4단계: 대상 테스트 실행
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-09 회신 초안 우선순위 정합화 Phase 100)
+- [09:36] 작업 시작: JSON parse success 시 회신 본문이 아닌 요약문(answer)이 노출되는 경로 수정 착수
+- [09:44] 완료: 원인 확인(`_slice_reply_body`가 '님께,' 토큰 중간부터 슬라이스하여 수신자명 손실 → 본문 후보 판정 실패)
+- [09:45] 완료: 본문 시작점 탐지 보강(수신자 호칭 라인 정규식 `...님께[,]?` 우선 매칭 후 전체 라인부터 슬라이스)
+- [09:46] 완료: TDD 재현 케이스 통과(`test_reply_draft_prefers_plain_body_when_json_answer_is_summary`)
+- [09:47] 완료: 회귀 검증 통과(py: `tests/test_answer_postprocessor_reply_draft.py` 4 passed, node: `tests/test_taskpane_messages_render.cjs` 79 passed)
+
+## 현재 작업
+answer_postprocessor 회신 초안 경로 단순화(JSON draft 필드 우선, 하드코딩 fallback 축소)
+
+## Plan (2026-03-09 회신 초안 파서 단순화 Phase 101)
+- [x] 1단계: `answer_postprocessor.py`의 reply-draft 복구 경로/중복 분기 점검
+- [x] 2단계: JSON 계약 파싱 성공 시 draft 필드(`reply_draft`/`draft_answer`) 단일 우선 경로로 정리
+- [x] 3단계: fallback 로직 축소(텍스트 휴리스틱 최소화) 및 함수 분리 리팩터링
+- [x] 4단계: TDD 보강(`draft_answer` 호환 + 일반 요약문 오염 방지)
+- [x] 5단계: 대상 테스트 실행 및 Action Log 업데이트
+
+## Action Log (2026-03-09 회신 초안 파서 단순화 Phase 101)
+- [09:55] 작업 시작: 하드코딩/분기 과다로 인한 reply-draft 경로 리팩터링 착수
+- [09:58] 완료: 회신 초안 결정론 경로에서 본문 휴리스틱 추출(`_recover_reply_draft_from_answer_text`) 제거
+- [10:00] 완료: 계약 렌더 단계에서 회신 요청 시 draft 필드 존재 여부를 최우선 검증(`reply_draft` 없으면 fallback 전환)
+- [10:01] 완료: 계약 스키마에 `draft_answer` 별칭 지원 추가(`reply_draft` validation alias)
+- [10:03] 완료: fallback plain 복구 축소(비JSON 코드펜스 본문 + JSON 앞 prefix 정리만 허용, 이름/인삿말 기반 하드코딩 제거)
+- [10:05] 완료: TDD 보강(`test_draft_answer_alias_is_supported`) 및 대상 테스트 통과(py 5 passed, node 79 passed)
+- [10:12] 완료: fallback 라우팅 분리(`answer_postprocessor_fallback.py`) + reply-draft 전용 모듈 분리(`answer_postprocessor_reply_draft.py`)
+- [10:13] 완료: `answer_postprocessor.py` 라인 수 471로 축소(500 line 규칙 충족)
+
+## 현재 작업
+.env 기반 LLM provider 전환(OpenAI) 동작 점검
+
+## Plan (2026-03-09 provider 전환 점검 Phase 102)
+- [x] 1단계: provider 해석 코드 경로(`resolve_env_model`, key check) 확인
+- [x] 2단계: `.env` 시나리오별(OpenAI/Anthropic) 런타임 판정 스모크 테스트
+- [x] 3단계: 결과 요약 및 필요 시 수정 제안
+- [x] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-09 provider 전환 점검 Phase 102)
+- [10:22] 작업 시작: `.env` 변경만으로 OpenAI 전환 가능한지 코드/런타임 점검 착수
+- [10:24] 완료: `resolve_env_model`/`detect_provider`/`is_model_provider_configured` 경로 확인(모델 prefix 자동 정규화 지원)
+- [10:25] 완료: 시나리오 스모크 테스트(OpenAI only, Anthropic only, claude prefix 생략) 모두 provider 판정 정상
+- [10:26] 완료: 현재 `.env` 런타임 확인(`resolved_model=openai:gpt-4o-mini`, `provider=openai`, `provider_key_configured=true`)
+
+## 현재 작업
+회신 초안 액션에서 JSON raw 노출 이슈 보정(answer-only 계약 허용)
+
+## Plan (2026-03-09 회신 초안 raw JSON 노출 수정 Phase 103)
+- [x] 1단계: 회신 요청 + JSON(answer-only) 케이스 재현 경로 점검
+- [x] 2단계: 회신 본문 선택 우선순위 보강(`reply_draft > plain > answer`)
+- [x] 3단계: JSON fallback 키 우선순위 보정(`reply_draft/draft_answer` 우선)
+- [x] 4단계: TDD 추가 및 테스트 검증
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-09 회신 초안 raw JSON 노출 수정 Phase 103)
+- [10:30] 작업 시작: 답변하기에서 JSON 원문이 그대로 노출되는 이슈 수정 착수
+- [10:33] 완료: 계약 경로에서 회신 요청 시 본문 선택 순서 개선(`reply_draft` 없으면 plain 본문 복구 후 `answer` 사용)
+- [10:34] 완료: JSON fallback 복구가 `answer`를 먼저 집는 문제 수정(키별 우선순위 추출 함수로 분리)
+- [10:36] 완료: TDD 추가(`test_reply_request_uses_answer_when_reply_draft_missing`) 및 회귀 통과(py 6 passed, node 79 passed)
+
+## 현재 작업
+답변하기 케이스 호환 보강(`additional_body` + 답변하기 intent)
+
+## Plan (2026-03-09 답변하기 호환 보강 Phase 104)
+- [x] 1단계: `additional_body`를 회신 본문 alias로 수용
+- [x] 2단계: `답변하기` 질의를 회신 의도로 인식 보강
+- [x] 3단계: TDD 추가(답변하기 + additional_body)
+- [x] 4단계: 테스트 실행 및 Action Log 업데이트
+
+## Action Log (2026-03-09 답변하기 호환 보강 Phase 104)
+- [10:42] 작업 시작: `additional_body` 필드 및 `답변하기` 액션 질의 호환 보강 착수
+- [10:44] 완료: 계약 스키마 alias 확장(`reply_draft`가 `additional_body`도 수용)
+- [10:45] 완료: 회신 요청 판별 보강(`답변하기` 직접 인식 + `답변` 토큰 추가)
+- [10:46] 완료: JSON fallback 복구 키에 `additional_body` 우선순위 추가
+- [10:47] 완료: TDD 추가(`test_reply_request_uses_additional_body_alias`) 및 회귀 통과(py 7 passed, node 79 passed)
+
+## 현재 작업
+reply_body 키 회신본문 인식 누락 수정 Phase 105(reply_body alias + 회신 fallback 보강)
+
+## Plan (2026-03-09 reply_body 키 회신본문 인식 누락 수정 Phase 105)
+- [x] 1단계: contract alias/회신 본문 추출에 `reply_body` 추가
+- [x] 2단계: 회신 의도 감지 실패시에도 JSON 본문 필드에서 회신 본문 복구 보강
+- [x] 3단계: TDD 추가 및 관련 테스트 실행
+- [x] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-09 reply_body 키 회신본문 인식 누락 수정 Phase 105)
+- [10:23] 작업 시작: `reply_body`만 내려오는 회신 응답에서 JSON 원문 노출되는 이슈 수정 착수
+- [10:25] 완료: `LLMResponseContract.reply_draft` alias에 `reply_body` 추가
+- [10:26] 완료: 회신 본문 JSON 복구가 `reply_body`를 포함하고, 회신 문구가 아니어도 회신 키 존재 시 복구되도록 보강
+- [10:27] 완료: 계약 파싱 성공 시 `reply_draft` 값이 있으면 사용자 문구와 무관하게 본문 우선 반환하도록 보강
+- [10:28] 완료: TDD 추가(`reply_body` alias/비회신 문구 복구) 및 회귀 통과(`tests/test_answer_postprocessor_reply_draft.py`, `tests/test_answer_postprocessor_current_mail.py`)
+
+## 현재 작업
+회신 본문 키 변형(response_body) 공통 흡수 Phase 106(alias 확장)
+
+## Plan (2026-03-09 회신 본문 키 변형(response_body) 공통 흡수 Phase 106)
+- [x] 1단계: contract alias/복구 키에 `response_body` 추가
+- [x] 2단계: 회신 경로 테스트 케이스 추가(TDD)
+- [x] 3단계: 관련 테스트 실행 및 Action Log 업데이트
+
+## Action Log (2026-03-09 회신 본문 키 변형(response_body) 공통 흡수 Phase 106)
+- [10:30] 작업 시작: `response_body` 키 미인식으로 JSON 원문 노출되는 회신 케이스 수정 착수
+- [10:31] 완료: `LLMResponseContract.reply_draft` alias에 `response_body` 추가
+- [10:32] 완료: 회신 JSON 복구 키셋에 `response_body` 추가 및 자동 감지 보강
+- [10:33] 완료: TDD 추가(`response_body` alias) 및 회귀 통과(`tests/test_answer_postprocessor_reply_draft.py`, `tests/test_answer_postprocessor_current_mail.py`)
+
+## 현재 작업
+회신 본문 이스케이프 개행(\n) 실제 줄바꿈 변환 Phase 107
+
+## Plan (2026-03-09 회신 본문 이스케이프 개행 변환 Phase 107)
+- [x] 1단계: 회신 본문 정규화에서 `\n`을 실제 줄바꿈으로 변환
+- [x] 2단계: 렌더 경로 중복 함수에도 동일 규칙 반영
+- [x] 3단계: TDD 추가 및 테스트 실행
+- [x] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-09 회신 본문 이스케이프 개행 변환 Phase 107)
+- [10:35] 작업 시작: 회신 본문에 `\n` 리터럴 노출되는 이슈 수정 착수
+- [10:36] 완료: 회신 본문 정규화에서 `\n`/`\r\n` 리터럴을 실제 줄바꿈으로 변환하도록 보강
+- [10:37] 완료: 렌더 경로의 회신 본문 정규화 함수에도 동일 변환 규칙 반영
+- [10:38] 완료: TDD 추가(`reply_body`의 escaped newline 변환) 및 회귀 통과(`tests/test_answer_postprocessor_reply_draft.py`, `tests/test_answer_postprocessor_current_mail.py`)
