@@ -53,14 +53,24 @@ class ExaoneIntentParser:
         self._structured_model: Any = None
         self._parse_cache: OrderedDict[str, IntentDecomposition] = OrderedDict()
 
-    def parse(self, user_message: str) -> IntentDecomposition:
+    def parse(
+        self,
+        user_message: str,
+        has_selected_mail: bool = False,
+        selected_message_id_exists: bool = False,
+    ) -> IntentDecomposition:
         """사용자 문장을 최소 의도 구조분해 형태로 변환한다."""
         sanitized_query = sanitize_user_query(user_message=user_message)
         if not sanitized_query:
             logger.info("의도 구조분해 입력이 비어 기본 분해를 반환합니다.")
             return create_default_decomposition(user_message=user_message)
+        cache_key = self._build_cache_key(
+            sanitized_query=sanitized_query,
+            has_selected_mail=has_selected_mail,
+            selected_message_id_exists=selected_message_id_exists,
+        )
 
-        cached = self._read_cached_decomposition(user_message=sanitized_query)
+        cached = self._read_cached_decomposition(cache_key=cache_key)
         if cached is not None:
             logger.info("intent parse cache hit")
             cached = cached.model_copy(update={"origin": "exaone_cached"})
@@ -80,7 +90,7 @@ class ExaoneIntentParser:
                 decomposition=fast_path_result,
                 max_steps=self._max_steps,
             )
-            self._write_cached_decomposition(user_message=sanitized_query, decomposition=final_decomposition)
+            self._write_cached_decomposition(cache_key=cache_key, decomposition=final_decomposition)
             return final_decomposition
 
         prompt = self._build_prompt(user_message=sanitized_query)
@@ -92,7 +102,7 @@ class ExaoneIntentParser:
                 max_steps=self._max_steps,
             )
             fallback = fallback.model_copy(update={"origin": "exaone_fresh"})
-            self._write_cached_decomposition(user_message=sanitized_query, decomposition=fallback)
+            self._write_cached_decomposition(cache_key=cache_key, decomposition=fallback)
             return fallback
 
         normalized_steps = normalize_steps(raw_steps=parsed.steps, user_message=sanitized_query)
@@ -114,25 +124,38 @@ class ExaoneIntentParser:
                 max_steps=self._max_steps,
             )
             fallback = fallback.model_copy(update={"origin": "exaone_fresh"})
-            self._write_cached_decomposition(user_message=sanitized_query, decomposition=fallback)
+            self._write_cached_decomposition(cache_key=cache_key, decomposition=fallback)
             return fallback
 
         logger.info("Ollama 구조분해 성공: steps=%s", [step.value for step in decomposition.steps])
-        self._write_cached_decomposition(user_message=sanitized_query, decomposition=decomposition)
+        self._write_cached_decomposition(cache_key=cache_key, decomposition=decomposition)
         return decomposition
 
-    def _read_cached_decomposition(self, user_message: str) -> IntentDecomposition | None:
+    def _build_cache_key(
+        self,
+        sanitized_query: str,
+        has_selected_mail: bool,
+        selected_message_id_exists: bool,
+    ) -> str:
+        """질의/선택메일 namespace를 결합한 intent cache key를 생성한다."""
+        namespace = (
+            f"has_selected_mail={int(bool(has_selected_mail))}|"
+            f"selected_message_id_exists={int(bool(selected_message_id_exists))}"
+        )
+        return f"{sanitized_query}|{namespace}"
+
+    def _read_cached_decomposition(self, cache_key: str) -> IntentDecomposition | None:
         """동일 질의에 대한 구조분해 캐시를 조회한다."""
-        cached = self._parse_cache.get(user_message)
+        cached = self._parse_cache.get(cache_key)
         if cached is None:
             return None
-        self._parse_cache.move_to_end(user_message)
+        self._parse_cache.move_to_end(cache_key)
         return cached.model_copy(deep=True)
 
-    def _write_cached_decomposition(self, user_message: str, decomposition: IntentDecomposition) -> None:
+    def _write_cached_decomposition(self, cache_key: str, decomposition: IntentDecomposition) -> None:
         """구조분해 결과를 LRU 캐시에 저장한다."""
-        self._parse_cache[user_message] = decomposition.model_copy(deep=True)
-        self._parse_cache.move_to_end(user_message)
+        self._parse_cache[cache_key] = decomposition.model_copy(deep=True)
+        self._parse_cache.move_to_end(cache_key)
         while len(self._parse_cache) > INTENT_PARSE_CACHE_SIZE:
             self._parse_cache.popitem(last=False)
 

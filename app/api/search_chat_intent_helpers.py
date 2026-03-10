@@ -30,6 +30,8 @@ def is_non_action_query_for_interrupt_retry(
 def parse_intent_decomposition_safely(
     user_message: str,
     parser_factory: Any = get_intent_parser,
+    has_selected_mail: bool = False,
+    selected_message_id_exists: bool = False,
 ) -> IntentDecomposition | None:
     """라우팅 보조용 intent 구조분해를 안전하게 파싱한다."""
     normalized = str(user_message or "").strip()
@@ -37,7 +39,14 @@ def parse_intent_decomposition_safely(
         return None
     try:
         parser = parser_factory() if callable(parser_factory) else get_intent_parser()
-        return parser.parse(user_message=normalized)
+        try:
+            return parser.parse(
+                user_message=normalized,
+                has_selected_mail=has_selected_mail,
+                selected_message_id_exists=selected_message_id_exists,
+            )
+        except TypeError:
+            return parser.parse(user_message=normalized)
     except Exception as exc:
         logger.warning("intent 구조분해 파싱 실패: %s", exc)
         return None

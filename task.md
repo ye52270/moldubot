@@ -1,17 +1,19 @@
 # Task
 
 ## 현재 작업
-Deep Agents 구조 개선 적용(prompt/HITL variant 일관성 + skills 경로 활성화)
+search_chat_flow 병목/계측 개선(postprocess 세분화 + skip policy) 및 intent cache namespace 보강
 
-## Plan (2026-03-10 Deep Agents 구조 개선 적용)
-- [x] 1단계: HITL confirm 경로에 prompt_variant 전달/재사용 계약 추가(백엔드+프론트)
-- [x] 2단계: create_deep_agent skills 경로를 환경설정으로 활성화
-- [x] 3단계: 회귀 테스트 추가 및 실행
-- [x] 4단계: Action Log 업데이트
+## Plan (2026-03-11 postprocess/intent cache 개선)
+- [x] 1단계: 계측 버그 수정 및 stage 세분화(web_sources_ms/related_mail_ms/contract_render_ms)
+- [x] 2단계: postprocess skip policy 도입(output_format/tool_action 기반 정책 객체)
+- [x] 3단계: intent cache namespace 보강(has_selected_mail/selected_message_id_exists)
+- [x] 4단계: 테스트 추가 및 실행
+- [x] 5단계: Action Log 업데이트
 
-## Action Log (2026-03-10 Deep Agents 구조 개선 적용)
-- [23:13] 작업 시작: 전체 구조 재점검 결과를 반영해 prompt/HITL/skills 개선 코드 적용 착수
-- [23:17] 완료: HITL confirm prompt_variant 연동 + Deep Agents skills 경로 파서/주입 적용, 관련 테스트(Python 14건 + Node 12건) 통과
+## Action Log (2026-03-11 postprocess/intent cache 개선)
+- [05:30] 작업 시작: postprocess 병목 분석 의견 기반으로 계측/정책/캐시 namespace 개선 및 테스트 작업 착수
+- [05:31] 이슈 발생: `pytest`/`python` 명령 미탐지 → 해결 방법: `.venv/bin/python -m pytest`로 테스트 실행 경로 전환
+- [05:33] 완료: search_chat_flow 계측 reset+세분화, postprocess 정책 객체 기반 skip, intent cache namespace 보강 및 관련 테스트 53건 통과
 
 ## 현재 작업
 Deep Agents/LangChain 구조 재점검 및 개선점 도출(스킬 기준 종합 리뷰)

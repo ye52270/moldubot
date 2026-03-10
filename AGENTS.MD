@@ -125,7 +125,7 @@ class EmailParser:
 
 ### 중복 코드 금지
 - **같은 로직이 2곳 이상에 있으면** 반드시 공통 함수/모듈로 추출하라.
-- 복사-붙여넣기로 만든 코드는 작성하지 마라.
+- 복사-붙여넣기로 만든 코드를 작성하지 마라.
 - 비슷한 함수가 이미 있다면, 새로 만들기 전에 **기존 코드를 먼저 검색**하라.
 
 ```python
@@ -284,3 +284,52 @@ refactor(utils): 중복 날짜 포맷 함수 공통 모듈로 통합
 ### 이유
 이 파일들을 스캔하면 토큰을 낭비하고, 바이너리 파싱 오류가 발생하며,
 민감한 데이터가 노출될 수 있다. 소스 코드 분석과 무관하다.
+
+---
+
+## 8. Codex 스킬 운용 규칙
+
+> Codex가 코드를 작성/수정/리팩터링할 때 아래 스킬을 자동으로 적용해야 한다.
+> `$` 명시 없이 요청하더라도, 작업 유형에 해당하는 스킬을 반드시 참조하라.
+
+### 8-1. 작업 유형별 필수 스킬
+
+| 작업 유형 | 참조 스킬 | 적용 조건 |
+|---|---|---|
+| 신규 기능 설계 / 프레임워크 선택 | `Framework Selection` | 새 모듈/기능 추가 시 항상 |
+| SubAgent 구조 변경 / 오케스트레이션 | `Deep Agents Orchestration` | SubAgent 신규/수정/삭제 시 |
+| LangChain 기본 패턴 (create_agent, tool) | `Langchain Fundamentals` | LangChain 관련 코드 작성 시 |
+| LangGraph StateGraph 변경 | `Langgraph Fundamentals` | StateGraph 노드/엣지 변경 시 |
+| Human-in-the-Loop / 승인 흐름 | `Langgraph Human In The Loop` | HITL 패턴 구현 시 |
+| 상태 영속성 / 대화 기억 | `Langgraph Persistence` | 세션 상태 저장/복구 구현 시 |
+| RAG / 벡터 검색 / ChromaDB | `Langchain Rag` | ChromaDB 쿼리/인덱싱 작업 시 |
+| 미들웨어 / 커스텀 훅 | `Langchain Middleware` | 미들웨어 추가/변경 시 |
+| 패키지 의존성 추가 | `Langchain Dependencies` | requirements.txt 변경 시 |
+| 보안 검토 | `security-best-practices` | 외부 API 호출, 인증 코드 작성 시 |
+| 코드 문서화 | `doc` | 새 모듈/클래스 문서화 시 |
+| OpenAI API 패턴 | `openai-docs` | GPT-4o API 호출 코드 작성 시 |
+
+### 8-2. 스킬 자동 적용 원칙
+
+- Codex는 사용자가 `$스킬명`을 명시하지 않아도 위 표의 조건에 해당하면 해당 스킬을 **자동으로 로드**하여 최신 패턴을 적용한다.
+- 코드 작성 전 관련 스킬이 있는지 위 표를 먼저 확인한다.
+- **복수 조건**에 해당하는 경우 관련 스킬을 모두 참조한다.
+  - 예: SubAgent 안에 LangGraph StateGraph가 있는 경우 → `Deep Agents Orchestration` + `Langgraph Fundamentals` 동시 참조.
+
+### 8-3. 스킬 기반 코드 리뷰 의무
+
+- 코드 수정 완료 후, 변경된 영역과 관련된 스킬 기준으로 자체 검토를 수행한다.
+- 스킬 패턴과 다른 방식으로 구현한 경우 반드시 그 이유를 주석 또는 task.md에 명시한다.
+- 다음 항목은 스킬 검토 없이 변경할 수 없다:
+  - SubAgent 역할 분리 구조 (Worker / Critic / Reviser / Finalizer)
+  - LangGraph StateGraph 노드/엣지 정의
+  - ChromaDB 벡터 검색 인터페이스
+  - FastAPI 라우터 구조
+
+### 8-4. MolduBot 전용 스킬 (`moldubot-conventions`)
+
+프로젝트 루트 `.codex/skills/moldubot-conventions/SKILL.md` 또는
+`~/.codex/skills/moldubot-conventions/SKILL.md` 에 MolduBot 전용 규칙이 정의되어 있다.
+해당 스킬이 존재하면 **모든 작업에 우선 적용**한다.
+
+> 스킬이 없으면 이 AGENTS.md의 섹션 0~7 규칙을 기본값으로 사용한다.

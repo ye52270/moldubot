@@ -129,6 +129,70 @@ class SearchChatFlowFastLaneTest(unittest.TestCase):
         get_agent_mock.assert_called_once()
         invoke_text_mock.assert_not_called()
 
+    def test_general_output_skips_web_and_related_mail_postprocess(self) -> None:
+        """general 출력 포맷 + non-mail_search tool action이면 web/related_mail 후처리를 스킵해야 한다."""
+        decomposition = IntentDecomposition(
+            original_query="현재메일 번역해줘",
+            steps=[ExecutionStep.READ_CURRENT_MAIL],
+            summary_line_target=5,
+            date_filter=DateFilter(mode=DateFilterMode.NONE),
+            missing_slots=[],
+            task_type=IntentTaskType.GENERAL,
+            output_format=IntentOutputFormat.GENERAL,
+            confidence=0.75,
+        )
+        cached_context = SimpleNamespace(
+            status="completed",
+            source="db-cache",
+            reason="",
+            mail=MailRecord(
+                message_id="m-general",
+                subject="번역 테스트 메일",
+                from_address="sender@example.com",
+                received_date="2026-03-10T03:38:14Z",
+                body_text="본문",
+                summary_text="요약",
+            ),
+        )
+        fake_agent = SimpleNamespace()
+        fake_agent.execute_turn = lambda user_message, thread_id=None: {
+            "status": "completed",
+            "answer": "번역 결과입니다.",
+            "interrupts": [],
+        }
+        fake_agent.get_last_tool_payload = lambda: {"action": "current_mail", "status": "completed"}
+        fake_agent.get_last_assistant_answer = lambda: "번역 결과입니다."
+        fake_agent.get_last_raw_model_output = lambda: "번역 결과입니다."
+        fake_agent.get_last_raw_model_content = lambda: "번역 결과입니다."
+        with (
+            patch("app.api.search_chat_flow.parse_intent_decomposition_safely", return_value=decomposition),
+            patch("app.api.search_chat_flow.mail_context_service.get_mail_context", return_value=cached_context),
+            patch("app.api.search_chat_flow.is_openai_key_configured", return_value=True),
+            patch("app.api.search_chat_flow.get_deep_chat_agent", return_value=fake_agent),
+            patch("app.api.search_chat_flow.recommend_next_actions", return_value=[]),
+            patch("app.api.search_chat_flow.resolve_web_sources_for_answer", return_value=([], [])) as resolve_web_mock,
+            patch("app.api.search_chat_flow.enrich_major_point_related_mails", side_effect=lambda rows, **_: rows) as enrich_mock,
+            patch(
+                "app.api.search_chat_flow.build_enrichment_payloads",
+                return_value=(None, [], [], {}, {}),
+            ),
+        ):
+            response = run_search_chat(
+                payload=ChatRequest(
+                    message="현재메일 번역해줘",
+                    email_id="m-general",
+                    mailbox_user="jaeyoung_dev@outlook.com",
+                ),
+                log_prefix="test",
+            )
+        self.assertEqual("completed", response["status"])
+        resolve_web_mock.assert_not_called()
+        enrich_mock.assert_not_called()
+        stage_elapsed = response["metadata"].get("stage_elapsed_ms", {})
+        self.assertIn("web_sources_ms", stage_elapsed)
+        self.assertIn("related_mail_ms", stage_elapsed)
+        self.assertIn("contract_render_ms", stage_elapsed)
+
 
 if __name__ == "__main__":
     unittest.main()

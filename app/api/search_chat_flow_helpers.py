@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass
 from typing import Any
 
 from app.agents.intent_schema import IntentDecomposition, IntentFocusTopic, IntentTaskType
@@ -19,6 +20,46 @@ from app.services.web_source_search_service import (
 )
 
 logger = get_logger(__name__)
+
+
+@dataclass(frozen=True)
+class PostprocessExecutionPolicy:
+    """
+    postprocess 단계에서 수행/스킵할 세부 작업 정책.
+
+    Attributes:
+        skip_web_sources: 웹 출처 해소 단계 스킵 여부
+        skip_related_mail_enrichment: 주요 포인트 관련메일 보강 단계 스킵 여부
+    """
+
+    skip_web_sources: bool
+    skip_related_mail_enrichment: bool
+
+
+def decide_postprocess_execution_policy(
+    intent_output_format: str,
+    tool_action: str,
+) -> PostprocessExecutionPolicy:
+    """
+    output_format/tool_action 조합으로 postprocess 실행 정책을 결정한다.
+
+    Args:
+        intent_output_format: 의도 분해 output_format 값
+        tool_action: 마지막 tool action 값
+
+    Returns:
+        postprocess 실행 정책 객체
+    """
+    normalized_output_format = str(intent_output_format or "").strip().lower()
+    normalized_tool_action = str(tool_action or "").strip().lower()
+    should_skip_expensive_steps = (
+        normalized_output_format == "general"
+        and normalized_tool_action != "mail_search"
+    )
+    return PostprocessExecutionPolicy(
+        skip_web_sources=should_skip_expensive_steps,
+        skip_related_mail_enrichment=should_skip_expensive_steps,
+    )
 
 
 def build_search_scope_contract(

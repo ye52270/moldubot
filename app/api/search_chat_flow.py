@@ -20,6 +20,7 @@ from app.api.search_chat_flow_helpers import (
     build_enrichment_payloads,
     build_scope_metadata,
     build_search_scope_contract,
+    decide_postprocess_execution_policy,
     enrich_major_point_related_mails,
     resolve_web_sources_for_answer,
 )
@@ -405,7 +406,12 @@ def run_search_chat(
         )
     is_meeting_room_hil = bool(runtime_options.get("meeting_room_hil"))
     selected_message_id = "" if is_meeting_room_hil else selected_email_id
-    intent_decomposition = parse_intent_decomposition_safely(user_message=text, parser_factory=get_intent_parser)
+    intent_decomposition = parse_intent_decomposition_safely(
+        user_message=text,
+        parser_factory=get_intent_parser,
+        has_selected_mail=bool(selected_email_id),
+        selected_message_id_exists=bool(selected_message_id),
+    )
     stage_started_at = _record_stage_elapsed(stage_timings=stage_timings, stage_name="intent_parse", started_at=stage_started_at)
     scope_clarification = None
     if not next_action_id:
@@ -869,8 +875,23 @@ def run_search_chat(
     if suppress_internal_evidence:
         evidence_mails = []
 
-    async_indexing_started_at = time.perf_counter()
+    postprocess_started_at = time.perf_counter()
+    async_indexing_started_at = postprocess_started_at
     logger.info("[async_indexing.start] thread_id=%s query_count=%s", thread_id, 1)
+    intent_output_format = intent_decomposition.output_format.value if intent_decomposition is not None else ""
+    tool_action = extract_tool_action(tool_payload=tool_payload)
+    postprocess_policy = decide_postprocess_execution_policy(
+        intent_output_format=intent_output_format,
+        tool_action=tool_action,
+    )
+    logger.info(
+        "%s postprocess policy: output_format=%s tool_action=%s skip_web=%s skip_related_mail=%s",
+        log_prefix,
+        intent_output_format,
+        tool_action,
+        postprocess_policy.skip_web_sources,
+        postprocess_policy.skip_related_mail_enrichment,
+    )
     next_actions = recommend_next_actions(
         user_message=text,
         answer=answer,
@@ -878,15 +899,20 @@ def run_search_chat(
         intent_task_type=intent_decomposition.task_type.value if intent_decomposition is not None else "",
         intent_output_format=intent_decomposition.output_format.value if intent_decomposition is not None else "",
     )
-    web_sources, web_verification_reasons = resolve_web_sources_for_answer(
-        user_message=text,
-        intent_task_type=intent_decomposition.task_type.value if intent_decomposition is not None else "",
-        resolved_scope=resolved_scope,
-        tool_payload=tool_payload,
-        intent_confidence=intent_decomposition.confidence if intent_decomposition is not None else None,
-        model_answer=answer,
-        next_action_id=next_action_id,
-    )
+    web_sources_started_at = time.perf_counter()
+    web_sources: list[dict[str, str]] = []
+    web_verification_reasons: list[str] = []
+    if not postprocess_policy.skip_web_sources:
+        web_sources, web_verification_reasons = resolve_web_sources_for_answer(
+            user_message=text,
+            intent_task_type=intent_decomposition.task_type.value if intent_decomposition is not None else "",
+            resolved_scope=resolved_scope,
+            tool_payload=tool_payload,
+            intent_confidence=intent_decomposition.confidence if intent_decomposition is not None else None,
+            model_answer=answer,
+            next_action_id=next_action_id,
+        )
+    _record_stage_elapsed(stage_timings=stage_timings, stage_name="web_sources_ms", started_at=web_sources_started_at)
     if isinstance(code_review_quality, dict) and code_review_quality.get("enabled"):
         code_review_quality["web_source_count"] = len(web_sources)
         code_review_quality["has_sources"] = bool(web_sources)
@@ -900,12 +926,19 @@ def run_search_chat(
         tool_payload=tool_payload,
         evidence_mails=evidence_mails,
     )
-    if not suppress_internal_evidence:
+    related_mail_started_at = time.perf_counter()
+    if not suppress_internal_evidence and not postprocess_policy.skip_related_mail_enrichment:
         major_point_evidence = enrich_major_point_related_mails(
             rows=major_point_evidence,
             tool_payload=tool_payload,
             mail_search_service=mail_search_service,
         )
+    _record_stage_elapsed(
+        stage_timings=stage_timings,
+        stage_name="related_mail_ms",
+        started_at=related_mail_started_at,
+    )
+    contract_render_started_at = time.perf_counter()
     _, _, _, context_enrichment, semantic_contract = build_enrichment_payloads(
         answer=answer,
         answer_format=answer_format,
@@ -915,20 +948,29 @@ def run_search_chat(
         intent_confidence=float(intent_decomposition.confidence if intent_decomposition is not None else 0.0),
         web_sources=web_sources,
     )
+    _record_stage_elapsed(
+        stage_timings=stage_timings,
+        stage_name="contract_render_ms",
+        started_at=contract_render_started_at,
+    )
     logger.info(
         "[async_indexing.done] thread_id=%s elapsed_ms=%.1f",
         thread_id,
         (time.perf_counter() - async_indexing_started_at) * 1000,
     )
-    _record_stage_elapsed(stage_timings=stage_timings, stage_name="postprocess", started_at=stage_started_at)
+    _record_stage_elapsed(stage_timings=stage_timings, stage_name="postprocess", started_at=postprocess_started_at)
     logger.info(
-        "%s stage_elapsed_ms: intent_parse=%.1f context_fetch=%.1f llm_call_1=%.1f llm_call_2=%.1f postprocess=%.1f",
+        "%s stage_elapsed_ms: intent_parse=%.1f context_fetch=%.1f llm_call_1=%.1f llm_call_2=%.1f "
+        "postprocess=%.1f web_sources_ms=%.1f related_mail_ms=%.1f contract_render_ms=%.1f",
         log_prefix,
         float(stage_timings.get("intent_parse", 0.0)),
         float(stage_timings.get("context_fetch", 0.0)),
         float(stage_timings.get("llm_call_1", 0.0)),
         float(stage_timings.get("llm_call_2", 0.0)),
         float(stage_timings.get("postprocess", 0.0)),
+        float(stage_timings.get("web_sources_ms", 0.0)),
+        float(stage_timings.get("related_mail_ms", 0.0)),
+        float(stage_timings.get("contract_render_ms", 0.0)),
     )
 
     return {
