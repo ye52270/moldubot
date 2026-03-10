@@ -73,6 +73,7 @@ from app.api.search_chat_stream_utils import resolve_thread_id
 from app.core.logging_config import get_logger
 from app.core.metrics import get_chat_metrics_tracker
 from app.core.llm_runtime import invoke_text_messages, resolve_env_model
+from app.services.answer_postprocessor import postprocess_final_answer
 from app.services.code_review_quality_service import refine_code_review_answer_with_metadata
 from app.services.answer_postprocessor_contract_utils import parse_llm_response_contract
 from app.services.answer_postprocessor_summary import is_current_mail_summary_request
@@ -140,6 +141,7 @@ def _prune_cached_current_mail_step(
 
 def _should_use_current_mail_summary_fast_lane(
     decomposition: IntentDecomposition | None,
+    user_message: str,
     resolved_scope: str,
     selected_message_id: str,
     has_cached_context: bool,
@@ -164,6 +166,8 @@ def _should_use_current_mail_summary_fast_lane(
         return False
     if not has_cached_context:
         return False
+    if not is_current_mail_summary_request(user_message=user_message):
+        return False
     return ExecutionStep.SUMMARIZE_MAIL in decomposition.steps
 
 
@@ -183,7 +187,18 @@ def _invoke_current_mail_summary_fast_lane(
     Returns:
         (응답 텍스트, tool_payload, llm 호출 elapsed_ms)
     """
-    tool_payload = run_mail_post_action(action="current_mail", summary_line_target=summary_line_target)
+    try:
+        tool_payload = run_mail_post_action(action="current_mail", summary_line_target=summary_line_target)
+    except TypeError:
+        invoke_tool = getattr(run_mail_post_action, "invoke", None)
+        if not callable(invoke_tool):
+            raise
+        tool_payload = invoke_tool(
+            {
+                "action": "current_mail",
+                "summary_line_target": summary_line_target,
+            }
+        )
     if not isinstance(tool_payload, dict):
         tool_payload = {}
     system_prompt = get_agent_system_prompt(prompt_variant)
@@ -621,6 +636,7 @@ def run_search_chat(
                 scoped_message = f"{followup_reference_hint}\n{scoped_message}"
             if _should_use_current_mail_summary_fast_lane(
                 decomposition=intent_decomposition,
+                user_message=text,
                 resolved_scope=resolved_scope,
                 selected_message_id=selected_message_id,
                 has_cached_context=has_cached_current_mail_context,
@@ -635,10 +651,16 @@ def run_search_chat(
                 )
                 llm_call_1_ms = 0.0
                 llm_call_2_ms = llm_elapsed_ms
-                answer = str(fast_answer or "").strip() or FALLBACK_EMPTY_RESPONSE
-                raw_answer = answer
-                raw_model_output = answer
-                raw_model_content = answer
+                raw_model_content = str(fast_answer or "").strip() or FALLBACK_EMPTY_RESPONSE
+                raw_model_output = raw_model_content
+                raw_answer = raw_model_content
+                answer = postprocess_final_answer(
+                    user_message=text,
+                    answer=raw_model_content,
+                    tool_payload=fast_tool_payload if isinstance(fast_tool_payload, dict) else {},
+                    raw_model_content=raw_model_content,
+                )
+                answer = str(answer or "").strip() or raw_model_content
                 tool_payload = fast_tool_payload if isinstance(fast_tool_payload, dict) else {}
                 stage_timings["llm_call_1"] = round(llm_call_1_ms, 1)
                 stage_timings["llm_call_2"] = round(llm_call_2_ms, 1)
