@@ -6,6 +6,7 @@ from app.services.current_mail_request_intent import (
     is_current_mail_direct_fact_request,
     is_current_mail_cause_analysis_request,
     is_current_mail_solution_request,
+    is_current_mail_translation_request,
     render_current_mail_grounded_safe_message,
     resolve_current_mail_issue_sections,
     should_apply_current_mail_grounded_safe_guard,
@@ -141,6 +142,12 @@ class CurrentMailRequestIntentTest(unittest.TestCase):
             summary_text="M365 및 AD 환경 구축 가견적 안내: 총 193,000,000원, 라이선스 확인 필요.",
         )
         self.assertIn("구체적 이유는 확인할 수 없습니다", rendered)
+
+    def test_detects_current_mail_translation_request(self) -> None:
+        """현재메일 번역 요청은 번역 의도로 판별되어야 한다."""
+        self.assertTrue(is_current_mail_translation_request("현재메일 번역해줘"))
+        self.assertTrue(is_current_mail_translation_request("translate current mail", has_current_mail_context=True))
+        self.assertFalse(is_current_mail_translation_request("메일 요약해줘"))
 
 
 if __name__ == "__main__":

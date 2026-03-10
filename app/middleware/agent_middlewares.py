@@ -31,6 +31,7 @@ from app.services.answer_postprocessor import postprocess_final_answer
 EMPTY_MODEL_RESPONSE_FALLBACK = "응답을 생성하지 못했습니다. 다시 시도해 주세요."
 TOOL_CALLS_KEY = "tool_calls"
 ORIGINAL_USER_INPUT_MARKER = "원본 사용자 입력:"
+SCOPE_PREFIX_MARKER = "[질의 범위]"
 TRACE_MAX_CONTENT_CHARS = 1200
 TRACE_TRUNCATION_SUFFIX = "...(truncated)"
 RAW_RESPONSE_LOG_MAX_CHARS = 4000
@@ -487,9 +488,13 @@ def _extract_original_user_message_from_injected_text(message_text: str) -> str:
     """
     text = str(message_text or "").strip()
     marker_index = text.rfind(ORIGINAL_USER_INPUT_MARKER)
-    if marker_index < 0:
-        return text
-    return text[marker_index + len(ORIGINAL_USER_INPUT_MARKER) :].strip()
+    if marker_index >= 0:
+        return text[marker_index + len(ORIGINAL_USER_INPUT_MARKER) :].strip()
+    if text.startswith(SCOPE_PREFIX_MARKER):
+        lines = text.splitlines()
+        if len(lines) > 1:
+            return "\n".join(lines[1:]).strip()
+    return text
 
 
 def _should_prefer_mail_search_payload(user_message: str) -> bool:

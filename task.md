@@ -1,19 +1,34 @@
 # Task
 
 ## 현재 작업
-search_chat_flow 병목/계측 개선(postprocess 세분화 + skip policy) 및 intent cache namespace 보강
+현재메일 번역 요청 라우팅 보정 + `/메일요약` 스킬/템플릿 경로 최종 점검
 
-## Plan (2026-03-11 postprocess/intent cache 개선)
-- [x] 1단계: 계측 버그 수정 및 stage 세분화(web_sources_ms/related_mail_ms/contract_render_ms)
-- [x] 2단계: postprocess skip policy 도입(output_format/tool_action 기반 정책 객체)
-- [x] 3단계: intent cache namespace 보강(has_selected_mail/selected_message_id_exists)
-- [x] 4단계: 테스트 추가 및 실행
+## Plan (2026-03-11 번역/메일요약 라우팅 보정)
+- [x] 1단계: 최신 로그 기준으로 번역 요청이 summary 계약으로 떨어지는 정책 분기 재현/원인 특정
+- [x] 2단계: 단건 예외 없이 의도/출력 계약 정책 보정(번역은 translation contract 우선, `/메일요약`은 current_mail summary 유지)
+- [x] 3단계: 회귀 테스트 추가(TDD) 및 타겟 테스트 실행
+- [ ] 4단계: Action Log 업데이트 후 커밋
+
+## Action Log (2026-03-11 번역/메일요약 라우팅 보정)
+- [06:30] 작업 시작: 사용자 제공 로그 기준 `현재메일 번역해줘`가 일반 요약으로 렌더되는 경로와 `/메일요약` 스킬 노출/적용 경로 동시 점검 착수
+- [06:37] 이슈 발생: 번역 프롬프트 variant 회귀 테스트에서 low-confidence clarification 분기로 실패 → 테스트 confidence를 0.75로 보정해 목적 분기(variant 선택)만 검증
+- [06:39] 완료: 현재메일 번역 의도 감지 정책 추가(`is_current_mail_translation_request`) 후 prompt variant를 `quality_freeform_grounded`로 라우팅, 미들웨어 번역 우선 지시 주입, 관련 테스트 4건 및 quick prompts 테스트 6건 통과
+
+## 현재 작업
+스킬 바로가기 목록에서 `메일요약` 미노출 원인 점검 및 slash 추천 소스 보강
+
+## Plan (2026-03-11 메일요약 미노출 보강)
+- [x] 1단계: slash 추천 목록이 등록 스킬만 사용하는지 검증
+- [x] 2단계: 회귀 테스트 추가(TDD) 및 실패 확인
+- [x] 3단계: 추천 목록을 등록 스킬 + 카탈로그 병합으로 보강
+- [x] 4단계: 관련 테스트 실행
 - [x] 5단계: Action Log 업데이트
 
-## Action Log (2026-03-11 postprocess/intent cache 개선)
-- [05:30] 작업 시작: postprocess 병목 분석 의견 기반으로 계측/정책/캐시 namespace 개선 및 테스트 작업 착수
-- [05:31] 이슈 발생: `pytest`/`python` 명령 미탐지 → 해결 방법: `.venv/bin/python -m pytest`로 테스트 실행 경로 전환
-- [05:33] 완료: search_chat_flow 계측 reset+세분화, postprocess 정책 객체 기반 skip, intent cache namespace 보강 및 관련 테스트 53건 통과
+## Action Log (2026-03-11 메일요약 미노출 보강)
+- [05:59] 작업 시작: `/ 스킬 바로가기`에서 `메일요약` 미노출 재현 확인 및 추천 목록 소스 점검 착수
+- [06:01] 완료: slash 추천 소스를 `등록 스킬 + 카탈로그 스킬` 병합으로 보강하고 `/` prefix 회귀 테스트 포함 `test_taskpane_quick_prompts.cjs` 6건 통과
+- [06:03] 이슈 발생: `/메일요약` 실행 로그에서 scope가 `전체 메일함`으로 고정되고 표준 요약 템플릿 미적용 재현 확인
+- [06:05] 완료: current_mail_mode 판별에 `/메일요약` 스킬 질의(선택 메일 존재) 우선 규칙 추가, scope-prefix 포함 입력에서도 원문(`/메일요약`) 복원되도록 후처리/미들웨어 원문 추출 보강 및 타겟 테스트 4건 통과
 
 ## 현재 작업
 Deep Agents/LangChain 구조 재점검 및 개선점 도출(스킬 기준 종합 리뷰)

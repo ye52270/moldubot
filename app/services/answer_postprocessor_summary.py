@@ -13,6 +13,7 @@ from app.services.answer_postprocessor_line_filters import (
 from app.services.answer_postprocessor_summary_utils import is_near_duplicate
 
 ORIGINAL_USER_INPUT_MARKER = "원본 사용자 입력:"
+SCOPE_PREFIX_MARKER = "[질의 범위]"
 
 
 def extract_original_user_message(user_message: str) -> str:
@@ -27,9 +28,13 @@ def extract_original_user_message(user_message: str) -> str:
     """
     text = str(user_message or "").strip()
     marker_index = text.rfind(ORIGINAL_USER_INPUT_MARKER)
-    if marker_index < 0:
-        return text
-    return text[marker_index + len(ORIGINAL_USER_INPUT_MARKER) :].strip()
+    if marker_index >= 0:
+        return text[marker_index + len(ORIGINAL_USER_INPUT_MARKER) :].strip()
+    if text.startswith(SCOPE_PREFIX_MARKER):
+        lines = text.splitlines()
+        if len(lines) > 1:
+            return "\n".join(lines[1:]).strip()
+    return text
 
 
 def is_summary_request(user_message: str) -> bool:

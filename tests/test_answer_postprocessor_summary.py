@@ -3,6 +3,7 @@ from __future__ import annotations
 import unittest
 
 from app.services.answer_postprocessor_summary import (
+    extract_original_user_message,
     extract_summary_lines,
     is_current_mail_summary_request,
     render_summary_lines_for_request,
@@ -81,6 +82,11 @@ class AnswerPostprocessorSummaryTest(unittest.TestCase):
         self.assertTrue(is_current_mail_summary_request("현재메일 요약"))
         self.assertTrue(is_current_mail_summary_request("현재 메일 요약"))
         self.assertTrue(is_current_mail_summary_request("/메일요약"))
+
+    def test_extract_original_user_message_strips_scope_prefix(self) -> None:
+        """scope prefix가 포함된 주입 문자열에서도 원본 사용자 입력을 복원해야 한다."""
+        injected = "[질의 범위] 전체 메일함 기준으로 처리\n/메일요약"
+        self.assertEqual("/메일요약", extract_original_user_message(injected))
 
 
 if __name__ == "__main__":

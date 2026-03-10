@@ -18,6 +18,7 @@ from app.agents.intent_schema import (
 from app.core.logging_config import get_logger
 from app.services.current_mail_request_intent import (
     is_current_mail_direct_fact_request,
+    is_current_mail_translation_request,
     resolve_current_mail_issue_sections,
 )
 from app.services.intent_taxonomy_config import get_intent_taxonomy
@@ -113,7 +114,10 @@ def compose_intent_augmented_text(user_message: str) -> str:
         구조분해 컨텍스트 + 원본 입력 문자열
     """
     scope_label, original_user_message = _split_scope_instruction(user_message=user_message)
-    decomposition = get_intent_parser().parse(user_message=original_user_message)
+    decomposition = _parse_intent_with_namespace(
+        user_message=original_user_message,
+        scope_label=scope_label,
+    )
     decomposition = _sanitize_current_mail_steps(
         decomposition=decomposition,
         user_message=original_user_message,
@@ -146,7 +150,10 @@ def compose_intent_system_context(user_message: str) -> str:
         system 메시지로 주입할 의도 컨텍스트 문자열
     """
     scope_label, original_user_message = _split_scope_instruction(user_message=user_message)
-    decomposition = get_intent_parser().parse(user_message=original_user_message)
+    decomposition = _parse_intent_with_namespace(
+        user_message=original_user_message,
+        scope_label=scope_label,
+    )
     decomposition = _sanitize_current_mail_steps(
         decomposition=decomposition,
         user_message=original_user_message,
@@ -281,9 +288,16 @@ def _build_routing_instruction(
         user_message=original_user_message,
         has_current_mail_context=has_current_mail_scope,
     )
+    is_translation_request = is_current_mail_translation_request(
+        user_message=original_user_message,
+        has_current_mail_context=has_current_mail_scope,
+    )
     if is_direct_fact_request:
         lines.append("- 특정 항목(메일주소/도메인/주체) 질문은 해당 값을 먼저 1~3개로 직접 답한다.")
         lines.append("- 불필요한 원인/영향/대응 섹션 확장은 금지하고, 필요 시 근거 1줄만 덧붙인다.")
+    if is_translation_request:
+        lines.append("- 번역 요청은 요약 대신 원문 의미를 유지한 전체 번역문을 우선 제공한다.")
+        lines.append("- 핵심 bullet/조치 섹션으로 재구성하지 말고 문단 단위 번역을 유지한다.")
     if decomposition.task_type == IntentTaskType.ANALYSIS:
         if not is_direct_fact_request:
             issue_sections = resolve_current_mail_issue_sections(user_message=original_user_message)
@@ -343,6 +357,43 @@ def _split_scope_instruction(user_message: str) -> tuple[str, str]:
     scope_label = lines[0].strip()
     original = "\n".join(lines[1:]).strip()
     return (scope_label, original or text)
+
+
+def _parse_intent_with_namespace(user_message: str, scope_label: str) -> IntentDecomposition:
+    """
+    scope 라벨 기반 namespace를 포함해 intent parser를 호출한다.
+
+    Args:
+        user_message: scope prefix 제거된 사용자 질의
+        scope_label: scope 라벨 문자열
+
+    Returns:
+        intent 구조분해 결과
+    """
+    parser = get_intent_parser()
+    parse_kwargs = _build_intent_namespace_kwargs(scope_label=scope_label)
+    try:
+        return parser.parse(user_message=user_message, **parse_kwargs)
+    except TypeError:
+        return parser.parse(user_message=user_message)
+
+
+def _build_intent_namespace_kwargs(scope_label: str) -> dict[str, bool]:
+    """
+    scope 라벨에서 intent cache namespace 인자를 계산한다.
+
+    Args:
+        scope_label: scope 라벨 문자열
+
+    Returns:
+        parser.parse 호출에 사용할 namespace 인자 사전
+    """
+    normalized_scope = str(scope_label or "").strip()
+    has_selected_mail_scope = normalized_scope.startswith(SCOPE_PREFIX) and ("현재 선택 메일" in normalized_scope)
+    return {
+        "has_selected_mail": has_selected_mail_scope,
+        "selected_message_id_exists": has_selected_mail_scope,
+    }
 
 
 def _is_recipient_todo_summary_request(decomposition: IntentDecomposition) -> bool:

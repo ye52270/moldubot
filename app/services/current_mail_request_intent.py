@@ -98,6 +98,10 @@ DIRECT_FACT_ASK_TOKENS: tuple[str, ...] = (
     "뭐",
     "알려",
 )
+TRANSLATION_REQUEST_TOKENS: tuple[str, ...] = (
+    "번역",
+    "translate",
+)
 
 
 @dataclass(frozen=True)
@@ -223,6 +227,28 @@ def is_current_mail_artifact_analysis_request(
     if not has_analysis_verb:
         return False
     return any(token in compact for token in ARTIFACT_ANALYSIS_TARGET_TOKENS)
+
+
+def is_current_mail_translation_request(
+    user_message: str,
+    has_current_mail_context: bool = False,
+) -> bool:
+    """
+    현재메일 맥락에서 번역 요청인지 판별한다.
+
+    Args:
+        user_message: 사용자 입력 원문
+        has_current_mail_context: 외부 scope에서 current_mail로 확정된 경우 True
+
+    Returns:
+        현재메일 번역 요청이면 True
+    """
+    signals = _extract_signals(user_message=user_message)
+    has_anchor = signals.has_anchor or bool(has_current_mail_context)
+    if not has_anchor:
+        return False
+    compact = _to_compact(user_message=user_message)
+    return any(token in compact for token in TRANSLATION_REQUEST_TOKENS)
 
 
 def _has_current_mail_anchor(compact: str) -> bool:

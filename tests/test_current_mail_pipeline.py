@@ -201,6 +201,16 @@ class CurrentMailPipelineTest(unittest.TestCase):
         )
         self.assertTrue(result)
 
+    def test_mail_summary_skill_query_keeps_current_mail_mode_with_selected_mail(self) -> None:
+        """`/메일요약` 스킬 질의는 선택 메일이 있으면 current_mail 모드를 유지해야 한다."""
+        result = resolve_current_mail_mode(
+            user_message="/메일요약",
+            thread_id="thread-12",
+            selected_mail_available=True,
+            requested_scope="",
+        )
+        self.assertTrue(result)
+
 
 if __name__ == "__main__":
     unittest.main()

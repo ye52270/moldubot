@@ -5,7 +5,7 @@ import time
 from dataclasses import dataclass
 from threading import Lock
 
-from app.core.intent_rules import is_mail_search_query
+from app.core.intent_rules import is_mail_search_query, is_mail_summary_skill_query
 
 STICKY_CURRENT_MAIL_TTL_SEC = 600
 STICKY_CURRENT_MAIL_MAX_TURNS = 4
@@ -161,6 +161,8 @@ def resolve_current_mail_mode(
         return False
     if _is_multi_mail_analysis_query(user_message=user_message):
         return False
+    if selected_mail_available and is_mail_summary_skill_query(user_message=user_message):
+        return True
     if is_current_mail_query(text=user_message):
         return True
     if _is_explicit_global_mail_query(user_message=user_message):

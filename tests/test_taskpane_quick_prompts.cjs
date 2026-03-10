@@ -1,5 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 
 const modulePath = '../clients/outlook-addin/taskpane.quick_prompts.js';
 
@@ -107,4 +109,27 @@ test('quick prompts createAgent derives sequence from node titles', () => {
   });
   assert.equal(saved, true);
   assert.equal(instance.getRegisteredAgents()[0].sequence, '실행예산 조회 → 알림 메일 발송');
+});
+
+test('quick prompts slash suggestions include catalog skills even when not registered', () => {
+  const localStorage = createLocalStorageMock();
+  global.window = { localStorage };
+  global.document = {};
+  const moduleRef = loadModule();
+  const instance = moduleRef.create({
+    escapeHtml: (value) => String(value || ''),
+    escapeAttr: (value) => String(value || ''),
+    isQuickPromptTrigger: () => false,
+    getQuickPromptTemplates: () => [],
+  });
+
+  assert.equal(instance.getRegisteredSkills().includes('메일요약'), false);
+  assert.equal(instance.getShortcutSuggestions('/메').includes('메일요약'), true);
+});
+
+test('quick prompts skill shortcut uses slash prefix', () => {
+  const scriptPath = path.resolve(__dirname, '..', 'clients', 'outlook-addin', 'taskpane.quick_prompts.js');
+  const source = fs.readFileSync(scriptPath, 'utf8');
+  assert.equal(source.includes('i=e?"@":"/"'), true);
+  assert.equal(source.includes('U("app_shortcuts"===y?"@":"/",t[e])'), true);
 });

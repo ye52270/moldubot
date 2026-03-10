@@ -219,6 +219,37 @@ class AnswerPostprocessorRoutingTest(unittest.TestCase):
         self.assertIn("2. 조치 결과 회신", result)
         self.assertNotIn("> **요약:**", result)
 
+    def test_standard_summary_renders_section_template_with_scope_prefixed_skill_query(self) -> None:
+        """
+        scope prefix가 붙은 `/메일요약` 입력도 표준 요약 템플릿을 유지해야 한다.
+        """
+        payload = {
+            "format_type": "standard_summary",
+            "title": "Your Microsoft invoice G145502765 is ready",
+            "answer": "",
+            "summary_lines": [],
+            "key_points": [],
+            "action_items": [],
+            "basic_info": {
+                "최종 발신자": "microsoft-noreply@microsoft.com",
+                "수신자": "JAE YOUNG PARK",
+                "날짜": "2026-03-10T07:53:53Z",
+            },
+            "core_issue": "송장 검토가 필요합니다.",
+            "major_points": ["송장 번호 G145502765가 발행됨"],
+            "required_actions": ["송장 검토하기 / 담당:JAE YOUNG PARK / 기한:2026-03-10"],
+            "one_line_summary": "송장 검토 필요",
+        }
+        result = postprocess_final_answer(
+            user_message="[질의 범위] 전체 메일함 기준으로 처리\n/메일요약",
+            answer=json.dumps(payload, ensure_ascii=False),
+        )
+        self.assertIn("### 🧾 제목", result)
+        self.assertIn("### 📋 기본 정보", result)
+        self.assertIn("### 🔎 핵심 문제 요약", result)
+        self.assertIn("### 📌 주요 내용", result)
+        self.assertIn("### ✅ 조치 필요 사항", result)
+
     def test_non_skill_current_mail_summary_does_not_force_standard_template(self) -> None:
         """
         일반 자연어 현재메일 요약 요청은 standard_summary가 와도 섹션 템플릿을 강제하지 않아야 한다.

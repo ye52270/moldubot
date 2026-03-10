@@ -5,6 +5,7 @@ import unittest
 from app.middleware.agent_middlewares import (
     TRACE_MAX_CONTENT_CHARS,
     TRACE_TRUNCATION_SUFFIX,
+    _extract_original_user_message_from_injected_text,
     _extract_text_from_model_content,
     _normalize_raw_model_content,
     _normalize_trace_content,
@@ -49,6 +50,12 @@ class AgentMiddlewaresTextExtractionTest(unittest.TestCase):
         traced = _normalize_trace_content(content={"type": "text", "text": long_text})
         self.assertIsInstance(traced, dict)
         self.assertTrue(str(traced["text"]).endswith(TRACE_TRUNCATION_SUFFIX))
+
+    def test_extract_original_user_message_from_scope_prefixed_text(self) -> None:
+        """scope prefix만 있는 주입 텍스트에서도 원본 사용자 입력을 복원해야 한다."""
+        message = "[질의 범위] 전체 메일함 기준으로 처리\n/메일요약"
+        extracted = _extract_original_user_message_from_injected_text(message_text=message)
+        self.assertEqual("/메일요약", extracted)
 
 
 if __name__ == "__main__":

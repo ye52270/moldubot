@@ -156,6 +156,32 @@ class SearchChatIntentRoutingTest(unittest.TestCase):
         self.assertEqual("completed", response["status"])
         get_agent_mock.assert_called_with(prompt_variant="quality_freeform_grounded")
 
+    def test_current_mail_translation_selects_freeform_prompt_variant(self) -> None:
+        """
+        현재메일 번역 요청은 요약 JSON 템플릿 대신 freeform grounded variant를 선택해야 한다.
+        """
+        decomposition = IntentDecomposition(
+            original_query="현재메일 번역해줘",
+            steps=[ExecutionStep.READ_CURRENT_MAIL, ExecutionStep.EXTRACT_KEY_FACTS],
+            summary_line_target=5,
+            date_filter=DateFilter(mode=DateFilterMode.NONE),
+            missing_slots=[],
+            task_type=IntentTaskType.GENERAL,
+            output_format=IntentOutputFormat.GENERAL,
+            confidence=0.75,
+        )
+        parser = type("StubParser", (), {"parse": lambda self, user_message: decomposition})()
+        with patch("app.api.search_chat_flow.get_intent_parser", return_value=parser):
+            with patch("app.api.routes.is_openai_key_configured", return_value=True):
+                fake_agent = MagicMock()
+                fake_agent.execute_turn.return_value = {"status": "completed", "answer": "번역 응답", "interrupts": []}
+                fake_agent.get_last_tool_payload.return_value = {}
+                fake_agent.get_last_assistant_answer.return_value = "번역 응답"
+                with patch("app.api.routes.get_deep_chat_agent", return_value=fake_agent) as get_agent_mock:
+                    response = search_chat(payload=ChatRequest(message="현재메일 번역해줘"))
+        self.assertEqual("completed", response["status"])
+        get_agent_mock.assert_called_with(prompt_variant="quality_freeform_grounded")
+
     def test_todo_registration_query_skips_intent_clarification(self) -> None:
         """
         `할일 등록` 실행 요청은 low-confidence여도 intent clarification을 건너뛰어야 한다.

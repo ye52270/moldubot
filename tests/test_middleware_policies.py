@@ -116,6 +116,76 @@ class MiddlewarePoliciesTest(unittest.TestCase):
         self.assertIn("원본 사용자 입력:\n현재메일에서 오류 원인 정리해줘", text)
         self.assertIn("범위 지시: [질의 범위] 현재 선택 메일 1건만 기준으로 처리", text)
 
+    def test_compose_intent_augmented_text_passes_selected_mail_namespace_for_current_scope(self) -> None:
+        """
+        현재메일 scope 라벨이 있으면 parser에 selected-mail namespace를 전달해야 한다.
+        """
+        decomposition = IntentDecomposition(
+            original_query="현재메일 요약해줘",
+            steps=[ExecutionStep.READ_CURRENT_MAIL, ExecutionStep.SUMMARIZE_MAIL],
+            summary_line_target=5,
+            date_filter=DateFilter(mode=DateFilterMode.NONE),
+            missing_slots=[],
+            task_type=IntentTaskType.SUMMARY,
+            output_format=IntentOutputFormat.STRUCTURED_TEMPLATE,
+            confidence=0.8,
+        )
+        captured: dict[str, object] = {}
+
+        class StubParser:
+            def parse(
+                self,
+                user_message: str,
+                has_selected_mail: bool = False,
+                selected_message_id_exists: bool = False,
+            ) -> IntentDecomposition:
+                captured["user_message"] = user_message
+                captured["has_selected_mail"] = has_selected_mail
+                captured["selected_message_id_exists"] = selected_message_id_exists
+                return decomposition
+
+        with patch("app.middleware.policies.get_intent_parser", return_value=StubParser()):
+            _ = compose_intent_augmented_text(
+                "[질의 범위] 현재 선택 메일 1건만 기준으로 처리\n현재메일 요약해줘"
+            )
+        self.assertEqual("현재메일 요약해줘", captured.get("user_message"))
+        self.assertTrue(bool(captured.get("has_selected_mail")))
+        self.assertTrue(bool(captured.get("selected_message_id_exists")))
+
+    def test_compose_intent_augmented_text_passes_default_namespace_without_current_scope(self) -> None:
+        """
+        현재메일 scope 라벨이 없으면 parser namespace는 기본(False/False)이어야 한다.
+        """
+        decomposition = IntentDecomposition(
+            original_query="일반 질문",
+            steps=[ExecutionStep.SUMMARIZE_MAIL],
+            summary_line_target=5,
+            date_filter=DateFilter(mode=DateFilterMode.NONE),
+            missing_slots=[],
+            task_type=IntentTaskType.GENERAL,
+            output_format=IntentOutputFormat.GENERAL,
+            confidence=0.6,
+        )
+        captured: dict[str, object] = {}
+
+        class StubParser:
+            def parse(
+                self,
+                user_message: str,
+                has_selected_mail: bool = False,
+                selected_message_id_exists: bool = False,
+            ) -> IntentDecomposition:
+                captured["user_message"] = user_message
+                captured["has_selected_mail"] = has_selected_mail
+                captured["selected_message_id_exists"] = selected_message_id_exists
+                return decomposition
+
+        with patch("app.middleware.policies.get_intent_parser", return_value=StubParser()):
+            _ = compose_intent_augmented_text("일반 질문")
+        self.assertEqual("일반 질문", captured.get("user_message"))
+        self.assertFalse(bool(captured.get("has_selected_mail")))
+        self.assertFalse(bool(captured.get("selected_message_id_exists")))
+
     def test_compose_intent_augmented_text_for_cause_only_analysis(self) -> None:
         """
         원인 전용 질의는 원인만 지시하고 영향/대응 강제 지시를 넣지 않아야 한다.
@@ -198,6 +268,26 @@ class MiddlewarePoliciesTest(unittest.TestCase):
             text = compose_intent_augmented_text("현재메일에서 사용한 OU 쿼리를 알려줘")
         self.assertIn("해당 값을 먼저 1~3개로 직접 답한다", text)
         self.assertIn("근거 1줄만", text)
+
+    def test_compose_intent_augmented_text_adds_translation_instruction(self) -> None:
+        """
+        현재메일 번역 요청은 번역 우선 라우팅 지시를 주입해야 한다.
+        """
+        decomposition = IntentDecomposition(
+            original_query="현재메일 번역해줘",
+            steps=[ExecutionStep.READ_CURRENT_MAIL, ExecutionStep.EXTRACT_KEY_FACTS],
+            summary_line_target=5,
+            date_filter=DateFilter(mode=DateFilterMode.NONE),
+            missing_slots=[],
+            task_type=IntentTaskType.GENERAL,
+            output_format=IntentOutputFormat.GENERAL,
+            confidence=0.55,
+        )
+        parser = type("StubParser", (), {"parse": lambda self, user_message: decomposition})()
+        with patch("app.middleware.policies.get_intent_parser", return_value=parser):
+            text = compose_intent_augmented_text("현재메일 번역해줘")
+        self.assertIn("요약 대신 원문 의미를 유지한 전체 번역문", text)
+        self.assertIn("문단 단위 번역", text)
 
     def test_compose_intent_augmented_text_removes_search_step_when_scope_is_current_mail(self) -> None:
         """
