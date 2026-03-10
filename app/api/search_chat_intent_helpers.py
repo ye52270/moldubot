@@ -136,7 +136,11 @@ def is_explicit_todo_registration_query(user_message: str) -> bool:
     return has_todo and has_registration
 
 
-def build_hitl_confirm_metadata(interrupts: object, thread_id: str) -> dict[str, Any]:
+def build_hitl_confirm_metadata(
+    interrupts: object,
+    thread_id: str,
+    prompt_variant: str = "",
+) -> dict[str, Any]:
     """HIL 인터럽트 결과를 UI 확인 카드 메타데이터로 변환한다."""
     normalized_interrupts = interrupts if isinstance(interrupts, list) else []
     first_interrupt = normalized_interrupts[0] if normalized_interrupts else {}
@@ -147,6 +151,7 @@ def build_hitl_confirm_metadata(interrupts: object, thread_id: str) -> dict[str,
         "required": True,
         "thread_id": thread_id,
         "confirm_token": str(confirm_token or "").strip(),
+        "prompt_variant": str(prompt_variant or "").strip(),
         "actions": actions,
     }
 

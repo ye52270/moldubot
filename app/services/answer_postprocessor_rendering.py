@@ -9,6 +9,11 @@ from app.services.answer_postprocessor_summary import (
     normalize_multiline_text,
 )
 
+SHORT_ANSWER_MAX_CHARS = 120
+MIN_STRUCTURED_LINE_COUNT = 2
+STRUCTURED_LINE_MAX_PICK = 6
+STRUCTURED_ADVANTAGE_MULTIPLIER = 2
+
 
 def render_contract_answer(user_message: str, contract: LLMResponseContract) -> str:
     """
@@ -65,6 +70,8 @@ def render_general_contract(user_message: str, contract: LLMResponseContract) ->
     """
     if contract.reply_draft:
         return _normalize_reply_draft_text(text=contract.reply_draft)
+    if _should_prefer_structured_lines(contract=contract):
+        return _render_general_structured_lines(contract=contract)
     if contract.answer:
         code_snippet = render_auto_code_snippet_text(
             user_message=user_message,
@@ -180,3 +187,59 @@ def _normalize_reply_draft_text(text: str) -> str:
     lines = [line.strip() for line in normalized.split("\n")]
     joined = "\n".join(lines)
     return joined.replace("\n\n\n", "\n\n").strip()
+
+
+def _render_general_structured_lines(contract: LLMResponseContract) -> str:
+    """
+    general 계약의 구조 라인 필드를 불릿 목록으로 렌더링한다.
+
+    Args:
+        contract: JSON 계약 객체
+
+    Returns:
+        구조 라인 불릿 문자열. 후보가 없으면 빈 문자열
+    """
+    deduped = _collect_general_structured_lines(contract=contract)
+    if not deduped:
+        return ""
+    return normalize_multiline_text(text="\n".join(f"- {item}" for item in deduped))
+
+
+def _should_prefer_structured_lines(contract: LLMResponseContract) -> bool:
+    """
+    general 계약에서 단문 answer 대신 구조 라인 렌더를 우선할지 판단한다.
+
+    Args:
+        contract: JSON 계약 객체
+
+    Returns:
+        구조 라인 우선 렌더 대상이면 True
+    """
+    answer_text = str(contract.answer or "").strip()
+    if not answer_text:
+        return False
+    if len(answer_text) > SHORT_ANSWER_MAX_CHARS:
+        return False
+    structured_lines = _collect_general_structured_lines(contract=contract)
+    if len(structured_lines) < MIN_STRUCTURED_LINE_COUNT:
+        return False
+    structured_chars = sum(len(line) for line in structured_lines[:STRUCTURED_LINE_MAX_PICK])
+    return structured_chars >= (len(answer_text) * STRUCTURED_ADVANTAGE_MULTIPLIER)
+
+
+def _collect_general_structured_lines(contract: LLMResponseContract) -> list[str]:
+    """
+    general 계약에서 정보성 구조 라인 후보를 수집한다.
+
+    Args:
+        contract: JSON 계약 객체
+
+    Returns:
+        중복 제거된 구조 라인 목록
+    """
+    candidates = [
+        *[str(item or "").strip() for item in contract.summary_lines],
+        *[str(item or "").strip() for item in contract.major_points],
+        *[str(item or "").strip() for item in contract.key_points],
+    ]
+    return _dedupe_lines(candidates)

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 
-from app.core.intent_rules import extract_summary_line_target
+from app.core.intent_rules import extract_summary_line_target, is_mail_summary_skill_query
 from app.services.answer_postprocessor_line_filters import (
     is_header_like_line,
     is_low_value_summary_line,
@@ -57,7 +57,7 @@ def is_current_mail_summary_request(user_message: str) -> bool:
     """
     text = str(user_message or "")
     compact = re.sub(r"\s+", "", text)
-    return "현재메일" in compact and "요약" in compact
+    return ("현재메일" in compact and "요약" in compact) or is_mail_summary_skill_query(user_message=text)
 
 
 def is_explicit_line_summary_request(user_message: str) -> bool:

@@ -91,6 +91,7 @@
 - `AZURE_OPENAI_DEPLOYMENT`: 기본 채팅/요약 배포명 (예: `gpt-4o-mini`)
 - `MOLDUBOT_AGENT_MODEL`: 실행 에이전트 모델 (기본 `gpt-4o-mini`)
 - `MOLDUBOT_AGENT_SYSTEM_PROMPT`: 실행 에이전트 시스템 프롬프트
+- `MOLDUBOT_AGENT_SKILLS_PATHS`: Deep Agents skills 디렉터리 목록(콤마/세미콜론/줄바꿈 구분, 예: `/skills/core,/skills/mail`)
 - `OLLAMA_BASE_URL`: 의도 구조분해용 Ollama URL (기본 `http://127.0.0.1:11434`)
 - `MOLDUBOT_INTENT_MODEL`: 의도 구조분해 모델 태그 (기본 `exaone3.5:2.4b`)
 - `MOLDUBOT_LOG_LEVEL`: 로깅 레벨

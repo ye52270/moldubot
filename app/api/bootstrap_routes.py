@@ -43,7 +43,8 @@ def search_chat_confirm(payload: ConfirmRequest) -> dict[str, Any]:
     Returns:
         확인 처리 결과
     """
-    agent = get_deep_chat_agent()
+    prompt_variant = str(payload.prompt_variant or "").strip()
+    agent = get_deep_chat_agent(prompt_variant=prompt_variant or None)
     result = agent.resume_pending_actions(
         thread_id=payload.thread_id,
         approved=payload.approved,
@@ -67,6 +68,7 @@ def search_chat_confirm(payload: ConfirmRequest) -> dict[str, Any]:
                     "required": True,
                     "approved": bool(payload.approved),
                     "confirm_token": str(first_interrupt.get("interrupt_id") or ""),
+                    "prompt_variant": prompt_variant,
                     "actions": first_actions if isinstance(first_actions, list) else [],
                 }
             },

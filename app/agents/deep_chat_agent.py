@@ -9,6 +9,7 @@ from deepagents import create_deep_agent
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.types import Command
 
+from app.agents.agent_runtime_config import resolve_agent_skills_paths
 from app.agents.deep_chat_agent_utils import (
     extract_assistant_text,
     extract_interrupt_requests,
@@ -98,6 +99,7 @@ class DeepChatAgent:
             system_prompt=system_prompt,
             middleware=build_agent_middlewares(),
             subagents=get_agent_subagents(),
+            skills=resolve_agent_skills_paths() or None,
             checkpointer=checkpointer or _get_agent_checkpointer(DEFAULT_PROMPT_VARIANT),
             name="moldubot-chat-agent",
         )

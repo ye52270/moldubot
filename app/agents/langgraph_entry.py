@@ -6,6 +6,7 @@ from deepagents import create_deep_agent
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph.state import CompiledStateGraph
 
+from app.agents.agent_runtime_config import resolve_agent_skills_paths
 from app.agents.deep_chat_agent import (
     DEFAULT_AGENT_MODEL,
     DEFAULT_PROMPT_VARIANT,
@@ -60,6 +61,7 @@ def build_graph() -> CompiledStateGraph:
         system_prompt=system_prompt,
         middleware=build_agent_middlewares(),
         subagents=get_agent_subagents(),
+        skills=resolve_agent_skills_paths() or None,
         checkpointer=_STUDIO_CHECKPOINTER,
         name="moldubot-chat-agent",
     )

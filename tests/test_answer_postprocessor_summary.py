@@ -80,6 +80,7 @@ class AnswerPostprocessorSummaryTest(unittest.TestCase):
         """
         self.assertTrue(is_current_mail_summary_request("현재메일 요약"))
         self.assertTrue(is_current_mail_summary_request("현재 메일 요약"))
+        self.assertTrue(is_current_mail_summary_request("/메일요약"))
 
 
 if __name__ == "__main__":

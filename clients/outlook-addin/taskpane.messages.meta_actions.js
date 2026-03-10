@@ -48,6 +48,7 @@
       var description = String(firstAction.description || '').trim() || '실행 전 승인 확인이 필요합니다.';
       var threadId = String(confirm.thread_id || '').trim();
       var confirmToken = String(confirm.confirm_token || '').trim();
+      var promptVariant = String(confirm.prompt_variant || '').trim();
       return (
         '<div class="hitl-confirm-block">' +
           '<div class="hitl-confirm-badge">실행 승인 필요</div>' +
@@ -55,8 +56,8 @@
           '<div class="hitl-confirm-desc">' + escapeHtml(summary || description) + '</div>' +
           '<div class="hitl-confirm-progress" data-role="hitl-confirm-progress" hidden></div>' +
           '<div class="hitl-confirm-actions">' +
-            '<button type="button" class="hitl-action-btn approve" data-action="hitl-confirm-approve" data-thread-id="' + escapeAttr(threadId) + '" data-confirm-token="' + escapeAttr(confirmToken) + '" data-hitl-action-name="' + escapeAttr(actionName) + '">승인</button>' +
-            '<button type="button" class="hitl-action-btn reject" data-action="hitl-confirm-reject" data-thread-id="' + escapeAttr(threadId) + '" data-confirm-token="' + escapeAttr(confirmToken) + '" data-hitl-action-name="' + escapeAttr(actionName) + '">거절</button>' +
+            '<button type="button" class="hitl-action-btn approve" data-action="hitl-confirm-approve" data-thread-id="' + escapeAttr(threadId) + '" data-confirm-token="' + escapeAttr(confirmToken) + '" data-prompt-variant="' + escapeAttr(promptVariant) + '" data-hitl-action-name="' + escapeAttr(actionName) + '">승인</button>' +
+            '<button type="button" class="hitl-action-btn reject" data-action="hitl-confirm-reject" data-thread-id="' + escapeAttr(threadId) + '" data-confirm-token="' + escapeAttr(confirmToken) + '" data-prompt-variant="' + escapeAttr(promptVariant) + '" data-hitl-action-name="' + escapeAttr(actionName) + '">거절</button>' +
           '</div>' +
         '</div>'
       );

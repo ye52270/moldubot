@@ -204,7 +204,7 @@ class AnswerPostprocessorRoutingTest(unittest.TestCase):
             "one_line_summary": "차단 의심으로 즉시 확인이 필요합니다.",
         }
         result = postprocess_final_answer(
-            user_message="현재메일 요약해줘",
+            user_message="/메일요약",
             answer=json.dumps(payload, ensure_ascii=False),
         )
         self.assertNotIn("## 이메일 요약", result)
@@ -218,6 +218,27 @@ class AnswerPostprocessorRoutingTest(unittest.TestCase):
         self.assertIn("1. 차단 여부 확인", result)
         self.assertIn("2. 조치 결과 회신", result)
         self.assertNotIn("> **요약:**", result)
+
+    def test_non_skill_current_mail_summary_does_not_force_standard_template(self) -> None:
+        """
+        일반 자연어 현재메일 요약 요청은 standard_summary가 와도 섹션 템플릿을 강제하지 않아야 한다.
+        """
+        payload = {
+            "format_type": "standard_summary",
+            "title": "Grafana Daily Report 미수신 확인 요청",
+            "answer": "",
+            "summary_lines": ["Gmail 정책에서 도메인 정합성 검증 실패"],
+            "key_points": [],
+            "action_items": [],
+            "major_points": ["헤더 분석 결과를 기반으로 후속 조치 필요"],
+            "required_actions": ["도메인 정합성 재점검"],
+        }
+        result = postprocess_final_answer(
+            user_message="현재메일 요약해줘",
+            answer=json.dumps(payload, ensure_ascii=False),
+        )
+        self.assertNotIn("### 🧾 제목", result)
+        self.assertIn("Gmail 정책에서 도메인 정합성 검증 실패", result)
 
     def test_current_mail_json_contract_is_preferred_over_grounded_safe(self) -> None:
         """
@@ -344,7 +365,7 @@ class AnswerPostprocessorRoutingTest(unittest.TestCase):
             ],
         }
         result = postprocess_final_answer(
-            user_message="현재메일 요약해줘",
+            user_message="/메일요약",
             answer=json.dumps(payload, ensure_ascii=False),
         )
         self.assertIn("### 👥 수신자 역할", result)
@@ -370,7 +391,7 @@ class AnswerPostprocessorRoutingTest(unittest.TestCase):
             "one_line_summary": "요약 문장",
         }
         result = postprocess_final_answer(
-            user_message="현재메일 요약해줘",
+            user_message="/메일요약",
             answer=json.dumps(payload, ensure_ascii=False),
         )
         self.assertIn("1. 전달 경로", result)
@@ -395,7 +416,7 @@ class AnswerPostprocessorRoutingTest(unittest.TestCase):
             "one_line_summary": "요약 문장",
         }
         result = postprocess_final_answer(
-            user_message="현재메일 요약해줘",
+            user_message="/메일요약",
             answer=json.dumps(payload, ensure_ascii=False),
         )
         self.assertIn("### 📌 주요 내용", result)
@@ -426,7 +447,7 @@ class AnswerPostprocessorRoutingTest(unittest.TestCase):
             "one_line_summary": "요약",
         }
         result = postprocess_final_answer(
-            user_message="현재메일 요약해줘",
+            user_message="/메일요약",
             answer=json.dumps(payload, ensure_ascii=False),
         )
         self.assertIn("### ✅ 조치 필요 사항", result)
@@ -456,7 +477,7 @@ class AnswerPostprocessorRoutingTest(unittest.TestCase):
             "one_line_summary": "요약 문장",
         }
         result = postprocess_final_answer(
-            user_message="현재메일 요약해줘",
+            user_message="/메일요약",
             answer=json.dumps(payload, ensure_ascii=False),
         )
         self.assertIn("| **수신자** | jaeyoung_dev |", result)
@@ -486,7 +507,7 @@ class AnswerPostprocessorRoutingTest(unittest.TestCase):
             "one_line_summary": "",
         }
         result = postprocess_final_answer(
-            user_message="현재메일 요약해줘",
+            user_message="/메일요약",
             answer=json.dumps(payload, ensure_ascii=False),
         )
         date_row = "| **날짜** | 2026-02-14 |"
@@ -517,7 +538,7 @@ class AnswerPostprocessorRoutingTest(unittest.TestCase):
             "one_line_summary": "요약 문장",
         }
         result = postprocess_final_answer(
-            user_message="현재메일 요약해줘",
+            user_message="/메일요약",
             answer=json.dumps(payload, ensure_ascii=False),
         )
         self.assertIn("### 📋 기본 정보", result)
@@ -542,7 +563,7 @@ class AnswerPostprocessorRoutingTest(unittest.TestCase):
             "one_line_summary": "요약 문장",
         }
         result = postprocess_final_answer(
-            user_message="현재메일 요약해줘",
+            user_message="/메일요약",
             answer=json.dumps(payload, ensure_ascii=False),
         )
         self.assertIn("1. 서비스 CI 변경 요청", result)
@@ -566,7 +587,7 @@ class AnswerPostprocessorRoutingTest(unittest.TestCase):
             "one_line_summary": "요약 문장",
         }
         result = postprocess_final_answer(
-            user_message="현재메일 요약해줘",
+            user_message="/메일요약",
             answer=json.dumps(payload, ensure_ascii=False),
         )
         self.assertIn("1. 서비스에이스CI변경사항적용이필요함.", result)
@@ -593,7 +614,7 @@ class AnswerPostprocessorRoutingTest(unittest.TestCase):
             "one_line_summary": "정책 적용이 필요함",
         }
         result = postprocess_final_answer(
-            user_message="현재메일 요약해줘",
+            user_message="/메일요약",
             answer=json.dumps(payload, ensure_ascii=False),
         )
         self.assertIn("1. 정책 적용이 필요함", result)
@@ -621,7 +642,7 @@ class AnswerPostprocessorRoutingTest(unittest.TestCase):
             "one_line_summary": "비용 산정과 추가 검토가 필요한 상황",
         }
         result = postprocess_final_answer(
-            user_message="현재메일 요약해줘",
+            user_message="/메일요약",
             answer=json.dumps(payload, ensure_ascii=False),
         )
         self.assertIn("1. 비용 산정 요청", result)
@@ -646,7 +667,7 @@ class AnswerPostprocessorRoutingTest(unittest.TestCase):
             "one_line_summary": "요약",
         }
         result = postprocess_final_answer(
-            user_message="현재메일 요약해줘",
+            user_message="/메일요약",
             answer=json.dumps(payload, ensure_ascii=False),
             tool_payload={
                 "mail_context": {
@@ -676,7 +697,7 @@ class AnswerPostprocessorRoutingTest(unittest.TestCase):
             "one_line_summary": "서비스 CI 변경 요청 — 즉시 적용 필요",
         }
         result = postprocess_final_answer(
-            user_message="현재메일 요약해줘",
+            user_message="/메일요약",
             answer=json.dumps(payload, ensure_ascii=False),
         )
         self.assertNotIn("> **요약:**", result)
@@ -699,7 +720,7 @@ class AnswerPostprocessorRoutingTest(unittest.TestCase):
             "one_line_summary": "",
         }
         result = postprocess_final_answer(
-            user_message="현재메일 요약해줘",
+            user_message="/메일요약",
             answer=json.dumps(payload, ensure_ascii=False),
         )
         self.assertIn("### 📌 주요 내용", result)
@@ -723,7 +744,7 @@ class AnswerPostprocessorRoutingTest(unittest.TestCase):
             "one_line_summary": "요약",
         }
         result = postprocess_final_answer(
-            user_message="현재메일 요약해줘",
+            user_message="/메일요약",
             answer=json.dumps(payload, ensure_ascii=False),
             tool_payload={
                 "mail_context": {
@@ -763,7 +784,7 @@ class AnswerPostprocessorRoutingTest(unittest.TestCase):
             "one_line_summary": "LDAP 연동 실패로 그룹 조회 오류 발생",
         }
         result = postprocess_final_answer(
-            user_message="현재메일 요약해줘",
+            user_message="/메일요약",
             answer=json.dumps(payload, ensure_ascii=False),
             tool_payload={
                 "mail_context": {
@@ -801,7 +822,7 @@ class AnswerPostprocessorRoutingTest(unittest.TestCase):
         }
         with self.assertLogs("app.services.answer_postprocessor_rendering", level="INFO") as captured:
             _ = postprocess_final_answer(
-                user_message="현재메일 요약해줘",
+                user_message="/메일요약",
                 answer=json.dumps(payload, ensure_ascii=False),
             )
         joined = "\n".join(captured.output)
@@ -1156,7 +1177,7 @@ class AnswerPostprocessorRoutingTest(unittest.TestCase):
             "one_line_summary": "요약",
         }
         result = postprocess_final_answer(
-            user_message="현재메일 요약해줘",
+            user_message="/메일요약",
             answer=json.dumps(payload, ensure_ascii=False),
         )
         self.assertIn("### 🧾 제목", result)
@@ -1205,7 +1226,7 @@ class AnswerPostprocessorRoutingTest(unittest.TestCase):
             "one_line_summary": "요약",
         }
         result = postprocess_final_answer(
-            user_message="현재메일 요약해줘",
+            user_message="/메일요약",
             answer=json.dumps(payload, ensure_ascii=False),
             tool_payload={
                 "mail_context": {
@@ -1231,7 +1252,7 @@ class AnswerPostprocessorRoutingTest(unittest.TestCase):
             "action_items": [],
         }
         result = postprocess_final_answer(
-            user_message="현재메일 요약해줘",
+            user_message="/메일요약",
             answer=json.dumps(payload, ensure_ascii=False),
         )
         self.assertNotIn("## 이메일 요약", result)
@@ -1499,7 +1520,7 @@ class AnswerPostprocessorRoutingTest(unittest.TestCase):
         """
         with self.assertLogs("app.services.answer_postprocessor", level="WARNING") as captured:
             result = postprocess_final_answer(
-                user_message="현재메일 요약해줘",
+                user_message="/메일요약",
                 answer='{"format_type":"summary","summary_lines":["a",]}',
             )
         joined = "\n".join(captured.output)
@@ -2084,6 +2105,62 @@ class AnswerPostprocessorRoutingTest(unittest.TestCase):
         )
         self.assertEqual("코드 스니펫이 없습니다.", result)
         self.assertNotIn("```", result)
+
+    def test_general_contract_prefers_structured_lines_when_short_answer_is_sparse(self) -> None:
+        """
+        general 계약에서 answer가 단문이고 구조 라인이 풍부하면 구조 라인 렌더를 우선해야 한다.
+        """
+        payload = {
+            "format_type": "general",
+            "title": "Your Microsoft invoice G145502765 is ready",
+            "answer": "마이크로소프트 인보이스 G145502765가 준비되었습니다.",
+            "summary_lines": [
+                "로그인하여 최신 인보이스를 검토하십시오.",
+                "고객 이름: JAE YOUNG PARK",
+                "인보이스 번호: G145502765",
+            ],
+            "major_points": [
+                "청구 기간: 2026년 2월 1일 - 2026년 2월 28일",
+            ],
+            "key_points": [],
+            "action_items": [],
+        }
+        result = postprocess_final_answer(
+            user_message="현재메일 내용을 정리해줘",
+            answer=json.dumps(payload, ensure_ascii=False),
+            tool_payload={"action": "current_mail"},
+        )
+        self.assertIn("- 로그인하여 최신 인보이스를 검토하십시오.", result)
+        self.assertIn("- 청구 기간: 2026년 2월 1일 - 2026년 2월 28일", result)
+        self.assertNotEqual("마이크로소프트 인보이스 G145502765가 준비되었습니다.", result)
+
+    def test_general_contract_keeps_answer_when_answer_is_long(self) -> None:
+        """
+        general 계약에서 answer 길이가 충분히 길면 구조 라인이 있어도 answer를 유지해야 한다.
+        """
+        payload = {
+            "format_type": "general",
+            "title": "긴 본문 테스트",
+            "answer": (
+                "이번 안내는 인보이스 검토 절차, 결제 상태 확인 방법, 미결제 시 확인 포인트와 "
+                "지원 채널까지 포함한 상세 안내이며 우선 로그인 후 첨부 청구서를 열어 항목별 금액을 확인해 주세요."
+            ),
+            "summary_lines": [
+                "로그인 후 인보이스 확인",
+                "결제 상태 점검",
+                "지원 채널 문의 가능",
+            ],
+            "major_points": [],
+            "key_points": [],
+            "action_items": [],
+        }
+        result = postprocess_final_answer(
+            user_message="현재메일 정리해줘",
+            answer=json.dumps(payload, ensure_ascii=False),
+            tool_payload={"action": "current_mail"},
+        )
+        self.assertIn("상세 안내", result)
+        self.assertNotIn("- 로그인 후 인보이스 확인", result)
 
 
 if __name__ == "__main__":

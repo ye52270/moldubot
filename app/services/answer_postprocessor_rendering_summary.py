@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 
 from app.core.logging_config import get_logger
+from app.core.intent_rules import is_mail_summary_skill_query
 from app.models.response_contracts import LLMResponseContract, SummaryResponseContract
 from app.services.answer_postprocessor_rendering_standard import (
     resolve_basic_info_value,
@@ -76,7 +77,10 @@ def should_render_standard_summary(user_message: str, contract: LLMResponseContr
         표준 요약 템플릿 사용 시 True
     """
     text = str(user_message or "")
+    is_mail_summary_skill = is_mail_summary_skill_query(user_message=text)
     is_current_mail_summary = is_current_mail_summary_request(user_message=text)
+    if not is_mail_summary_skill:
+        return False
     if is_current_mail_summary and is_explicit_line_summary_request(user_message=text):
         return False
     if contract.format_type in ("standard_summary", "detailed_summary"):

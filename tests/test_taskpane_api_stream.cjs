@@ -367,12 +367,14 @@ test('taskpane api sends HIL confirm payload', async () => {
     thread_id: 'thread-hitl-1',
     approved: true,
     confirm_token: 'interrupt-1',
+    prompt_variant: 'quality_structured_json_strict',
   });
 
   assert.equal(payload.status, 'completed');
   assert.equal(requestBodies[0].thread_id, 'thread-hitl-1');
   assert.equal(requestBodies[0].approved, true);
   assert.equal(requestBodies[0].confirm_token, 'interrupt-1');
+  assert.equal(requestBodies[0].prompt_variant, 'quality_structured_json_strict');
 });
 
 test('taskpane api reads promise/finance catalogs and submits legacy forms', async () => {

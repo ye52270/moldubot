@@ -1,6 +1,32 @@
 # Task
 
 ## 현재 작업
+Deep Agents 구조 개선 적용(prompt/HITL variant 일관성 + skills 경로 활성화)
+
+## Plan (2026-03-10 Deep Agents 구조 개선 적용)
+- [x] 1단계: HITL confirm 경로에 prompt_variant 전달/재사용 계약 추가(백엔드+프론트)
+- [x] 2단계: create_deep_agent skills 경로를 환경설정으로 활성화
+- [x] 3단계: 회귀 테스트 추가 및 실행
+- [x] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-10 Deep Agents 구조 개선 적용)
+- [23:13] 작업 시작: 전체 구조 재점검 결과를 반영해 prompt/HITL/skills 개선 코드 적용 착수
+- [23:17] 완료: HITL confirm prompt_variant 연동 + Deep Agents skills 경로 파서/주입 적용, 관련 테스트(Python 14건 + Node 12건) 통과
+
+## 현재 작업
+Deep Agents/LangChain 구조 재점검 및 개선점 도출(스킬 기준 종합 리뷰)
+
+## Plan (2026-03-10 Deep Agents/LangChain 구조 재점검)
+- [x] 1단계: framework-selection 기준 계층 선택 적합성 확인
+- [x] 2단계: deep-agents-core/memory/orchestration 체크리스트 기반 갭 분석
+- [x] 3단계: langchain-dependencies/fundamentals/middleware 기준 리스크 및 개선안 정리
+- [x] 4단계: Action Log 업데이트 및 결과 공유
+
+## Action Log (2026-03-10 Deep Agents/LangChain 구조 재점검)
+- [23:09] 작업 시작: 사용자 요청으로 Deep Agents/LangChain 구조 종합 점검 및 개선점 분석 착수
+- [23:10] 완료: 계층 선택/오케스트레이션/메모리/의존성 관점 구조 점검 완료, 우선순위 개선안 도출
+
+## 현재 작업
 Deep Agents HITL checkpointer 정합성 수정 + 오케스트레이션 계약 테스트 보강
 
 ## Plan (2026-03-10 Deep Agents 정합성 수정)

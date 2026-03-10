@@ -73,11 +73,13 @@ class ConfirmRequest(BaseModel):
         thread_id: 승인 대상 스레드 식별자
         approved: 승인 여부
         confirm_token: 승인 토큰
+        prompt_variant: 승인 대상 에이전트 프롬프트 variant
     """
 
     thread_id: str = Field(default="")
     approved: bool = False
     confirm_token: str | None = None
+    prompt_variant: str | None = None
 
 
 class RoomBookingRequest(BaseModel):

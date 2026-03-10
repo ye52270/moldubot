@@ -3,7 +3,13 @@ from __future__ import annotations
 import unittest
 from datetime import date, timedelta
 
-from app.core.intent_rules import build_missing_slots, extract_date_filter_fields, infer_steps_from_query, is_code_review_query
+from app.core.intent_rules import (
+    build_missing_slots,
+    extract_date_filter_fields,
+    infer_steps_from_query,
+    is_code_review_query,
+    is_mail_summary_skill_query,
+)
 
 
 class IntentRulesTest(unittest.TestCase):
@@ -137,6 +143,12 @@ class IntentRulesTest(unittest.TestCase):
         self.assertTrue(is_code_review_query("코드 스니펫 분석"))
         self.assertTrue(is_code_review_query("/코드분석"))
         self.assertFalse(is_code_review_query("현재메일 요약해줘"))
+
+    def test_is_mail_summary_skill_query_detects_slash_skill(self) -> None:
+        """`/메일요약` 명령은 메일요약 스킬 명령으로 판별해야 한다."""
+        self.assertTrue(is_mail_summary_skill_query("/메일요약"))
+        self.assertTrue(is_mail_summary_skill_query("/메일요약 지금 메일 요약"))
+        self.assertFalse(is_mail_summary_skill_query("현재메일 요약해줘"))
 
     def test_build_missing_slots_accepts_hhmm_and_attendee_count_keys(self) -> None:
         """HH:MM/attendee_count 키가 있으면 예약 슬롯 누락으로 오탐하면 안 된다."""

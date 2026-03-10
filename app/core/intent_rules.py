@@ -16,6 +16,7 @@ ALLOWED_RELATIVE_DATE_FILTERS = (
     "tomorrow",
 )
 ALLOWED_MISSING_SLOTS = REQUIRED_BOOKING_SLOTS
+MAIL_SUMMARY_SKILL_COMMANDS: tuple[str, ...] = ("/메일요약", "/mailsummary")
 
 
 def is_code_review_query(user_message: str) -> bool:
@@ -51,6 +52,25 @@ def sanitize_user_query(user_message: str) -> str:
     text = str(user_message or "").strip()
     # 테스트 입력에서 자주 섞이는 앞뒤 따옴표를 제거한다.
     return text.strip('"').strip("'").strip()
+
+
+def is_mail_summary_skill_query(user_message: str) -> bool:
+    """
+    사용자 질의가 `/메일요약` 스킬 명령인지 판별한다.
+
+    Args:
+        user_message: 원본 사용자 입력
+
+    Returns:
+        메일요약 스킬 명령이면 True
+    """
+    normalized = sanitize_user_query(user_message=user_message).lower()
+    if not normalized:
+        return False
+    return any(
+        normalized == command or normalized.startswith(f"{command} ")
+        for command in MAIL_SUMMARY_SKILL_COMMANDS
+    )
 
 
 def extract_summary_line_target(user_message: str) -> int:

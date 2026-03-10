@@ -35,6 +35,7 @@
       const approved = action === 'hitl-confirm-approve';
       const threadId = String(button.dataset.threadId || '').trim();
       const confirmToken = String(button.dataset.confirmToken || '').trim();
+      const promptVariant = String(button.dataset.promptVariant || '').trim();
       const hitlActionName = String(button.dataset.hitlActionName || '').trim();
       const lockKey = (threadId || '-') + '::' + (confirmToken || '-');
       if (!state.hiltConfirmLocks || typeof state.hiltConfirmLocks !== 'object') {
@@ -51,7 +52,12 @@
         messageUi.disableHitlConfirmControls();
       }
       setSendingState(true);
-      chatApi.requestChatConfirm({ thread_id: threadId, approved: approved, confirm_token: confirmToken }).then(function (payload) {
+      chatApi.requestChatConfirm({
+        thread_id: threadId,
+        approved: approved,
+        confirm_token: confirmToken,
+        prompt_variant: promptVariant || null,
+      }).then(function (payload) {
         const answerText = String(payload && payload.answer ? payload.answer : '').trim() || '처리 결과를 확인하지 못했습니다.';
         const metadataRaw = payload && payload.metadata && typeof payload.metadata === 'object' ? payload.metadata : {};
         const bookingEvent = metadataRaw && metadataRaw.booking_event && typeof metadataRaw.booking_event === 'object'

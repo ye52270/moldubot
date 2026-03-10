@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import types
 import unittest
 from unittest.mock import MagicMock, patch
 
@@ -24,7 +25,8 @@ class MailVectorIndexServiceTest(unittest.TestCase):
         fake_collection = MagicMock()
         fake_client = MagicMock()
         fake_client.get_or_create_collection.return_value = fake_collection
-        with patch("app.services.mail_vector_index_service.chromadb.PersistentClient", return_value=fake_client):
+        fake_module = types.SimpleNamespace(PersistentClient=MagicMock(return_value=fake_client))
+        with patch("app.services.mail_vector_index_service._load_chromadb_module", return_value=fake_module):
             service = MailVectorIndexService()
             done = service.upsert_mail_document(
                 message_id="m-1",
@@ -54,6 +56,22 @@ class MailVectorIndexServiceTest(unittest.TestCase):
             summary="요약",
             category="일반",
             from_address="b@example.com",
+            received_date="2026-03-10T00:00:00Z",
+        )
+        self.assertFalse(done)
+
+    @patch.dict(os.environ, {"MOLDUBOT_MAIL_VECTOR_INDEX_ENABLED": "1"}, clear=False)
+    @patch("app.services.mail_vector_index_service._load_chromadb_module", return_value=None)
+    def test_upsert_mail_document_returns_false_when_chromadb_unavailable(self, _: MagicMock) -> None:
+        """chromadb import 실패 시에도 예외 없이 비활성 폴백되어야 한다."""
+        service = MailVectorIndexService()
+        done = service.upsert_mail_document(
+            message_id="m-3",
+            subject="제목",
+            body_text="본문",
+            summary="요약",
+            category="일반",
+            from_address="c@example.com",
             received_date="2026-03-10T00:00:00Z",
         )
         self.assertFalse(done)

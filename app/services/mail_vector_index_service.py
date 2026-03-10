@@ -1,9 +1,9 @@
 from __future__ import annotations
 
+import importlib
 import os
 from pathlib import Path
-
-import chromadb
+from types import ModuleType
 
 from app.core.logging_config import get_logger
 from app.services.mail_search_utils import build_hash_embedding
@@ -28,6 +28,10 @@ class MailVectorIndexService:
         self._persist_dir = _resolve_persist_dir()
         self._collection_name = str(os.getenv(MAIL_VECTOR_COLLECTION_ENV, DEFAULT_MAIL_VECTOR_COLLECTION)).strip()
         self._collection_name = self._collection_name or DEFAULT_MAIL_VECTOR_COLLECTION
+        self._chromadb: ModuleType | None = _load_chromadb_module()
+        if self._enabled and self._chromadb is None:
+            logger.warning("mail_vector_index_disabled: reason=chromadb_import_failed")
+            self._enabled = False
 
     def upsert_mail_document(
         self,
@@ -83,9 +87,25 @@ class MailVectorIndexService:
         Returns:
             Chroma 컬렉션 객체
         """
+        if self._chromadb is None:
+            raise RuntimeError("chromadb_unavailable")
         self._persist_dir.mkdir(parents=True, exist_ok=True)
-        client = chromadb.PersistentClient(path=str(self._persist_dir))
+        client = self._chromadb.PersistentClient(path=str(self._persist_dir))
         return client.get_or_create_collection(name=self._collection_name)
+
+
+def _load_chromadb_module() -> ModuleType | None:
+    """
+    chromadb 모듈을 지연 로드한다.
+
+    Returns:
+        import 성공 시 모듈 객체, 실패 시 None
+    """
+    try:
+        return importlib.import_module("chromadb")
+    except Exception as exc:  # noqa: BLE001
+        logger.error("mail_vector_index_chromadb_import_failed: %s", exc)
+        return None
 
 
 def _build_document_text(subject: str, body_text: str, summary: str) -> str:

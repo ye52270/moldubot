@@ -728,6 +728,7 @@ def run_search_chat(
                         confirm_metadata=build_hitl_confirm_metadata(
                             interrupts=turn_result.get("interrupts"),
                             thread_id=agent_thread_id,
+                            prompt_variant=prompt_variant,
                         ),
                         build_answer_format_metadata=build_answer_format_metadata,
                         raw_model_output=raw_model_output,

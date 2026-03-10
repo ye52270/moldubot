@@ -173,6 +173,29 @@ class BootstrapSearchChatConfirmTest(unittest.TestCase):
         self.assertIn("Outlook ToDo 생성에 실패", response["answer"])
         self.assertEqual([], response["metadata"]["next_actions"])
 
+    def test_uses_prompt_variant_specific_agent_on_confirm(self) -> None:
+        """confirm 요청의 prompt_variant가 있으면 동일 variant 에이전트를 사용해야 한다."""
+        with patch("app.api.bootstrap_routes.get_deep_chat_agent") as get_agent:
+            agent = get_agent.return_value
+            agent.resume_pending_actions.return_value = {
+                "status": "completed",
+                "thread_id": "thread-6",
+                "answer": "승인 완료",
+                "interrupts": [],
+            }
+            agent.get_last_tool_payload.return_value = {}
+            response = search_chat_confirm(
+                payload=ConfirmRequest(
+                    thread_id="thread-6",
+                    approved=True,
+                    confirm_token="interrupt-6",
+                    prompt_variant="quality_structured_json_strict",
+                )
+            )
+
+        get_agent.assert_called_once_with(prompt_variant="quality_structured_json_strict")
+        self.assertEqual("completed", response["status"])
+
 
 if __name__ == "__main__":
     unittest.main()

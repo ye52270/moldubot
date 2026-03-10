@@ -70,6 +70,37 @@ class LangGraphConfigTest(unittest.TestCase):
         self.assertIn("checkpointer", captured)
         self.assertIsInstance(captured.get("checkpointer"), InMemorySaver)
 
+    def test_build_graph_passes_skills_when_env_configured(self) -> None:
+        """skills 경로 환경변수가 있으면 create_deep_agent에 전달해야 한다."""
+        module = importlib.import_module("app.agents.langgraph_entry")
+
+        captured: dict[str, object] = {}
+
+        class _DummyGraph:
+            def invoke(self, payload: object, config: object | None = None) -> dict[str, object]:
+                del payload, config
+                return {}
+
+        def _fake_create_deep_agent(*args: object, **kwargs: object) -> object:
+            del args
+            captured.update(kwargs)
+            return _DummyGraph()
+
+        with patch.dict(
+            os.environ,
+            {
+                "AZURE_OPENAI_API_KEY": "dummy-key",
+                "AZURE_OPENAI_ENDPOINT": "https://example.openai.azure.com/",
+                "AZURE_OPENAI_API_VERSION": "2024-12-01-preview",
+                "MOLDUBOT_AGENT_SKILLS_PATHS": "/skills/core,/skills/mail",
+            },
+            clear=False,
+        ):
+            with patch.object(module, "create_deep_agent", side_effect=_fake_create_deep_agent):
+                module.build_graph()
+
+        self.assertEqual(["/skills/core", "/skills/mail"], captured.get("skills"))
+
 
 if __name__ == "__main__":
     unittest.main()
