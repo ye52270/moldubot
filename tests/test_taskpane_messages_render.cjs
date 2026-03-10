@@ -844,6 +844,30 @@ test('taskpane messages maps calendar suggestion headings to boxed summary secti
   assert.equal(html.includes('summary-section section-basic'), true);
 });
 
+test('taskpane messages does not drop freeform translation body when heading contains title text', () => {
+  const moduleRef = loadMessagesModule();
+  const instance = moduleRef.create({
+    byId: () => null,
+    escapeHtml: (value) => String(value || ''),
+  });
+  const metadata = {
+    answer_format: {
+      version: 'v1',
+      format_type: 'current_mail',
+      blocks: [
+        { type: 'paragraph', text: '현재 메일의 내용을 번역하겠습니다.' },
+        { type: 'paragraph', text: '---' },
+        { type: 'heading', level: 3, text: '제목: 중요 업데이트: 쿼터 티어 업그레이드 자격' },
+        { type: 'paragraph', text: '귀하의 구독이 자동으로 Tier 1으로 업그레이드될 자격이 있습니다.' },
+      ],
+    },
+  };
+  const html = instance.buildMessageHtml('assistant', '', metadata);
+  assert.equal(html.includes('현재 메일의 내용을 번역하겠습니다.'), true);
+  assert.equal(html.includes('제목: 중요 업데이트: 쿼터 티어 업그레이드 자격'), true);
+  assert.equal(html.includes('귀하의 구독이 자동으로 Tier 1으로 업그레이드될 자격이 있습니다.'), true);
+});
+
 test('taskpane messages renders tech issue section with keyword and detail popover', () => {
   const moduleRef = loadMessagesModule();
   const instance = moduleRef.create({

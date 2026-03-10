@@ -25,7 +25,7 @@
       var token = normalizeHeadingToken(headingText);
       if (!token) return '';
       if (token.indexOf('수신자역할') >= 0 || token.indexOf('수신자별역할') >= 0 || token.indexOf('참여자역할') >= 0) return 'recipient-role';
-      if (token.indexOf('제목') >= 0) return 'title';
+      if (token === '제목') return 'title';
       if (token.indexOf('핵심문제') >= 0 || token.indexOf('핵심이슈') >= 0 || token.indexOf('한줄요약') >= 0) return 'executive';
       if (token.indexOf('회의안건요약') >= 0 || token.indexOf('회의안건') >= 0) return 'executive';
       if (token.indexOf('일정안건요약') >= 0 || token.indexOf('일정안건') >= 0) return 'executive';
