@@ -71,6 +71,8 @@ class AgentPromptsTest(unittest.TestCase):
         """액션아이템 추출 요청은 action_items 필드에 채우도록 기본 프롬프트에 명시되어야 한다."""
         self.assertIn("액션 아이템/할 일/조치사항", DEFAULT_DEEP_AGENT_SYSTEM_PROMPT)
         self.assertIn("action_items", DEFAULT_DEEP_AGENT_SYSTEM_PROMPT)
+        self.assertIn("write_todos", DEFAULT_DEEP_AGENT_SYSTEM_PROMPT)
+        self.assertIn("`task`", DEFAULT_DEEP_AGENT_SYSTEM_PROMPT)
 
     def test_default_prompt_contains_standard_summary_quality_constraints(self) -> None:
         """표준 요약 품질 제약(중복 금지/최소 포인트)이 기본 프롬프트에 포함되어야 한다."""
@@ -79,6 +81,11 @@ class AgentPromptsTest(unittest.TestCase):
         self.assertIn("Do not repeat the same meaning", DEFAULT_DEEP_AGENT_SYSTEM_PROMPT)
         self.assertIn("must contain only observed facts/causes/impacts", DEFAULT_DEEP_AGENT_SYSTEM_PROMPT)
         self.assertIn("must not overlap in sentence/meaning", DEFAULT_DEEP_AGENT_SYSTEM_PROMPT)
+
+    def test_quality_structured_prompt_includes_orchestration_contract(self) -> None:
+        """quality_structured 프롬프트는 todo 계획/서브에이전트 위임 규칙을 포함해야 한다."""
+        self.assertIn("write_todos", QUALITY_STRUCTURED_SYSTEM_PROMPT)
+        self.assertIn("`task`", QUALITY_STRUCTURED_SYSTEM_PROMPT)
 
     def test_default_prompt_contains_recipient_roles_structout_rules(self) -> None:
         """수신자 역할 분석 StructOut 필드와 규칙이 프롬프트에 포함되어야 한다."""

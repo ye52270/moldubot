@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 
 from deepagents import create_deep_agent
+from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph.state import CompiledStateGraph
 
 from app.agents.deep_chat_agent import (
@@ -18,6 +19,7 @@ from app.core.logging_config import get_logger
 from app.middleware.registry import build_agent_middlewares
 
 logger = get_logger(__name__)
+_STUDIO_CHECKPOINTER = InMemorySaver()
 
 
 def _warn_if_provider_key_missing(model_name: str) -> None:
@@ -58,6 +60,7 @@ def build_graph() -> CompiledStateGraph:
         system_prompt=system_prompt,
         middleware=build_agent_middlewares(),
         subagents=get_agent_subagents(),
+        checkpointer=_STUDIO_CHECKPOINTER,
         name="moldubot-chat-agent",
     )
 
