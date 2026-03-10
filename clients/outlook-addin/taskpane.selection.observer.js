@@ -10,6 +10,8 @@
     const setCachedSelectionContext = options.setCachedSelectionContext;
     const bumpSelectionRevision = options.bumpSelectionRevision;
     const eventsModule = options.eventsModule;
+    const setObserverFallbackMode = options.setObserverFallbackMode;
+    const startSelectionPolling = options.startSelectionPolling;
 
     let selectionObserverRegistered = false;
     let selectionObserverRegistering = false;
@@ -49,7 +51,7 @@
           logClientEvent: logClientEvent,
         });
       }
-      return Promise.resolve(false);
+      return Promise.resolve({ ok: false, eventType: String((eventType && eventType.name) || ''), fallbackMode: '' });
     }
 
     function logObserverUnavailable(reason, mailbox, eventTypes) {
@@ -84,9 +86,25 @@
       const handler = createSelectionChangedHandler();
       let registeredCount = 0;
       for (const eventType of eventTypes) {
-        const ok = await registerSelectionObserver(mailbox, eventType, handler);
+        const registration = await registerSelectionObserver(mailbox, eventType, handler);
+        const isObjectResult = registration && typeof registration === 'object';
+        const ok = isObjectResult ? Boolean(registration.ok) : Boolean(registration);
         if (ok) {
           registeredCount += 1;
+          continue;
+        }
+        const eventTypeName = String((isObjectResult && registration.eventType) || eventType.name || '');
+        const fallbackMode = String((isObjectResult && registration.fallbackMode) || '');
+        if (fallbackMode === 'polling' && eventTypeName === 'SelectedItemsChanged') {
+          if (typeof setObserverFallbackMode === 'function') {
+            setObserverFallbackMode('polling', {
+              event_type: eventTypeName,
+              reason: 'selected_items_changed_code7000',
+            });
+          }
+          if (typeof startSelectionPolling === 'function') {
+            startSelectionPolling();
+          }
         }
       }
       selectionObserverRegistered = registeredCount > 0;

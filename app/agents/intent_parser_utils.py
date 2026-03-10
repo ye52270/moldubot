@@ -273,6 +273,7 @@ def apply_step_limit_to_decomposition(
     rebuilt.task_type = decomposition.task_type
     rebuilt.output_format = decomposition.output_format
     rebuilt.confidence = decomposition.confidence
+    rebuilt.origin = decomposition.origin
     return rebuilt
 
 

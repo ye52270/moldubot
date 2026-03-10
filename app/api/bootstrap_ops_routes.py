@@ -34,6 +34,71 @@ NOISY_CLIENT_EVENTS = {
     "selection_context_polled_snapshot",
     "selection_context_effective_send",
 }
+CODE7000_EVENT = "selection_observer_register_failed"
+CODE7000_VALUE = "7000"
+_CODE7000_SUPPRESSION_COUNTS: dict[tuple[str, str], int] = {}
+
+
+def _build_client_log_session_key(request: Request, payload_dict: dict[str, Any]) -> str:
+    """
+    client-log suppression용 세션 키를 생성한다.
+
+    Args:
+        request: FastAPI 요청 객체
+        payload_dict: 로그 payload
+
+    Returns:
+        세션 식별 문자열
+    """
+    payload = payload_dict.get("payload")
+    payload_map = payload if isinstance(payload, dict) else {}
+    for key in ("session_id", "bootstrap_session_id", "thread_id"):
+        value = str(payload_map.get(key) or payload_dict.get(key) or "").strip()
+        if value:
+            return value
+    client_host = str(getattr(request.client, "host", "") or "").strip() or "unknown"
+    mailbox_user = str(payload_map.get("mailbox_user") or "").strip()
+    return f"{client_host}:{mailbox_user or '-'}"
+
+
+def _handle_code7000_log_suppression(
+    request: Request,
+    event_name: str,
+    level: str,
+    payload_dict: dict[str, Any],
+) -> bool:
+    """
+    code 7000 반복 경고를 세션 단위로 suppression 처리한다.
+
+    Args:
+        request: FastAPI 요청 객체
+        event_name: 이벤트 이름
+        level: 로그 레벨
+        payload_dict: 로그 payload
+
+    Returns:
+        일반 로깅을 생략했다면 True
+    """
+    payload = payload_dict.get("payload")
+    payload_map = payload if isinstance(payload, dict) else {}
+    event_type = str(payload_map.get("event_type") or "").strip() or "unknown"
+    code = str(payload_map.get("code") or "").strip()
+    if event_name != CODE7000_EVENT or code != CODE7000_VALUE:
+        return False
+    session_key = _build_client_log_session_key(request=request, payload_dict=payload_dict)
+    suppression_key = (session_key, event_type)
+    next_count = int(_CODE7000_SUPPRESSION_COUNTS.get(suppression_key, 0)) + 1
+    _CODE7000_SUPPRESSION_COUNTS[suppression_key] = next_count
+    if next_count == 1:
+        logger.warning(
+            "addin_client_logs code7000 first-occurrence: event_type=%s level=%s payload=%s",
+            event_type,
+            level,
+            str(payload_map)[:280],
+        )
+        return True
+    logger.debug("code7000 suppressed: count=%s, event_type=%s", next_count, event_type)
+    return True
 
 
 @router.post("/addin/client-logs", status_code=204)
@@ -65,6 +130,13 @@ async def addin_client_logs(request: Request) -> Response:
     event_name = str(payload_dict.get("event") or payload_dict.get("message") or "unknown")
     level = str(payload_dict.get("level") or "info")
     if event_name in NOISY_CLIENT_EVENTS and level.lower() == "info":
+        return Response(status_code=204)
+    if _handle_code7000_log_suppression(
+        request=request,
+        event_name=event_name,
+        level=level,
+        payload_dict=payload_dict,
+    ):
         return Response(status_code=204)
     logger.info(
         "addin_client_logs 수신: level=%s event=%s payload=%s",

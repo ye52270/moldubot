@@ -63,6 +63,7 @@ class ExaoneIntentParser:
         cached = self._read_cached_decomposition(user_message=sanitized_query)
         if cached is not None:
             logger.info("intent parse cache hit")
+            cached = cached.model_copy(update={"origin": "exaone_cached"})
             return apply_step_limit_to_decomposition(
                 decomposition=cached,
                 max_steps=self._max_steps,
@@ -74,6 +75,7 @@ class ExaoneIntentParser:
         )
         if fast_path_result is not None:
             logger.info("intent fast-path 적용: mode=%s", self._fast_path_mode)
+            fast_path_result = fast_path_result.model_copy(update={"origin": "exaone_fresh"})
             final_decomposition = apply_step_limit_to_decomposition(
                 decomposition=fast_path_result,
                 max_steps=self._max_steps,
@@ -89,6 +91,7 @@ class ExaoneIntentParser:
                 decomposition=rule_based_decomposition(user_message=sanitized_query),
                 max_steps=self._max_steps,
             )
+            fallback = fallback.model_copy(update={"origin": "exaone_fresh"})
             self._write_cached_decomposition(user_message=sanitized_query, decomposition=fallback)
             return fallback
 
@@ -99,6 +102,7 @@ class ExaoneIntentParser:
             summary_line_target=extract_summary_line_target(user_message=sanitized_query),
             date_filter=build_date_filter(user_message=sanitized_query),
         )
+        decomposition = decomposition.model_copy(update={"origin": "exaone_fresh"})
         decomposition = apply_step_limit_to_decomposition(
             decomposition=decomposition,
             max_steps=self._max_steps,
@@ -109,6 +113,7 @@ class ExaoneIntentParser:
                 decomposition=rule_based_decomposition(user_message=sanitized_query),
                 max_steps=self._max_steps,
             )
+            fallback = fallback.model_copy(update={"origin": "exaone_fresh"})
             self._write_cached_decomposition(user_message=sanitized_query, decomposition=fallback)
             return fallback
 

@@ -32,6 +32,31 @@ class IntentParserFastPathTest(unittest.TestCase):
         self.assertIn(ExecutionStep.READ_CURRENT_MAIL, result.steps)
         self.assertIn(ExecutionStep.SUMMARIZE_MAIL, result.steps)
         self.assertEqual(3, result.summary_line_target)
+        self.assertEqual("exaone_fresh", result.origin)
+
+    def test_parse_cache_hit_sets_origin_cached(self) -> None:
+        """
+        동일 질의 cache hit 시 origin은 exaone_cached여야 한다.
+        """
+        parser = ExaoneIntentParser(
+            model_name="exaone3.5:2.4b",
+            base_url="http://127.0.0.1:11434",
+            fast_path_mode="never",
+        )
+        mocked = IntentDecomposition(
+            original_query="현재메일 요약해줘",
+            steps=[ExecutionStep.SUMMARIZE_MAIL],
+            summary_line_target=5,
+            date_filter=DateFilter(mode=DateFilterMode.NONE),
+            missing_slots=[],
+            origin="exaone_fresh",
+        )
+        with patch.object(parser, "_invoke_ollama_structured", return_value=mocked) as invoke_mock:
+            first = parser.parse("현재메일 요약해줘")
+            second = parser.parse("현재메일 요약해줘")
+        self.assertEqual("exaone_fresh", first.origin)
+        self.assertEqual("exaone_cached", second.origin)
+        invoke_mock.assert_called_once()
 
     def test_fast_path_never_calls_ollama(self) -> None:
         """

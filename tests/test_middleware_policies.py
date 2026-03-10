@@ -450,6 +450,50 @@ class MiddlewarePoliciesTest(unittest.TestCase):
         self.assertNotIn("mail-retrieval-summary-agent", text)
         self.assertNotIn("mail-tech-issue-agent", text)
 
+    def test_direct_fact_request_overrides_output_format_and_marks_origin(self) -> None:
+        """
+        direct fact 현재메일 질의에서 structured_template은 general로 override되고 origin이 policy_override여야 한다.
+        """
+        decomposition = IntentDecomposition(
+            original_query="현재메일에서 어떤 메일주소가 문제인거야?",
+            steps=[ExecutionStep.READ_CURRENT_MAIL],
+            summary_line_target=5,
+            date_filter=DateFilter(mode=DateFilterMode.NONE),
+            missing_slots=[],
+            task_type=IntentTaskType.ANALYSIS,
+            output_format=IntentOutputFormat.STRUCTURED_TEMPLATE,
+            confidence=0.72,
+            origin="exaone_cached",
+        )
+        parser = type("StubParser", (), {"parse": lambda self, user_message: decomposition})()
+        with patch("app.middleware.policies.get_intent_parser", return_value=parser):
+            text = compose_intent_augmented_text(
+                "[질의 범위] 현재 선택 메일 1건만 기준으로 처리\n현재메일에서 어떤 메일주소가 문제인거야?"
+            )
+        self.assertIn("- output_format: general", text)
+        self.assertIn("- origin: policy_override", text)
+
+    def test_non_override_keeps_original_origin(self) -> None:
+        """
+        output_format override 조건이 아니면 기존 origin(exaone_cached)을 유지해야 한다.
+        """
+        decomposition = IntentDecomposition(
+            original_query="현재메일 요약해줘",
+            steps=[ExecutionStep.SUMMARIZE_MAIL, ExecutionStep.READ_CURRENT_MAIL],
+            summary_line_target=5,
+            date_filter=DateFilter(mode=DateFilterMode.NONE),
+            missing_slots=[],
+            task_type=IntentTaskType.SUMMARY,
+            output_format=IntentOutputFormat.LINE_SUMMARY,
+            confidence=0.82,
+            origin="exaone_cached",
+        )
+        parser = type("StubParser", (), {"parse": lambda self, user_message: decomposition})()
+        with patch("app.middleware.policies.get_intent_parser", return_value=parser):
+            text = compose_intent_augmented_text("현재메일 요약해줘")
+        self.assertIn("- output_format: line_summary", text)
+        self.assertIn("- origin: exaone_cached", text)
+
 
 if __name__ == "__main__":
     unittest.main()

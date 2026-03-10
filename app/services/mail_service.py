@@ -75,9 +75,10 @@ class MailService:
         self._summary_queue_service = MailSummaryQueueService(db_path=db_path)
         self._summary_sync_on_upsert = _is_enabled(value=str(os.getenv(SUMMARY_SYNC_ON_UPSERT_ENV, "1")))
         logger.info(
-            "mail_service.summary_sync_on_upsert: enabled=%s db_path=%s",
+            "mail_service.summary_sync_on_upsert: enabled=%s db_path=%s pid=%s",
             self._summary_sync_on_upsert,
             self._db_path,
+            os.getpid(),
         )
 
     def read_current_mail(self) -> MailRecord | None:

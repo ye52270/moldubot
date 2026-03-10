@@ -214,6 +214,30 @@ test('observeSelectionChanges falls back to SelectedItemsChanged when ItemChange
   assert.equal(registeredEvent, 'selectedItemsChanged');
 });
 
+test('observeSelectionChanges sets observer fallback mode to polling after code7000 retries', async () => {
+  const officeMock = {
+    AsyncResultStatus: { Succeeded: 'succeeded' },
+    MailboxEnums: { EventType: { SelectedItemsChanged: 'selectedItemsChanged' } },
+    context: {
+      mailbox: {
+        addHandlerAsync: (eventType, handler, callback) => {
+          callback({
+            status: 'failed',
+            error: {
+              code: '7000',
+              message: '이 작업에 대해 충분한 권한이 없습니다.',
+            },
+          });
+        },
+      },
+    },
+  };
+  const helpers = loadTaskpaneModule(officeMock);
+  await helpers._observeSelectionChanges();
+  const state = helpers._getSelectionStateSnapshot();
+  assert.equal(state.observerFallbackMode, 'polling');
+});
+
 test('observeSelectionChanges uses Office.EventType when MailboxEnums.EventType is missing', async () => {
   let registeredEvent = '';
   const officeMock = {

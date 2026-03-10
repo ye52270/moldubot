@@ -125,3 +125,11 @@
   `app/agents/intent_parser_utils.py` (analysis 행위어 인식 보강),  
   `tests/test_query_artifact_extractor.py` (신규),  
   `tests/test_intent_parser_fast_path.py` (analysis 분류 회귀 테스트 추가).
+- 2026-03-10 로그 기반 개선 반영 파일:
+  `app/api/search_chat_flow.py` (현재메일 요약 fast-lane + stage elapsed 메타/로그 + async_indexing 구분 로그),
+  `app/middleware/agent_middlewares.py` (intent system 컨텍스트 중복 주입 방지),
+  `app/agents/intent_schema.py`, `app/agents/intent_parser.py`, `app/agents/intent_parser_utils.py`, `app/middleware/policies.py` (intent origin 추적 + output_format override reason 로깅),
+  `app/api/bootstrap_ops_routes.py` (code7000 warning suppression),
+  `clients/outlook-addin/taskpane.selection.events.js`, `clients/outlook-addin/taskpane.selection.observer.js`, `clients/outlook-addin/taskpane.selection.js` (SelectedItemsChanged code7000 재시도/폴백 상태 노출),
+  `app/services/mail_service.py` (summary_sync_on_upsert pid 로깅),
+  `tests/test_search_chat_flow_fast_lane.py` (신규), `tests/test_bootstrap_ops_routes.py` (신규), `tests/test_taskpane_selection_context.cjs`, `tests/test_agent_middlewares_intent_injection.py`, `tests/test_middleware_policies.py`, `tests/test_intent_parser_fast_path.py` (갱신).

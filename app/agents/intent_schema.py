@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from enum import Enum
 import re
+from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -148,6 +149,10 @@ class IntentDecomposition(BaseModel):
     output_format: IntentOutputFormat = Field(default=IntentOutputFormat.GENERAL, description="출력 형식")
     focus_topics: list[IntentFocusTopic] = Field(default_factory=list, description="주요 주제 포커스")
     confidence: float = Field(default=0.5, ge=0.0, le=1.0, description="의도 분류 신뢰도")
+    origin: Literal["exaone_fresh", "exaone_cached", "policy_override"] = Field(
+        default="exaone_fresh",
+        description="의도 결과 생성 경로",
+    )
 
     @field_validator("original_query", mode="before")
     @classmethod
@@ -278,5 +283,6 @@ def decomposition_to_context_text(decomposition: IntentDecomposition) -> str:
         f"- task_type: {decomposition.task_type.value}\n"
         f"- output_format: {decomposition.output_format.value}\n"
         f"- focus_topics: {[topic.value for topic in decomposition.focus_topics]}\n"
-        f"- confidence: {decomposition.confidence:.2f}"
+        f"- confidence: {decomposition.confidence:.2f}\n"
+        f"- origin: {decomposition.origin}"
     )

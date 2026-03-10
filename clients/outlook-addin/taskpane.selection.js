@@ -47,6 +47,7 @@
     let lastSentCurrentMailId = '';
     let lastSentRevision = -1;
     let selectionPollTimer = null;
+    let observerFallbackMode = '';
 
     function getSelectionRevision() {
       return selectionRevision;
@@ -189,13 +190,30 @@
       if (selectionPollTimer) {
         return;
       }
-      selectionPollTimer = windowRef.setInterval(function () {
+      const setIntervalFn = windowRef && typeof windowRef.setInterval === 'function'
+        ? windowRef.setInterval.bind(windowRef)
+        : null;
+      if (typeof setIntervalFn !== 'function') {
+        logClientEvent('warning', 'selection_polling_start_failed', {
+          reason: 'set_interval_unavailable',
+        });
+        return;
+      }
+      selectionPollTimer = setIntervalFn(function () {
         void pollSelectionContext();
       }, config.selectionPollIntervalMs);
       logClientEvent('info', 'selection_polling_started', {
         interval_ms: config.selectionPollIntervalMs,
       });
       void pollSelectionContext();
+    }
+
+    function setObserverFallbackMode(mode, detail) {
+      observerFallbackMode = String(mode || '').trim();
+      logClientEvent('warning', 'selection_observer_fallback_mode', {
+        fallback_mode: observerFallbackMode || '',
+        detail: detail && typeof detail === 'object' ? detail : {},
+      });
     }
 
     const observerOps = observerModule && typeof observerModule.createObserverOps === 'function'
@@ -208,6 +226,8 @@
         clearSelectionCache: clearSelectionCache,
         resolveSelectionContextOnce: resolveSelectionContextOnce,
         setCachedSelectionContext: function (context) { cachedSelectionContext = context; },
+        setObserverFallbackMode: setObserverFallbackMode,
+        startSelectionPolling: startSelectionPolling,
         eventsModule: eventsModule,
       })
       : {
@@ -222,6 +242,7 @@
         selectionRevision: selectionRevision,
         cachedEmailId: String(cachedSelectionContext.emailId || ''),
         cachedMailboxUser: String(cachedSelectionContext.mailboxUser || ''),
+        observerFallbackMode: observerFallbackMode,
       };
     }
 

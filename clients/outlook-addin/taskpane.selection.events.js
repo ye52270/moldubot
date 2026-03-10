@@ -3,6 +3,9 @@
    ======================================== */
 
 (function initTaskpaneSelectionEvents(global) {
+  const CODE_7000 = '7000';
+  const MAX_CODE7000_RETRY = 1;
+
   function resolveOfficeEventTypeMap(windowRef) {
     const office = windowRef && windowRef.Office ? windowRef.Office : {};
     return {
@@ -76,26 +79,71 @@
     const logClientEvent = options.logClientEvent;
     return new Promise(function (resolve) {
       const eventTypeName = String(eventType && eventType.name ? eventType.name : '');
-      logClientEvent('info', 'selection_observer_register_attempt', {
-        event_type: eventTypeName,
-      });
-      try {
-        mailbox.addHandlerAsync(eventType.value, handler, function (result) {
-          const succeeded = result && result.status === windowRef.Office.AsyncResultStatus.Succeeded;
-          if (succeeded) {
-            logClientEvent('info', 'selection_observer_registered', {
+      let attempts = 0;
+
+      function finalizeFailure(codeValue) {
+        resolve({
+          ok: false,
+          eventType: eventTypeName,
+          errorCode: String(codeValue || ''),
+          attempts: attempts,
+          fallbackMode: String(codeValue || '') === CODE_7000 ? 'polling' : '',
+        });
+      }
+
+      function attemptRegister() {
+        attempts += 1;
+        logClientEvent('info', 'selection_observer_register_attempt', {
+          event_type: eventTypeName,
+          attempt: attempts,
+        });
+        try {
+          mailbox.addHandlerAsync(eventType.value, handler, function (result) {
+            const succeeded = result && result.status === windowRef.Office.AsyncResultStatus.Succeeded;
+            if (succeeded) {
+              logClientEvent('info', 'selection_observer_registered', {
+                event_type: eventTypeName,
+                attempts: attempts,
+              });
+              resolve({
+                ok: true,
+                eventType: eventTypeName,
+                errorCode: '',
+                attempts: attempts,
+                fallbackMode: '',
+              });
+              return;
+            }
+            const codeValue = String(((result && result.error) || {}).code || '');
+            logObserverRegistrationFailure(logClientEvent, eventTypeName, result, null);
+            if (codeValue === CODE_7000 && attempts <= MAX_CODE7000_RETRY) {
+              logClientEvent('warning', 'selection_observer_register_retry', {
+                event_type: eventTypeName,
+                code: codeValue,
+                next_attempt: attempts + 1,
+              });
+              attemptRegister();
+              return;
+            }
+            finalizeFailure(codeValue);
+          });
+        } catch (error) {
+          logObserverRegistrationFailure(logClientEvent, eventTypeName, null, error);
+          const codeValue = String((error && error.code) || '');
+          if (codeValue === CODE_7000 && attempts <= MAX_CODE7000_RETRY) {
+            logClientEvent('warning', 'selection_observer_register_retry', {
               event_type: eventTypeName,
+              code: codeValue,
+              next_attempt: attempts + 1,
             });
-            resolve(true);
+            attemptRegister();
             return;
           }
-          logObserverRegistrationFailure(logClientEvent, eventTypeName, result, null);
-          resolve(false);
-        });
-      } catch (error) {
-        logObserverRegistrationFailure(logClientEvent, eventTypeName, null, error);
-        resolve(false);
+          finalizeFailure(codeValue);
+        }
       }
+
+      attemptRegister();
     });
   }
 

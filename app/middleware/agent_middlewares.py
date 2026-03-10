@@ -116,7 +116,9 @@ def _inject_intent_decomposition_context_impl(state: dict[str, Any], runtime: An
     if not isinstance(messages, list) or not messages:
         return None
 
-    messages = _remove_intent_system_contexts(messages=messages)
+    if _has_intent_system_context(messages=messages):
+        logger.info("middleware.before_model: intent system 컨텍스트 중복 주입 생략")
+        return None
     found = find_last_human_message(messages=messages)
     if found is None:
         return None
@@ -379,6 +381,25 @@ def _remove_intent_system_contexts(messages: list[Any]) -> list[Any]:
             continue
         normalized.append(message)
     return normalized
+
+
+def _has_intent_system_context(messages: list[Any]) -> bool:
+    """
+    메시지 목록에 의도 라우팅 system 컨텍스트가 이미 존재하는지 판별한다.
+
+    Args:
+        messages: 상태 메시지 목록
+
+    Returns:
+        의도 라우팅 system 컨텍스트가 존재하면 True
+    """
+    for message in messages:
+        if not isinstance(message, SystemMessage):
+            continue
+        content = normalize_message_text(getattr(message, "content", ""))
+        if INTENT_SYSTEM_CONTEXT_PREFIX in content:
+            return True
+    return False
 
 
 def _insert_system_context_at_top_block(messages: list[Any], system_context: str) -> list[Any]:

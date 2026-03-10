@@ -119,6 +119,11 @@ def compose_intent_augmented_text(user_message: str) -> str:
         user_message=original_user_message,
         scope_label=scope_label,
     )
+    decomposition = _apply_output_format_policy_override(
+        decomposition=decomposition,
+        user_message=original_user_message,
+        scope_label=scope_label,
+    )
     decomposition_json = decomposition.model_dump_json(ensure_ascii=False)
     logger.info("미들웨어 의도 구조분해 결과(JSON): %s", decomposition_json)
     context_text = decomposition_to_context_text(decomposition=decomposition)
@@ -143,6 +148,11 @@ def compose_intent_system_context(user_message: str) -> str:
     scope_label, original_user_message = _split_scope_instruction(user_message=user_message)
     decomposition = get_intent_parser().parse(user_message=original_user_message)
     decomposition = _sanitize_current_mail_steps(
+        decomposition=decomposition,
+        user_message=original_user_message,
+        scope_label=scope_label,
+    )
+    decomposition = _apply_output_format_policy_override(
         decomposition=decomposition,
         user_message=original_user_message,
         scope_label=scope_label,
@@ -196,6 +206,51 @@ def _sanitize_current_mail_steps(
         [step.value for step in filtered_steps],
     )
     return decomposition.model_copy(update={"steps": filtered_steps})
+
+
+def _apply_output_format_policy_override(
+    decomposition: IntentDecomposition,
+    user_message: str,
+    scope_label: str,
+) -> IntentDecomposition:
+    """
+    정책 기반 output_format override를 적용하고 변경 근거를 로깅한다.
+
+    Args:
+        decomposition: 의도 구조분해 결과
+        user_message: scope prefix 제거된 사용자 질의
+        scope_label: 질의 범위 라벨
+
+    Returns:
+        output_format 보정이 반영된 의도 구조분해 결과
+    """
+    original_format = decomposition.output_format
+    overridden_format = original_format
+    reason = ""
+    has_current_mail_scope = str(scope_label or "").startswith(SCOPE_PREFIX) and ("현재 선택 메일" in str(scope_label or ""))
+    is_direct_fact_request = is_current_mail_direct_fact_request(
+        user_message=user_message,
+        has_current_mail_context=has_current_mail_scope,
+    )
+    if is_direct_fact_request and original_format == IntentOutputFormat.STRUCTURED_TEMPLATE:
+        overridden_format = IntentOutputFormat.GENERAL
+        reason = "current_mail_direct_fact_prefers_general"
+
+    if overridden_format == original_format:
+        return decomposition
+
+    logger.info(
+        "output_format override: %s → %s, reason=%s",
+        original_format.value,
+        overridden_format.value,
+        reason or "policy_rule",
+    )
+    return decomposition.model_copy(
+        update={
+            "output_format": overridden_format,
+            "origin": "policy_override",
+        }
+    )
 
 
 def _build_routing_instruction(

@@ -34,7 +34,7 @@ class AgentMiddlewaresIntentInjectionTest(unittest.TestCase):
         self.assertEqual(original_user, str(messages[1].content))
 
     def test_skips_duplicate_system_context_in_same_turn(self) -> None:
-        """기존 intent system 컨텍스트는 제거 후 선두 system 블록으로 재주입해야 한다."""
+        """기존 intent system 컨텍스트가 있으면 재주입하지 않아야 한다."""
         original_user = "현재메일에서 오류 원인 정리해줘"
         state = {
             "messages": [
@@ -42,25 +42,19 @@ class AgentMiddlewaresIntentInjectionTest(unittest.TestCase):
                 SystemMessage(content=f"{INTENT_SYSTEM_CONTEXT_PREFIX}\n- 기존 컨텍스트"),
             ]
         }
-        with (
-            patch("app.middleware.agent_middlewares.should_inject_intent_context", return_value=True),
-            patch(
-                "app.middleware.agent_middlewares.compose_intent_system_context",
-                return_value=f"{INTENT_SYSTEM_CONTEXT_PREFIX}\n- 신규 컨텍스트",
-            ),
-        ):
+        with patch("app.middleware.agent_middlewares.should_inject_intent_context", return_value=True):
             result = _inject_intent_decomposition_context_impl(state=state, runtime=None)
 
         self.assertIsNone(result)
         messages = state.get("messages", [])
         self.assertEqual(2, len(messages))
-        self.assertIsInstance(messages[0], SystemMessage)
-        self.assertEqual(f"{INTENT_SYSTEM_CONTEXT_PREFIX}\n- 신규 컨텍스트", str(messages[0].content))
-        self.assertIsInstance(messages[1], HumanMessage)
-        self.assertEqual(original_user, str(messages[1].content))
+        self.assertIsInstance(messages[0], HumanMessage)
+        self.assertEqual(original_user, str(messages[0].content))
+        self.assertIsInstance(messages[1], SystemMessage)
+        self.assertEqual(f"{INTENT_SYSTEM_CONTEXT_PREFIX}\n- 기존 컨텍스트", str(messages[1].content))
 
-    def test_normalizes_non_consecutive_system_context_from_history(self) -> None:
-        """히스토리 중간의 intent system 메시지를 제거하고 선두 블록으로 정규화해야 한다."""
+    def test_keeps_existing_system_context_from_history_without_reinject(self) -> None:
+        """히스토리에 intent system 메시지가 있으면 중복 주입을 생략해야 한다."""
         original_user = "현재메일 요약해줘"
         state = {
             "messages": [
@@ -69,21 +63,14 @@ class AgentMiddlewaresIntentInjectionTest(unittest.TestCase):
                 HumanMessage(content=original_user),
             ]
         }
-        with (
-            patch("app.middleware.agent_middlewares.should_inject_intent_context", return_value=True),
-            patch(
-                "app.middleware.agent_middlewares.compose_intent_system_context",
-                return_value=f"{INTENT_SYSTEM_CONTEXT_PREFIX}\n- 신규 컨텍스트",
-            ),
-        ):
+        with patch("app.middleware.agent_middlewares.should_inject_intent_context", return_value=True):
             result = _inject_intent_decomposition_context_impl(state=state, runtime=None)
 
         self.assertIsNone(result)
         messages = state.get("messages", [])
         self.assertEqual(3, len(messages))
-        self.assertIsInstance(messages[0], SystemMessage)
-        self.assertEqual(f"{INTENT_SYSTEM_CONTEXT_PREFIX}\n- 신규 컨텍스트", str(messages[0].content))
-        self.assertEqual("이전 턴 질문", str(messages[1].content))
+        self.assertEqual("이전 턴 질문", str(messages[0].content))
+        self.assertEqual(f"{INTENT_SYSTEM_CONTEXT_PREFIX}\n- 이전 컨텍스트", str(messages[1].content))
         self.assertEqual(original_user, str(messages[2].content))
 
 
