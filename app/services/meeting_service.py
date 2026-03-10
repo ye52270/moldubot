@@ -2,13 +2,15 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
 from app.core.logging_config import get_logger
+from app.services.meeting_room_catalog import load_meeting_rooms
 
 logger = get_logger(__name__)
+MIN_ATTENDEE_COUNT = 1
 
 
 @dataclass
@@ -63,19 +65,16 @@ class MeetingRoomService:
         조건에 맞는 회의실을 조회한다.
 
         Args:
-            attendee_count: 최소 수용 인원
+            attendee_count: 참석 인원(POC 단계에서는 필터에 사용하지 않음)
             building: 건물 필터
             floor: 층수 필터
 
         Returns:
             조회된 회의실 목록
         """
-        rooms = _load_json_list(path=self._rooms_path)
+        rooms = load_meeting_rooms(path=self._rooms_path)
         result: list[dict[str, Any]] = []
         for room in rooms:
-            capacity = int(room.get("capacity") or 0)
-            if attendee_count > 0 and capacity < attendee_count:
-                continue
             if building and str(room.get("building", "")).strip() != building.strip():
                 continue
             if floor is not None and int(room.get("floor", -1)) != int(floor):
@@ -93,11 +92,54 @@ class MeetingRoomService:
         Returns:
             예약 결과 사전
         """
+        logger.info(
+            "회의실 예약 요청 수신: request=%s",
+            {
+                "date": request.date,
+                "start_time": request.start_time,
+                "end_time": request.end_time,
+                "attendee_count": request.attendee_count,
+                "building": request.building,
+                "floor": request.floor,
+                "room_name": request.room_name,
+                "subject": request.subject,
+            },
+        )
         if not self._is_valid_datetime(request.date, request.start_time, request.end_time):
+            logger.warning("회의실 예약 실패: 유효하지 않은 날짜/시간 형식 - request=%s", request)
             return {"status": "failed", "reason": "date/time 형식이 유효하지 않습니다."}
+        if _is_past_date(date_text=request.date):
+            logger.warning("회의실 예약 실패: 과거 날짜 - date=%s", request.date)
+            return {"status": "failed", "reason": "과거 날짜로는 예약할 수 없습니다."}
+        if request.attendee_count < MIN_ATTENDEE_COUNT:
+            logger.warning("회의실 예약 실패: attendee_count 하한 위반 - attendee_count=%s", request.attendee_count)
+            return {"status": "failed", "reason": "attendee_count는 1명 이상이어야 합니다."}
+
+        room = self._find_room(
+            building=request.building,
+            floor=request.floor,
+            room_name=request.room_name,
+        )
+        if room is None:
+            logger.warning(
+                "회의실 예약 실패: 회의실 마스터 미일치 - building=%s floor=%s room_name=%s",
+                request.building,
+                request.floor,
+                request.room_name,
+            )
+            return {"status": "failed", "reason": "요청한 회의실을 찾지 못했습니다."}
 
         bookings = _load_json_list(path=self._bookings_path)
         if _has_conflict(bookings=bookings, request=request):
+            logger.warning(
+                "회의실 예약 실패: 시간 충돌 - date=%s start=%s end=%s room=%s/%s/%s",
+                request.date,
+                request.start_time,
+                request.end_time,
+                request.building,
+                request.floor,
+                request.room_name,
+            )
             return {"status": "failed", "reason": "동일 시간대 예약이 이미 존재합니다."}
 
         booking = {
@@ -105,15 +147,43 @@ class MeetingRoomService:
             "start_time": request.start_time,
             "end_time": request.end_time,
             "attendee_count": request.attendee_count,
-            "building": request.building,
-            "floor": request.floor,
-            "room_name": request.room_name,
+            "building": str(room.get("building", "")).strip(),
+            "floor": int(room.get("floor", 0)),
+            "room_name": str(room.get("room_name", "")).strip(),
             "subject": request.subject,
         }
         bookings.append(booking)
         _write_json_list(path=self._bookings_path, payload=bookings)
         logger.info("회의실 예약 생성 완료: %s", booking)
         return {"status": "completed", "booking": booking}
+
+    def _find_room(self, building: str, floor: int, room_name: str) -> dict[str, Any] | None:
+        """
+        건물/층/회의실명으로 회의실 마스터에서 정확히 일치하는 회의실을 찾는다.
+
+        Args:
+            building: 건물명
+            floor: 층수
+            room_name: 회의실명
+
+        Returns:
+            회의실 사전 또는 None
+        """
+        target_building = _normalize_text(building)
+        target_room_name = _normalize_text(room_name)
+        rooms = load_meeting_rooms(path=self._rooms_path)
+        for room in rooms:
+            room_building = _normalize_text(room.get("building", ""))
+            room_name_value = _normalize_text(room.get("room_name", ""))
+            room_floor = int(room.get("floor", -1))
+            if room_building != target_building:
+                continue
+            if room_floor != int(floor):
+                continue
+            if room_name_value != target_room_name:
+                continue
+            return room
+        return None
 
     def _is_valid_datetime(self, date: str, start_time: str, end_time: str) -> bool:
         """
@@ -199,3 +269,32 @@ def _has_conflict(bookings: list[dict[str, Any]], request: BookingRequest) -> bo
             return True
     return False
 
+
+def _normalize_text(value: object) -> str:
+    """
+    비교용 문자열을 정규화한다.
+
+    Args:
+        value: 입력 값
+
+    Returns:
+        앞뒤 공백이 제거된 문자열
+    """
+    return str(value or "").strip()
+
+
+def _is_past_date(date_text: str) -> bool:
+    """
+    예약 날짜가 서버 기준 오늘 이전인지 검사한다.
+
+    Args:
+        date_text: 검사 대상 날짜 문자열(YYYY-MM-DD)
+
+    Returns:
+        오늘 이전이면 True
+    """
+    try:
+        target_date = datetime.strptime(date_text, "%Y-%m-%d").date()
+    except ValueError:
+        return False
+    return target_date < date.today()

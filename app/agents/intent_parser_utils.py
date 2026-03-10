@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import re
-from typing import Any
 
 from pydantic import ValidationError
 
@@ -87,7 +86,10 @@ def normalize_steps(raw_steps: list[ExecutionStep], user_message: str) -> list[E
             normalized.append(mapped_step)
 
     normalized_text = str(user_message or "").replace(" ", "")
-    if is_mail_search_query(text=str(user_message or "").strip()) and "현재메일" not in normalized_text:
+    is_mail_search_intent = is_mail_search_query(text=str(user_message or "").strip())
+    if ExecutionStep.SEARCH_MAILS in normalized and not is_mail_search_intent:
+        normalized = [step for step in normalized if step != ExecutionStep.SEARCH_MAILS]
+    if is_mail_search_intent and "현재메일" not in normalized_text:
         normalized = [
             step
             for step in normalized
@@ -115,7 +117,7 @@ def infer_intent_dimensions(
     text = str(user_message or "")
     compact = text.replace(" ", "").lower()
     is_solution = any(token in compact for token in ("해결", "해결방법", "대응방안", "개선안", "어떻게해결"))
-    is_analysis = any(token in compact for token in ("왜", "원인", "이유", "문제"))
+    is_analysis = any(token in compact for token in ("왜", "원인", "이유", "문제", "분석", "해석", "검토"))
     is_extraction = ("수신자" in compact) or ("받는사람" in compact)
     is_summary = ("요약" in compact) or ("정리" in compact)
     if is_solution:

@@ -1,0 +1,4 @@
+.evidence-block {
+  width: min(100%, var(--chat-text-max-width));
+  margin-top: 4px;
+}

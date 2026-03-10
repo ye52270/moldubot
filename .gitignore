@@ -38,3 +38,22 @@ data/chroma/**
 emails.db
 database/emails.db
 data/sqlite/emails.db
+
+# Runtime/Generated artifacts
+.langgraph_api/
+data/reports/chat_eval_*.json
+data/reports/chat_eval_latest.json
+data/reports/chat_eval_history.sqlite3
+data/reports/chat_eval_history.sqlite3-shm
+data/reports/chat_eval_history.sqlite3-wal
+data/reports/*.sqlite
+data/reports/*.sqlite3
+data/reports/*.sqlite3-*
+data/reports/*.db
+data/reports/docx/
+data/reports/html/
+data/mock/client_logs.ndjson
+data/meeting/
+
+# Local eval outputs
+tests/intent_complex_eval_result*.json

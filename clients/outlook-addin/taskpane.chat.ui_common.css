@@ -1,0 +1,39 @@
+/* ========================================
+   MolduBot – Chat UI Common Tokens
+   ======================================== */
+
+:root {
+  --chat-card-radius-lg: 14px;
+  --chat-card-radius-md: 12px;
+  --chat-card-radius-sm: 10px;
+  --chat-pill-radius: 999px;
+  --chat-card-border-soft: 1px solid color-mix(in srgb, var(--color-border) 88%, #ccbfae);
+  --chat-card-border-warm: 1px solid color-mix(in srgb, var(--color-border) 90%, #ccbda9);
+  --chat-card-bg-soft: color-mix(in srgb, var(--color-surface) 97%, #f8f4ee);
+  --chat-card-bg-warm: color-mix(in srgb, var(--color-surface) 96%, #f2ede5);
+  --chat-card-shadow-soft: 0 1px 2px rgba(35, 28, 21, 0.04);
+  --chat-panel-shadow: 0 10px 22px rgba(35, 28, 22, 0.16);
+  --chat-control-border: 1px solid color-mix(in srgb, var(--color-border) 88%, #c7b8a4);
+  --chat-control-bg: color-mix(in srgb, var(--color-surface) 96%, #f7f2eb);
+  --chat-control-radius: 9px;
+  --chat-control-height: 34px;
+  --chat-control-pad-x: 10px;
+}
+
+.summary-section,
+.major-summary-item .major-summary-card,
+.next-actions-block,
+.web-source-panel,
+.inline-evidence-panel {
+  box-shadow: var(--chat-card-shadow-soft);
+}
+
+.inline-evidence-panel {
+  box-shadow: var(--chat-panel-shadow);
+}
+
+.section-toggle-btn,
+.quality-badge,
+.inline-evidence-trigger {
+  border-radius: var(--chat-pill-radius);
+}

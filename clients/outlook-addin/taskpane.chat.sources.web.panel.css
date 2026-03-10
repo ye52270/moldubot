@@ -1,0 +1,65 @@
+.web-source-panel {
+  position: relative;
+  margin-top: 8px;
+  width: 100%;
+  max-height: 360px;
+  overflow: auto;
+  border: var(--chat-card-border-soft);
+  border-radius: var(--chat-card-radius-lg);
+  padding: 10px;
+  background: var(--chat-card-bg-soft);
+  z-index: 1;
+}
+
+.web-source-panel-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 8px;
+}
+
+.web-source-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.web-source-item {
+  margin: 0;
+}
+
+.web-source-link {
+  display: grid;
+  gap: 3px;
+  text-decoration: none;
+  border: 1px solid color-mix(in srgb, var(--color-border) 88%, #d0c4b2);
+  border-radius: var(--chat-card-radius-sm);
+  padding: 8px 9px;
+  background: color-mix(in srgb, var(--color-surface) 95%, #fbf8f3);
+}
+
+.web-source-link:hover {
+  border-color: color-mix(in srgb, var(--color-primary) 42%, var(--color-border));
+  background: color-mix(in srgb, var(--color-surface) 86%, var(--color-primary-light));
+}
+
+.web-source-site {
+  font-size: 11px;
+  font-weight: 640;
+  color: var(--color-text-secondary);
+}
+
+.web-source-title {
+  font-size: 13px;
+  font-weight: 620;
+  color: var(--color-text);
+  line-height: 1.35;
+}
+
+.web-source-snippet {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  line-height: 1.35;
+}

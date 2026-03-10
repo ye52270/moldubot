@@ -1,0 +1,45 @@
+.reply-tone-picker-block,
+.reply-draft-action-block {
+  width: min(100%, var(--chat-text-max-width));
+  margin-top: 8px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 20%, var(--color-border));
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--color-primary-light) 36%, var(--color-surface));
+  padding: 10px;
+}
+
+.reply-tone-picker-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.reply-tone-picker-subtitle {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.reply-tone-picker-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.reply-tone-picker-btn {
+  flex: 1 1 0;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 28%, var(--color-border));
+  border-radius: 10px;
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 7px 8px;
+  cursor: pointer;
+  transition: border-color 0.16s ease, background-color 0.16s ease, color 0.16s ease;
+}
+
+.reply-tone-picker-btn:hover {
+  border-color: color-mix(in srgb, var(--color-primary) 46%, var(--color-border));
+  color: var(--color-text);
+}

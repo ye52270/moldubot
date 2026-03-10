@@ -85,7 +85,10 @@
 
 ## 5. 환경변수
 필수/주요 변수:
-- `OPENAI_API_KEY`: deep agent 및 보고서 생성 모델 호출
+- `AZURE_OPENAI_ENDPOINT`: Azure OpenAI 엔드포인트 URL
+- `AZURE_OPENAI_API_KEY`: Azure OpenAI API Key
+- `AZURE_OPENAI_API_VERSION`: Azure OpenAI API 버전 (예: `2024-12-01-preview`)
+- `AZURE_OPENAI_DEPLOYMENT`: 기본 채팅/요약 배포명 (예: `gpt-4o-mini`)
 - `MOLDUBOT_AGENT_MODEL`: 실행 에이전트 모델 (기본 `gpt-4o-mini`)
 - `MOLDUBOT_AGENT_SYSTEM_PROMPT`: 실행 에이전트 시스템 프롬프트
 - `OLLAMA_BASE_URL`: 의도 구조분해용 Ollama URL (기본 `http://127.0.0.1:11434`)

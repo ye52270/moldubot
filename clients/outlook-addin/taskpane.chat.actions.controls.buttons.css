@@ -1,0 +1,80 @@
+.msg-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.message.assistant .msg-actions {
+  justify-content: flex-start;
+}
+
+.msg-action-btn {
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: color-mix(in srgb, var(--color-text-secondary) 92%, #8a8a8a);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+  transition: all 120ms ease;
+}
+
+.msg-action-btn:hover {
+  color: var(--color-text);
+  background: color-mix(in srgb, var(--color-surface) 82%, var(--color-primary-light));
+}
+
+.msg-action-btn:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-primary) 52%, transparent);
+  outline-offset: 1px;
+}
+
+.msg-action-btn svg {
+  width: 15px;
+  height: 15px;
+}
+
+.msg-action-btn[data-copied='true']::after {
+  content: 'Copied';
+  position: absolute;
+  top: -26px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 22%, var(--color-border));
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  line-height: 1.2;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 2;
+}
+
+.assistant-actions .msg-action-btn[data-active='true'] {
+  color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary-light) 80%, var(--color-surface));
+}
+
+.user-actions {
+  margin-top: 2px;
+  margin-right: 2px;
+  gap: 6px;
+  opacity: 1;
+  pointer-events: auto;
+  transition: none;
+  transform: none;
+}
+
+.user-copy-btn {
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+}

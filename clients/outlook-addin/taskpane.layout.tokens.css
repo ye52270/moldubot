@@ -1,0 +1,80 @@
+/* ========================================
+   MolduBot – Taskpane Layout Tokens
+   ======================================== */
+
+:root {
+  --color-bg: #f3f2ef;
+  --color-surface: #ffffff;
+  --color-surface-hover: #f2eee7;
+  --color-primary: #b4724e;
+  --color-primary-light: #f3e8e1;
+  --color-text: #1f1c18;
+  --color-text-secondary: #6e655c;
+  --color-border: #ddd5ca;
+
+  --font-sans: 'Pretendard Variable', 'Pretendard', 'Noto Sans KR', 'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+
+  --text-sm: 12px;
+  --text-base: 13px;
+
+  --radius-full: 9999px;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+
+  --color-welcome-grad-start: #f2e8df;
+  --color-welcome-grad-end: #eadfd3;
+
+  --user-bubble-bg: #ece8df;
+  --user-bubble-text: #2f2a23;
+  --user-bubble-border: #ddd4c7;
+
+  --composer-shell-bg: #242322;
+  --composer-input-bg: #2b2a29;
+  --composer-input-text: #ebe6de;
+  --composer-send-bg: #8f5a3e;
+  --composer-send-hover-bg: #7b4c34;
+
+  --pane-gutter: 16px;
+  --chat-thread-max-width: 560px;
+  --chat-text-max-width: var(--chat-thread-max-width);
+  --chat-user-bubble-max-width: 340px;
+}
+
+:root.theme-dark {
+  --color-bg: #1f1d1a;
+  --color-surface: #272421;
+  --color-surface-hover: #2f2b27;
+  --color-primary: #b77955;
+  --color-primary-light: #33271f;
+  --color-text: #ebe5dc;
+  --color-text-secondary: #b9aea0;
+  --color-border: #3d3833;
+  --user-bubble-bg: #3b362f;
+  --user-bubble-text: #f1e9dc;
+  --user-bubble-border: #4b443b;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  color: var(--color-text);
+  background: var(--color-bg);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;
+}

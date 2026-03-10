@@ -1,0 +1,13 @@
+.msg-meta-time {
+  font-size: 10px;
+  color: color-mix(in srgb, var(--color-text-secondary) 86%, #8f8f8f);
+  margin-right: 6px;
+  letter-spacing: -0.01em;
+}
+
+.assistant-actions {
+  margin-top: 2px;
+  opacity: 1;
+}
+
+/* user quick actions are always visible under user bubble */

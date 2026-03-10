@@ -245,6 +245,48 @@ class MailSearchServiceTest(unittest.TestCase):
             tokens = service._build_candidate_query_tokens("박준용 관련 2월 메일 요약")
         self.assertEqual(["박준용", "2월"], tokens)
 
+    def test_search_person_anchor_query_returns_zero_when_person_not_found(self) -> None:
+        """
+        인물 앵커 질의는 해당 인물이 없는 경우 무관 메일을 반환하지 않아야 한다.
+        """
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            db_path = self._create_db(root=Path(tmp_dir))
+            service = MailSearchService(db_path=db_path)
+            payload = service.search(query="조영득 관련 메일 요약해줘", limit=5)
+        self.assertEqual(0, payload["count"])
+        self.assertEqual([], payload["results"])
+
+    def test_search_person_anchor_query_keeps_matching_person_mail(self) -> None:
+        """
+        인물 앵커 질의는 일치하는 인물 메일이 있으면 해당 결과를 유지해야 한다.
+        """
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            db_path = self._create_db(root=Path(tmp_dir))
+            conn = sqlite3.connect(str(db_path))
+            try:
+                conn.execute(
+                    "INSERT INTO emails VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    (
+                        "m-5",
+                        "조영득 요청사항 정리",
+                        "조영득/AX팀/SK <youngdeuk@example.com>",
+                        "2026-02-22T01:00:00Z",
+                        "",
+                        "",
+                        "조영득 요청에 대한 후속 액션 검토 필요",
+                        "요약5",
+                        "https://outlook.office.com/mail/m-5",
+                    ),
+                )
+                conn.commit()
+            finally:
+                conn.close()
+            service = MailSearchService(db_path=db_path)
+            payload = service.search(query="조영득 관련 메일 요약해줘", limit=5)
+
+        message_ids = [str(item.get("message_id") or "") for item in payload["results"]]
+        self.assertIn("m-5", message_ids)
+
 
 if __name__ == "__main__":
     unittest.main()

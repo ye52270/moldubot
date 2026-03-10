@@ -211,7 +211,7 @@ def book_meeting_room(
         result["action"] = "book_meeting_room"
         return result
 
-    subject_text = f"[회의실] {request.room_name}"
+    subject_text = f"[회의실] {request.building} {request.floor}층 {request.room_name}"
     event = _CALENDAR_CLIENT.create_event(
         subject=subject_text,
         start_iso=f"{request.date}T{request.start_time}:00",

@@ -11,11 +11,24 @@ from langchain.tools import tool
 
 from app.core.logging_config import get_logger
 from app.integrations.microsoft_graph.todo_client import GraphTodoClient
+from app.agents.tools_search_helpers import (
+    apply_scope_to_query,
+    build_scope_blocked_payload,
+    is_tech_issue_query_text,
+    search_mails_with_query_fanout,
+    should_fanout_tech_issue_query,
+)
 from app.agents.tools_schedule import (
     book_meeting_room,
     create_outlook_calendar_event,
     current_date,
     search_meeting_rooms,
+)
+from app.agents.tools_todo_helpers import (
+    normalize_outlook_todo_due_date,
+    normalize_outlook_todo_title,
+    resolve_default_outlook_todo_due_date,
+    resolve_todo_client,
 )
 from app.services.mail_service import MailRecord, MailService
 from app.services.mail_search_service import MailSearchService
@@ -27,22 +40,12 @@ _MAIL_SERVICE = MailService(db_path=MAIL_DB_PATH)
 _MAIL_SEARCH_SERVICE = MailSearchService(db_path=MAIL_DB_PATH)
 _TODO_CLIENT = GraphTodoClient()
 logger = get_logger(__name__)
-MAIL_SUBJECT_HANGUL_PREFIX_LEN = 5
-MAX_TODO_TOPIC_CHARS = 24
-TODO_FALLBACK_TOPIC = "후속 작업"
-TODO_DEFAULT_SUBJECT = "메일요약"
-TODO_NOISE_PHRASES = (
-    "액션 아이템을 확인하지 못했습니다",
-    "액션 아이템",
-    "action item",
-    "action items",
-)
-MAIL_PREFIX_PATTERN = re.compile(
-    r"^(?:(?:\s*(?:re|fw|fwd|sv|답장|전달)\s*[:：]\s*)+)",
-    flags=re.IGNORECASE,
-)
 _POST_ACTION_CACHE_CTX: ContextVar[dict[str, dict[str, Any]]] = ContextVar(
     "agent_tools_post_action_cache",
+    default={},
+)
+_SEARCH_SCOPE_CTX: ContextVar[dict[str, str]] = ContextVar(
+    "agent_tools_search_scope_contract",
     default={},
 )
 
@@ -73,6 +76,72 @@ def _clear_post_action_cache() -> None:
     _POST_ACTION_CACHE_CTX.set({})
 
 
+def set_search_scope_contract(contract: dict[str, str]) -> object:
+    """
+    검색 도구 실행에 사용할 scope 계약을 context-local로 설정한다.
+
+    Args:
+        contract: scope 계약 사전
+
+    Returns:
+        contextvars reset token
+    """
+    normalized = contract if isinstance(contract, dict) else {}
+    return _SEARCH_SCOPE_CTX.set(dict(normalized))
+
+
+def reset_search_scope_contract(token: object) -> None:
+    """
+    검색 도구 scope 계약 context를 이전 상태로 복원한다.
+
+    Args:
+        token: `set_search_scope_contract`가 반환한 reset token
+    """
+    try:
+        _SEARCH_SCOPE_CTX.reset(token)
+    except Exception:
+        _SEARCH_SCOPE_CTX.set({})
+
+
+def _resolve_search_scope_contract() -> dict[str, str]:
+    """
+    현재 요청의 검색 scope 계약을 반환한다.
+
+    Returns:
+        scope 계약 사전
+    """
+    contract = _SEARCH_SCOPE_CTX.get()
+    return contract if isinstance(contract, dict) else {}
+
+
+def _apply_scope_to_query(query: str, contract: dict[str, str]) -> str:
+    """
+    scope 계약에 따라 검색 질의를 보정한다.
+
+    Args:
+        query: 원본 검색 질의
+        contract: scope 계약 사전
+
+    Returns:
+        보정된 질의
+    """
+    return apply_scope_to_query(query=query, contract=contract)
+
+
+def _build_scope_blocked_payload(reason: str, query: str) -> dict[str, Any]:
+    """
+    scope 위반 시 반환할 표준 실패 payload를 생성한다.
+
+    Args:
+        reason: 실패 사유
+        query: 검색 질의
+
+    Returns:
+        mail_search 실패 payload
+    """
+    return build_scope_blocked_payload(reason=reason, query=query)
+
+
 def _build_post_action_cache_key(mail: MailRecord, action: str, summary_line_target: int) -> str:
     """
     후속작업 캐시 키를 생성한다.
@@ -90,50 +159,6 @@ def _build_post_action_cache_key(mail: MailRecord, action: str, summary_line_tar
     return f"{mail.message_id}:{normalized_action}:{normalized_target}"
 
 
-def _collapse_whitespace(text: str) -> str:
-    """
-    문자열의 연속 공백을 단일 공백으로 정리한다.
-
-    Args:
-        text: 정리 대상 문자열
-
-    Returns:
-        공백 정리된 문자열
-    """
-    return " ".join(str(text or "").replace("\n", " ").replace("\t", " ").split())
-
-
-def _strip_todo_title_noise(text: str) -> str:
-    """
-    ToDo 제목에서 마크다운/번호/불필요 접두어를 제거한다.
-
-    Args:
-        text: 원본 제목
-
-    Returns:
-        정제된 제목
-    """
-    normalized = _collapse_whitespace(text)
-    prefixes = ("## ", "# ", "- ", "* ", "1. ", "2. ", "3. ", "4. ", "5. ")
-    while True:
-        next_value = normalized
-        for prefix in prefixes:
-            if next_value.startswith(prefix):
-                next_value = next_value[len(prefix):].strip()
-        if next_value == normalized:
-            break
-        normalized = next_value
-    for marker in (":", " - ", " — ", "|"):
-        if marker in normalized:
-            head, tail = normalized.split(marker, 1)
-            if any(token in head.lower() for token in ("액션 아이템", "action item")):
-                normalized = tail.strip()
-                break
-    # 모델이 제목 앞에 `[메일제목]` 블록을 붙인 경우 제거한다.
-    normalized = re.sub(r"^(?:\s*\[[^\]]+\]\s*)+", "", normalized)
-    return _collapse_whitespace(normalized)
-
-
 def _normalize_outlook_todo_title(title: str, detail: str) -> str:
     """
     Outlook ToDo 제목을 `[{메일제목요약}] {할일주제}` 형식으로 정규화한다.
@@ -145,68 +170,47 @@ def _normalize_outlook_todo_title(title: str, detail: str) -> str:
     Returns:
         정규화된 제목 문자열
     """
-    cleaned_title = _strip_todo_title_noise(title)
-    cleaned_detail = _strip_todo_title_noise(detail)
-    candidate = cleaned_title or cleaned_detail
-    lower_candidate = candidate.lower()
-    if not candidate or any(phrase in lower_candidate for phrase in TODO_NOISE_PHRASES):
-        candidate = TODO_FALLBACK_TOPIC
-    candidate = _collapse_whitespace(candidate).strip(" .,:;")
-    if len(candidate) > MAX_TODO_TOPIC_CHARS:
-        candidate = candidate[:MAX_TODO_TOPIC_CHARS].rstrip()
-    if not candidate:
-        candidate = TODO_FALLBACK_TOPIC
-    subject = _resolve_todo_mail_subject()
-    return f"[{subject}]{candidate}"
+    return normalize_outlook_todo_title(title=title, detail=detail, mail_service=_MAIL_SERVICE)
 
 
-def _resolve_todo_mail_subject() -> str:
+def _resolve_default_outlook_todo_due_date() -> str:
     """
-    ToDo 제목 접두어로 사용할 메일 제목 요약을 반환한다.
+    Outlook ToDo 기본 마감일(오늘)을 반환한다.
 
     Returns:
-        정제된 제목 요약 문자열
+        YYYY-MM-DD 형식의 오늘 날짜
     """
-    subject = _extract_subject_from_current_mail()
-    if subject:
-        return subject
-    return TODO_DEFAULT_SUBJECT
+    return resolve_default_outlook_todo_due_date()
 
 
-def _extract_subject_from_current_mail() -> str:
+def _resolve_todo_client() -> GraphTodoClient:
     """
-    현재 메일 컨텍스트에서 제목 요약 후보를 추출한다.
+    ToDo 클라이언트를 반환한다.
+
+    설정 미주입 상태라면 재초기화를 1회 시도해 지연 환경 로딩 케이스를 흡수한다.
 
     Returns:
-        정규화된 제목 요약 문자열
+        사용 가능한 GraphTodoClient 인스턴스
     """
-    current_mail = _MAIL_SERVICE.get_current_mail()
-    if current_mail is None:
-        current_mail = _MAIL_SERVICE.read_current_mail()
-    raw_subject = _collapse_whitespace(str(getattr(current_mail, "subject", "") or ""))
-    normalized = _trim_subject_prefix_tokens(raw_subject)
-    hangul_only = "".join(re.findall(r"[가-힣]", normalized))
-    if hangul_only:
-        return hangul_only[:MAIL_SUBJECT_HANGUL_PREFIX_LEN]
-    compact = re.sub(r"\s+", "", normalized)
-    return compact[:MAIL_SUBJECT_HANGUL_PREFIX_LEN]
+    global _TODO_CLIENT
+    resolved_client = resolve_todo_client(todo_client=_TODO_CLIENT)
+    if resolved_client is not _TODO_CLIENT and resolved_client.is_configured():
+        logger.info("create_outlook_todo GraphTodoClient 재초기화로 설정 감지 성공")
+        _TODO_CLIENT = resolved_client
+    return _TODO_CLIENT
 
 
-def _trim_subject_prefix_tokens(subject: str) -> str:
+def _normalize_outlook_todo_due_date(raw_due_date: str) -> str:
     """
-    제목의 회신/전달 접두어와 선행 태그를 제거한다.
+    ToDo 마감일 문자열을 YYYY-MM-DD 형식으로 정규화한다.
 
     Args:
-        subject: 원본 제목
+        raw_due_date: 모델이 생성한 마감일 원문
 
     Returns:
-        정제된 제목
+        정규화된 마감일. 파싱 불가하면 빈 문자열
     """
-    normalized = str(subject or "").strip()
-    normalized = MAIL_PREFIX_PATTERN.sub("", normalized)
-    normalized = re.sub(r"^(?:\s*\[[^\]]*\]\s*)+", "", normalized)
-    normalized = re.sub(r"^(?:\s*\([^)]+\)\s*)+", "", normalized)
-    return normalized.strip()
+    return normalize_outlook_todo_due_date(raw_due_date=raw_due_date)
 
 
 @tool
@@ -276,8 +280,119 @@ def search_mails(
         end_date,
         limit,
     )
+    scope_contract = _resolve_search_scope_contract()
+    scope_mode = str(scope_contract.get("mode") or "").strip().lower()
+    if scope_mode == "current_mail":
+        logger.warning("search_mails scope 차단: mode=current_mail query=%s", str(query or "")[:80])
+        return _build_scope_blocked_payload(
+            reason="현재메일 범위에서는 사서함 검색 도구를 실행하지 않습니다.",
+            query=query,
+        )
+    scoped_query = _apply_scope_to_query(query=query, contract=scope_contract)
+    if scoped_query != str(query or "").strip():
+        logger.info(
+            "search_mails scope 질의 보정: original=%s scoped=%s anchor=%s",
+            str(query or "")[:80],
+            scoped_query[:80],
+            str(scope_contract.get("anchor_query") or "")[:60],
+        )
+    if should_fanout_tech_issue_query(query=scoped_query):
+        return _search_mails_with_query_fanout(
+            query=scoped_query,
+            person=person,
+            start_date=start_date,
+            end_date=end_date,
+            limit=limit,
+        )
     return _MAIL_SEARCH_SERVICE.search(
+        query=scoped_query,
+        person=person,
+        start_date=start_date,
+        end_date=end_date,
+        limit=limit,
+    )
+
+
+def _search_mails_with_query_fanout(
+    query: str,
+    person: str,
+    start_date: str,
+    end_date: str,
+    limit: int,
+) -> dict[str, Any]:
+    """
+    분할 키워드 질의를 다중 검색으로 실행한 뒤 단일 payload로 병합한다.
+
+    Args:
+        query: 원본 검색 질의
+        person: 사람명 필터
+        start_date: 시작일(YYYY-MM-DD)
+        end_date: 종료일(YYYY-MM-DD)
+        limit: 반환 개수
+
+    Returns:
+        병합된 `mail_search` payload
+    """
+    return search_mails_with_query_fanout(
         query=query,
+        person=person,
+        start_date=start_date,
+        end_date=end_date,
+        limit=limit,
+        search_service=_MAIL_SEARCH_SERVICE,
+    )
+
+
+@tool
+def search_meeting_schedule(
+    query: str,
+    person: str = "",
+    start_date: str = "",
+    end_date: str = "",
+    limit: int = 5,
+) -> dict[str, Any]:
+    """
+    일정/회의 관련 메일 검색을 수행한다.
+
+    Args:
+        query: 검색 질의(키워드/자연어)
+        person: 사람명 필터
+        start_date: 시작일(YYYY-MM-DD)
+        end_date: 종료일(YYYY-MM-DD)
+        limit: 반환 개수
+
+    Returns:
+        검색 결과 payload(`action=mail_search`)
+    """
+    logger.info(
+        "search_meeting_schedule 호출: query=%s person=%s start_date=%s end_date=%s limit=%s",
+        str(query or "")[:80],
+        person,
+        start_date,
+        end_date,
+        limit,
+    )
+    scope_contract = _resolve_search_scope_contract()
+    scope_mode = str(scope_contract.get("mode") or "").strip().lower()
+    if scope_mode == "current_mail":
+        logger.warning(
+            "search_meeting_schedule scope 차단: mode=current_mail query=%s",
+            str(query or "")[:80],
+        )
+        return _build_scope_blocked_payload(
+            reason="현재메일 범위에서는 일정 검색 도구를 실행하지 않습니다.",
+            query=query,
+        )
+    scoped_query = _apply_scope_to_query(query=query, contract=scope_contract)
+    if scoped_query != str(query or "").strip():
+        logger.info(
+            "search_meeting_schedule scope 질의 보정: original=%s scoped=%s anchor=%s",
+            str(query or "")[:80],
+            scoped_query[:80],
+            str(scope_contract.get("anchor_query") or "")[:60],
+        )
+    return _MAIL_SEARCH_SERVICE.search(
+        query=scoped_query,
         person=person,
         start_date=start_date,
         end_date=end_date,
@@ -299,15 +414,21 @@ def create_outlook_todo(title: str, due_date: str, detail: str = "") -> dict[str
         ToDo 생성 결과 사전
     """
     normalized_title = _normalize_outlook_todo_title(title=title, detail=detail)
-    normalized_due_date = str(due_date or "").strip()
+    normalized_due_date = _normalize_outlook_todo_due_date(raw_due_date=due_date)
     normalized_detail = str(detail or "").strip()
     if not normalized_title:
         return {"status": "failed", "reason": "title은 필수입니다."}
-    try:
-        datetime.strptime(normalized_due_date, "%Y-%m-%d")
-    except ValueError:
-        return {"status": "failed", "reason": "due_date 형식은 YYYY-MM-DD 여야 합니다."}
-    task = _TODO_CLIENT.create_task(
+    if not normalized_due_date:
+        normalized_due_date = _resolve_default_outlook_todo_due_date()
+        logger.warning(
+            "create_outlook_todo due_date 정규화 실패로 기본일 사용: raw_due_date=%s fallback_due_date=%s",
+            str(due_date or "").strip(),
+            normalized_due_date,
+        )
+    todo_client = _resolve_todo_client()
+    if not todo_client.is_configured():
+        return {"status": "failed", "reason": "Outlook ToDo 연동 설정이 비활성입니다. 서버의 MICROSOFT_APP_ID를 확인해 주세요."}
+    task = todo_client.create_task(
         title=normalized_title,
         due_date=normalized_due_date,
         body_text=normalized_detail,
@@ -337,6 +458,7 @@ def get_agent_tools() -> list[Any]:
     return [
         run_mail_post_action,
         search_mails,
+        search_meeting_schedule,
         current_date,
         search_meeting_rooms,
         book_meeting_room,

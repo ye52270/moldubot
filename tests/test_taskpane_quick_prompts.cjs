@@ -86,6 +86,7 @@ test('quick prompts exposes app/skill catalog with descriptions', () => {
   assert.equal(skillCatalog.length > 0, true);
   assert.equal(typeof appCatalog[0].description, 'string');
   assert.equal(typeof skillCatalog[0].description, 'string');
+  assert.equal(skillCatalog.some((item) => String(item && item.name || '') === '코드분석'), true);
 });
 
 test('quick prompts createAgent derives sequence from node titles', () => {

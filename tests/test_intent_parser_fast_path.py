@@ -9,6 +9,7 @@ from app.agents.intent_schema import (
     DateFilterMode,
     ExecutionStep,
     IntentDecomposition,
+    IntentTaskType,
 )
 
 
@@ -177,6 +178,27 @@ class IntentParserFastPathTest(unittest.TestCase):
         self.assertNotIn(ExecutionStep.READ_CURRENT_MAIL, result.steps)
         self.assertNotIn(ExecutionStep.EXTRACT_KEY_FACTS, result.steps)
 
+    def test_parser_drops_search_mails_when_query_is_not_mail_search(self) -> None:
+        """
+        비검색 질의에서 모델이 search_mails를 반환해도 정규화 단계에서 제거되어야 한다.
+        """
+        parser = ExaoneIntentParser(
+            model_name="exaone3.5:2.4b",
+            base_url="http://127.0.0.1:11434",
+            fast_path_mode="never",
+            max_steps=3,
+        )
+        mocked = IntentDecomposition(
+            original_query="저 LDAP 쿼리에 대해 외부 검색을 해줘",
+            steps=[ExecutionStep.SEARCH_MAILS],
+            summary_line_target=5,
+            date_filter=DateFilter(mode=DateFilterMode.NONE),
+            missing_slots=[],
+        )
+        with patch.object(parser, "_invoke_ollama_structured", return_value=mocked):
+            result = parser.parse("저 LDAP 쿼리에 대해 외부 검색을 해줘")
+        self.assertNotIn(ExecutionStep.SEARCH_MAILS, result.steps)
+
     def test_build_prompt_marks_monthly_billing_terms_as_non_date_filter(self) -> None:
         """
         프롬프트는 N월분/분기분 표현을 수신일 필터로 해석하지 않도록 명시해야 한다.
@@ -297,6 +319,20 @@ class IntentParserFastPathTest(unittest.TestCase):
             parser.parse("어제 온 메일 요약해줘")
             parser.parse("지난주 온 메일 요약해줘")
         self.assertEqual(2, invoke_mock.call_count)
+
+    def test_fast_path_always_marks_analysis_for_analyze_verb(self) -> None:
+        """
+        `분석/해석/검토` 행위어가 포함된 현재메일 질의는 analysis task_type으로 분류되어야 한다.
+        """
+        parser = ExaoneIntentParser(
+            model_name="exaone3.5:2.4b",
+            base_url="http://127.0.0.1:11434",
+            fast_path_mode="always",
+        )
+        with patch.object(parser, "_invoke_ollama_structured", side_effect=AssertionError("should not call")):
+            result = parser.parse("현재메일의 쿼리문을 분석해줘")
+        self.assertEqual(IntentTaskType.ANALYSIS, result.task_type)
+        self.assertIn(ExecutionStep.READ_CURRENT_MAIL, result.steps)
 
 
 if __name__ == "__main__":

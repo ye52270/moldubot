@@ -82,6 +82,16 @@ class ChatEvalServiceTest(unittest.TestCase):
             self.assertEqual(3, report["summary"]["total_cases"])
             self.assertEqual(123.4, report["summary"]["avg_chat_elapsed_ms"])
             self.assertEqual(88.1, report["summary"]["avg_judge_elapsed_ms"])
+            self.assertIn("used_current_mail_context", report["cases"][0])
+            self.assertIn("raw_answer", report["cases"][0])
+            self.assertIn("answer_format", report["cases"][0])
+            self.assertIn("guard_name", report["cases"][0])
+            self.assertIn("tool_action", report["cases"][0])
+            self.assertIn("server_elapsed_ms", report["cases"][0])
+            self.assertIn("evidence_top_k", report["cases"][0])
+            self.assertIn("metadata_snapshot", report["cases"][0])
+            self.assertIn("search_result_count", report["cases"][0])
+            self.assertIn("evidence_count", report["cases"][0])
             self.assertTrue(latest_path.exists())
 
             saved = json.loads(latest_path.read_text(encoding="utf-8"))
@@ -157,6 +167,75 @@ class ChatEvalServiceTest(unittest.TestCase):
         self.assertEqual(2, report["summary"]["total_cases"])
         report_case_ids = [item["case_id"] for item in report["cases"]]
         self.assertEqual(["mail-02", "mail-04"], report_case_ids)
+
+    def test_run_chat_eval_session_uses_cases_file_markdown(self) -> None:
+        """cases_file 지정 시 외부 markdown 케이스셋으로 실행해야 한다."""
+        markdown = """
+## Q1. 현재메일 요약
+**기대 결과:**
+- 현재메일 기준 요약
+
+## Q2. 전체 메일 조회
+**기대 결과:**
+- 조회 결과 제시
+""".strip()
+
+        def fake_chat_caller(
+            chat_url: str,
+            payload: dict[str, Any],
+            timeout_sec: int,
+        ) -> tuple[int, dict[str, Any], float, str | None]:
+            _ = (chat_url, timeout_sec)
+            return (
+                200,
+                {"answer": str(payload.get("message") or ""), "metadata": {"source": "deep-agent"}},
+                30.0,
+                None,
+            )
+
+        def fake_judge(
+            query: str,
+            answer: str,
+            expectation: str,
+            source: str,
+            judge_context: dict[str, Any],
+        ) -> tuple[dict[str, Any], float]:
+            _ = (query, answer, expectation, source, judge_context)
+            return (
+                {
+                    "pass": True,
+                    "score": 5,
+                    "reason": "ok",
+                    "checks": {"intent_match": True, "format_match": True, "grounded": True},
+                },
+                1.0,
+            )
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            path = Path(tmp_dir) / "cases.md"
+            path.write_text(markdown, encoding="utf-8")
+            reports_dir = Path(tmp_dir) / "reports"
+            latest_path = reports_dir / "chat_eval_latest.json"
+            original_reports_dir = chat_eval_service.REPORTS_DIR
+            original_latest_path = chat_eval_service.LATEST_REPORT_PATH
+            chat_eval_service.REPORTS_DIR = reports_dir
+            chat_eval_service.LATEST_REPORT_PATH = latest_path
+            try:
+                report = chat_eval_service.run_chat_eval_session(
+                    chat_url="http://127.0.0.1:8000/search/chat",
+                    cases_file=str(path),
+                    max_cases=2,
+                    selected_email_id="selected-id",
+                    mailbox_user="user@example.com",
+                    chat_caller=fake_chat_caller,
+                    judge_caller=fake_judge,
+                )
+            finally:
+                chat_eval_service.REPORTS_DIR = original_reports_dir
+                chat_eval_service.LATEST_REPORT_PATH = original_latest_path
+
+        self.assertEqual(2, report["summary"]["total_cases"])
+        self.assertEqual("cases-q1", report["cases"][0]["case_id"])
 
     def test_run_chat_eval_session_uses_rule_override_for_mail_search_no_result(self) -> None:
         """검색 결과 0건 + 부재 안내 응답이면 Judge 호출 없이 규칙 기반 PASS를 반환해야 한다."""
@@ -679,6 +758,221 @@ class ChatEvalServiceTest(unittest.TestCase):
         self.assertEqual(1, summary["report_format_checked_cases"])
         self.assertEqual(100.0, summary["booking_failure_reason_compliance_rate"])
         self.assertEqual(1, summary["booking_failure_reason_checked_cases"])
+
+    def test_run_chat_eval_session_attaches_current_mail_context_for_deictic_query(self) -> None:
+        """requires_current_mail=False여도 지시대명사 질의면 현재메일 컨텍스트를 주입해야 한다."""
+        captured_payloads: list[dict[str, Any]] = []
+
+        def fake_chat_caller(
+            chat_url: str,
+            payload: dict[str, Any],
+            timeout_sec: int,
+        ) -> tuple[int, dict[str, Any], float, str | None]:
+            _ = (chat_url, timeout_sec)
+            captured_payloads.append(dict(payload))
+            return (
+                200,
+                {"answer": "ok", "metadata": {"source": "deep-agent"}},
+                22.0,
+                None,
+            )
+
+        def fake_judge(
+            query: str,
+            answer: str,
+            expectation: str,
+            source: str,
+            judge_context: dict[str, Any],
+        ) -> tuple[dict[str, Any], float]:
+            _ = (query, answer, expectation, source, judge_context)
+            return (
+                {
+                    "pass": True,
+                    "score": 5,
+                    "reason": "ok",
+                    "checks": {"intent_match": True, "format_match": True, "grounded": True},
+                },
+                3.0,
+            )
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            reports_dir = Path(tmp_dir)
+            latest_path = reports_dir / "chat_eval_latest.json"
+            original_reports_dir = chat_eval_service.REPORTS_DIR
+            original_latest_path = chat_eval_service.LATEST_REPORT_PATH
+            original_cases = list(chat_eval_service.CHAT_EVAL_CASES)
+            chat_eval_service.REPORTS_DIR = reports_dir
+            chat_eval_service.LATEST_REPORT_PATH = latest_path
+            chat_eval_service.CHAT_EVAL_CASES = [
+                {
+                    "case_id": "deictic-current",
+                    "query": "이 메일에서 누락 항목 정리해줘",
+                    "expectation": "누락 항목 정리",
+                    "requires_current_mail": False,
+                }
+            ]
+            try:
+                _ = chat_eval_service.run_chat_eval_session(
+                    chat_url="http://127.0.0.1:8000/search/chat",
+                    selected_email_id="selected-id",
+                    mailbox_user="user@example.com",
+                    max_cases=1,
+                    chat_caller=fake_chat_caller,
+                    judge_caller=fake_judge,
+                )
+            finally:
+                chat_eval_service.REPORTS_DIR = original_reports_dir
+                chat_eval_service.LATEST_REPORT_PATH = original_latest_path
+                chat_eval_service.CHAT_EVAL_CASES = original_cases
+
+        self.assertEqual(1, len(captured_payloads))
+        payload = captured_payloads[0]
+        self.assertEqual("selected-id", payload.get("email_id"))
+        self.assertEqual("user@example.com", payload.get("mailbox_user"))
+        self.assertEqual({"scope": "current_mail"}, payload.get("runtime_options"))
+
+    def test_run_chat_eval_session_does_not_attach_current_mail_for_global_query(self) -> None:
+        """전체 메일 지시 질의는 선택 메일이 있어도 current_mail 컨텍스트를 강제 주입하지 않아야 한다."""
+        captured_payloads: list[dict[str, Any]] = []
+
+        def fake_chat_caller(
+            chat_url: str,
+            payload: dict[str, Any],
+            timeout_sec: int,
+        ) -> tuple[int, dict[str, Any], float, str | None]:
+            _ = (chat_url, timeout_sec)
+            captured_payloads.append(dict(payload))
+            return (
+                200,
+                {"answer": "ok", "metadata": {"source": "deep-agent"}},
+                21.0,
+                None,
+            )
+
+        def fake_judge(
+            query: str,
+            answer: str,
+            expectation: str,
+            source: str,
+            judge_context: dict[str, Any],
+        ) -> tuple[dict[str, Any], float]:
+            _ = (query, answer, expectation, source, judge_context)
+            return (
+                {
+                    "pass": True,
+                    "score": 5,
+                    "reason": "ok",
+                    "checks": {"intent_match": True, "format_match": True, "grounded": True},
+                },
+                3.0,
+            )
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            reports_dir = Path(tmp_dir)
+            latest_path = reports_dir / "chat_eval_latest.json"
+            original_reports_dir = chat_eval_service.REPORTS_DIR
+            original_latest_path = chat_eval_service.LATEST_REPORT_PATH
+            original_cases = list(chat_eval_service.CHAT_EVAL_CASES)
+            chat_eval_service.REPORTS_DIR = reports_dir
+            chat_eval_service.LATEST_REPORT_PATH = latest_path
+            chat_eval_service.CHAT_EVAL_CASES = [
+                {
+                    "case_id": "global-query",
+                    "query": "전체 메일함에서 관련 메일 찾아줘",
+                    "expectation": "검색 결과",
+                    "requires_current_mail": False,
+                }
+            ]
+            try:
+                _ = chat_eval_service.run_chat_eval_session(
+                    chat_url="http://127.0.0.1:8000/search/chat",
+                    selected_email_id="selected-id",
+                    mailbox_user="user@example.com",
+                    max_cases=1,
+                    chat_caller=fake_chat_caller,
+                    judge_caller=fake_judge,
+                )
+            finally:
+                chat_eval_service.REPORTS_DIR = original_reports_dir
+                chat_eval_service.LATEST_REPORT_PATH = original_latest_path
+                chat_eval_service.CHAT_EVAL_CASES = original_cases
+
+        self.assertEqual(1, len(captured_payloads))
+        payload = captured_payloads[0]
+        self.assertNotIn("email_id", payload)
+        self.assertNotIn("mailbox_user", payload)
+        self.assertNotIn("runtime_options", payload)
+
+    def test_run_chat_eval_session_attaches_current_mail_for_non_search_query_when_selected_mail_exists(self) -> None:
+        """명시적 전체검색이 아닌 비검색 질의는 선택 메일이 있으면 current_mail 컨텍스트를 붙여야 한다."""
+        captured_payloads: list[dict[str, Any]] = []
+
+        def fake_chat_caller(
+            chat_url: str,
+            payload: dict[str, Any],
+            timeout_sec: int,
+        ) -> tuple[int, dict[str, Any], float, str | None]:
+            _ = (chat_url, timeout_sec)
+            captured_payloads.append(dict(payload))
+            return (
+                200,
+                {"answer": "ok", "metadata": {"source": "deep-agent"}},
+                12.0,
+                None,
+            )
+
+        def fake_judge(
+            query: str,
+            answer: str,
+            expectation: str,
+            source: str,
+            judge_context: dict[str, Any],
+        ) -> tuple[dict[str, Any], float]:
+            _ = (query, answer, expectation, source, judge_context)
+            return (
+                {
+                    "pass": True,
+                    "score": 5,
+                    "reason": "ok",
+                    "checks": {"intent_match": True, "format_match": True, "grounded": True},
+                },
+                2.0,
+            )
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            reports_dir = Path(tmp_dir)
+            latest_path = reports_dir / "chat_eval_latest.json"
+            original_reports_dir = chat_eval_service.REPORTS_DIR
+            original_latest_path = chat_eval_service.LATEST_REPORT_PATH
+            original_cases = list(chat_eval_service.CHAT_EVAL_CASES)
+            chat_eval_service.REPORTS_DIR = reports_dir
+            chat_eval_service.LATEST_REPORT_PATH = latest_path
+            chat_eval_service.CHAT_EVAL_CASES = [
+                {
+                    "case_id": "non-search",
+                    "query": "AD join tool이란 무엇이며 왜 라이선스가 필요한가요?",
+                    "expectation": "현재 메일 기준 설명",
+                    "requires_current_mail": False,
+                }
+            ]
+            try:
+                _ = chat_eval_service.run_chat_eval_session(
+                    chat_url="http://127.0.0.1:8000/search/chat",
+                    selected_email_id="selected-id",
+                    mailbox_user="user@example.com",
+                    max_cases=1,
+                    chat_caller=fake_chat_caller,
+                    judge_caller=fake_judge,
+                )
+            finally:
+                chat_eval_service.REPORTS_DIR = original_reports_dir
+                chat_eval_service.LATEST_REPORT_PATH = original_latest_path
+                chat_eval_service.CHAT_EVAL_CASES = original_cases
+
+        self.assertEqual(1, len(captured_payloads))
+        payload = captured_payloads[0]
+        self.assertEqual("selected-id", payload.get("email_id"))
+        self.assertEqual({"scope": "current_mail"}, payload.get("runtime_options"))
 
 
 if __name__ == "__main__":

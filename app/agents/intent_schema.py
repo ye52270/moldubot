@@ -17,8 +17,10 @@ class ExecutionStep(str, Enum):
     SUMMARIZE_MAIL = "summarize_mail"
     EXTRACT_KEY_FACTS = "extract_key_facts"
     EXTRACT_RECIPIENTS = "extract_recipients"
+    SEARCH_MAILS = "search_mails"
     SEARCH_MEETING_SCHEDULE = "search_meeting_schedule"
     BOOK_MEETING_ROOM = "book_meeting_room"
+    BOOK_CALENDAR_EVENT = "book_calendar_event"
 
 
 class DateFilterMode(str, Enum):
@@ -29,6 +31,47 @@ class DateFilterMode(str, Enum):
     NONE = "none"
     RELATIVE = "relative"
     ABSOLUTE = "absolute"
+
+
+class IntentTaskType(str, Enum):
+    """
+    사용자 질의의 상위 작업 유형을 정의한다.
+    """
+
+    GENERAL = "general"
+    SUMMARY = "summary"
+    EXTRACTION = "extraction"
+    ANALYSIS = "analysis"
+    SOLUTION = "solution"
+    RETRIEVAL = "retrieval"
+    ACTION = "action"
+
+
+class IntentOutputFormat(str, Enum):
+    """
+    최종 응답의 기대 출력 형식을 정의한다.
+    """
+
+    GENERAL = "general"
+    STRUCTURED_TEMPLATE = "structured_template"
+    DETAILED_SUMMARY = "detailed_summary"
+    LINE_SUMMARY = "line_summary"
+    TABLE = "table"
+    ISSUE_ACTION = "issue_action"
+    SCHEDULE_OWNER_ACTION = "schedule_owner_action"
+
+
+class IntentFocusTopic(str, Enum):
+    """
+    질의가 주로 다루는 주제 포커스를 정의한다.
+    """
+
+    MAIL_GENERAL = "mail_general"
+    RECIPIENTS = "recipients"
+    COST = "cost"
+    TECH_ISSUE = "tech_issue"
+    SCHEDULE = "schedule"
+    SSL = "ssl"
 
 
 class DateFilter(BaseModel):
@@ -90,6 +133,10 @@ class IntentDecomposition(BaseModel):
         summary_line_target: 요약 줄 수 목표
         date_filter: 날짜 필터
         missing_slots: 추가 질의가 필요한 누락 슬롯 목록
+        task_type: 상위 작업 유형
+        output_format: 기대 출력 형식
+        focus_topics: 주요 포커스 주제 목록
+        confidence: 의도 분류 신뢰도(0~1)
     """
 
     original_query: str = Field(default="", description="사용자 원문")
@@ -97,10 +144,14 @@ class IntentDecomposition(BaseModel):
     summary_line_target: int = Field(default=5, ge=1, le=20, description="요약 줄 수 목표")
     date_filter: DateFilter = Field(default_factory=DateFilter, description="날짜 필터")
     missing_slots: list[str] = Field(default_factory=list, description="누락 슬롯 목록")
+    task_type: IntentTaskType = Field(default=IntentTaskType.GENERAL, description="상위 작업 유형")
+    output_format: IntentOutputFormat = Field(default=IntentOutputFormat.GENERAL, description="출력 형식")
+    focus_topics: list[IntentFocusTopic] = Field(default_factory=list, description="주요 주제 포커스")
+    confidence: float = Field(default=0.5, ge=0.0, le=1.0, description="의도 분류 신뢰도")
 
     @field_validator("original_query", mode="before")
     @classmethod
-    def normalize_original_query(cls, value: object) -> str:
+    def normalize_original_query(_cls, value: object) -> str:
         """
         원문 필드를 문자열로 정규화하고 앞뒤 공백을 제거한다.
 
@@ -114,7 +165,7 @@ class IntentDecomposition(BaseModel):
 
     @field_validator("steps")
     @classmethod
-    def dedupe_steps(cls, value: list[ExecutionStep]) -> list[ExecutionStep]:
+    def dedupe_steps(_cls, value: list[ExecutionStep]) -> list[ExecutionStep]:
         """
         steps 목록의 중복을 제거하면서 원래 순서를 유지한다.
 
@@ -132,7 +183,7 @@ class IntentDecomposition(BaseModel):
 
     @field_validator("missing_slots")
     @classmethod
-    def normalize_missing_slots(cls, value: list[str]) -> list[str]:
+    def normalize_missing_slots(_cls, value: list[str]) -> list[str]:
         """
         누락 슬롯 목록을 허용값 기준으로 정규화한다.
 
@@ -148,6 +199,25 @@ class IntentDecomposition(BaseModel):
             if slot_name in ALLOWED_MISSING_SLOTS and slot_name not in normalized:
                 normalized.append(slot_name)
         return sorted(normalized)
+
+    @field_validator("focus_topics")
+    @classmethod
+    def dedupe_focus_topics(_cls, value: list[IntentFocusTopic]) -> list[IntentFocusTopic]:
+        """
+        focus_topics 목록의 중복을 제거하면서 순서를 유지한다.
+
+        Args:
+            value: 주제 포커스 목록
+
+        Returns:
+            중복 제거된 주제 포커스 목록
+        """
+        deduped: list[IntentFocusTopic] = []
+        for topic in value:
+            if topic in deduped:
+                continue
+            deduped.append(topic)
+        return deduped
 
     @model_validator(mode="after")
     def align_missing_slots_with_steps(self) -> "IntentDecomposition":
@@ -179,6 +249,10 @@ def create_default_decomposition(user_message: str) -> IntentDecomposition:
         summary_line_target=5,
         date_filter=DateFilter(mode=DateFilterMode.NONE, relative="", start="", end=""),
         missing_slots=[],
+        task_type=IntentTaskType.GENERAL,
+        output_format=IntentOutputFormat.GENERAL,
+        focus_topics=[IntentFocusTopic.MAIL_GENERAL],
+        confidence=0.5,
     )
 
 
@@ -200,5 +274,9 @@ def decomposition_to_context_text(decomposition: IntentDecomposition) -> str:
         f"- steps: {steps_text}\n"
         f"- summary_line_target: {decomposition.summary_line_target}\n"
         f"- date_filter: {decomposition.date_filter.model_dump()}\n"
-        f"- missing_slots: {missing_text}"
+        f"- missing_slots: {missing_text}\n"
+        f"- task_type: {decomposition.task_type.value}\n"
+        f"- output_format: {decomposition.output_format.value}\n"
+        f"- focus_topics: {[topic.value for topic in decomposition.focus_topics]}\n"
+        f"- confidence: {decomposition.confidence:.2f}"
     )

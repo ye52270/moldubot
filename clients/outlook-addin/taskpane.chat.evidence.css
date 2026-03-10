@@ -1,0 +1,7 @@
+/* ========================================
+   MolduBot – Evidence CSS Entry
+   ======================================== */
+
+@import url('/addin/taskpane.chat.evidence.core.css?v=20260305-01');
+@import url('/addin/taskpane.chat.evidence.scope.css?v=20260305-01');
+@import url('/addin/taskpane.chat.evidence.confirm.css?v=20260305-01');

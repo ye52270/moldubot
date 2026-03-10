@@ -1,0 +1,9 @@
+{
+  "version": "1.0",
+  "recipient_todo_policy": {
+    "recipient_tokens": ["수신자", "받는사람"],
+    "todo_tokens": ["todo", "할일", "조치", "액션"],
+    "due_tokens": ["마감", "기한", "due"],
+    "registration_tokens": ["등록", "생성", "추가", "만들어"]
+  }
+}

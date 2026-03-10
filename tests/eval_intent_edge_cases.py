@@ -55,6 +55,7 @@ def _map_step_value(step_value: str) -> ExecutionStep | None:
         "extract_recipients": ExecutionStep.EXTRACT_RECIPIENTS,
         "search_meeting_schedule": ExecutionStep.SEARCH_MEETING_SCHEDULE,
         "book_meeting_room": ExecutionStep.BOOK_MEETING_ROOM,
+        "book_calendar_event": ExecutionStep.BOOK_CALENDAR_EVENT,
     }
     return mapping.get(step_value)
 

@@ -4,7 +4,25 @@
 - Describe this folder's responsibility.
 
 ## Change History
+- 2026-02-28 (before): 선택 메일 컨텍스트 조회 회귀 방지를 위해 Graph fallback/DB 캐시 서비스 단위 테스트 추가 작업 시작.
+- 2026-02-28 (after): `test_mail_context_service.py`를 추가해 DB cache hit/Graph fallback/not-found 3경로를 검증하고 전체 21건 테스트 통과.
+- 2026-02-28 (before): 4차 지연 최적화 회귀 방지를 위해 `current_mail` post-action 및 단일 메일 tool 레지스트리 테스트 추가 작업 시작.
+- 2026-02-28 (after): `test_mail_post_action.py`에 `current_mail` 액션 케이스를 추가하고 `test_agent_tools_registry.py`를 3-tool 단일 메일 경로 기준으로 갱신해 전체 18건 테스트 통과.
 - 2026-02-28: Folder initialized as part of ideal project structure refactor.
+- 2026-02-28 (before): 3차 지연 최적화 회귀 방지를 위해 에이전트 tool 레지스트리 구성 검증 테스트 추가 작업 시작.
+- 2026-02-28 (after): `test_agent_tools_registry.py`를 추가해 latency-optimized tool 레지스트리(4개)와 저수준 메일 tool 비노출 조건을 검증.
+- 2026-02-28 (before): 지연 최적화 회귀 방지를 위해 `run_post_action` 확장 액션 및 라우팅 단위 테스트 추가 작업 시작.
+- 2026-02-28 (after): `test_mail_post_action.py`를 추가해 `key_facts/recipients/summary_with_key_facts` 액션 계약을 검증하고 전체 13건 단위 테스트 통과.
+- 2026-02-28 (before): intent parser fast-path 회귀 방지를 위해 `auto/always/never` 모드 단위 테스트 추가 작업 시작.
+- 2026-02-28 (after): `test_intent_parser_fast_path.py`를 추가해 `always`(Ollama 생략), `never`(Ollama 호출), `auto`(규칙 감지 시 fast-path) 동작을 검증.
+- 2026-02-28 (before): 예약 로깅 강화 회귀 방지를 위해 `meeting_service` 예약 실패/성공 로그 검증 테스트 추가 작업 시작.
+- 2026-02-28 (after): `test_meeting_service_logging.py`를 추가해 예약 실패(warning)/성공(info) 로그를 `unittest.assertLogs`로 검증하고 실행 통과.
+- 2026-02-28 (before): 상대 날짜 절대값 변환 유틸 검증을 위해 `date_resolver` 단위 테스트 추가 작업 시작.
+- 2026-02-28 (after): `test_date_resolver.py`를 추가해 `내일/이번주 금요일/ISO 보정` 날짜 정규화 케이스를 검증하고 전체 5건 테스트 통과.
+- 2026-02-28 (before): 후처리 분기 회귀 방지를 위해 `answer_postprocessor`의 summary/report/복합 요청 라우팅 단위 테스트 추가 작업 시작.
+- 2026-02-28 (after): `test_answer_postprocessor_routing.py`를 추가해 summary/report/복합/주입문자열 라우팅 4케이스를 검증하고 전체 9건 테스트 통과.
+- 2026-02-28 (before): 채팅 품질 자동지표 강화를 위해 `eval_chat_quality_cases.py`에 요약 줄수/보고서 형식/예약 실패 사유 정합성 체크 로직 추가 작업 시작.
+- 2026-02-28 (after): `eval_chat_quality_cases.py`에 자동 지표 집계(요약 줄수/보고서 형식/예약 실패 사유)를 추가하고 `test_chat_quality_metrics.py`로 계산 회귀를 검증.
 - 2026-02-28 (before): 의도 구조분해 A/B 테스트용 문장 fixture 데이터 파일 추가 작업 시작.
 - 2026-02-28 (after): `tests/fixtures/intent_query_cases.py` 추가, 테스트 문장 10개를 import 가능한 fixture 상수(`INTENT_TEST_CASES`)로 정리.
 - 2026-02-28 (before): 경계 케이스 품질 측정을 위해 20개 의도 분해 fixture 및 자동 평가 스크립트 추가 작업 시작.
@@ -15,3 +33,446 @@
 
 ## Update Rule
 - Before and after any code change in this folder, append a detailed log entry.
+- 2026-03-02 (before): `standard_summary` 기본 정보 섹션의 빈 값 행 숨김 정책 회귀 방지를 위한 렌더링 테스트 추가 작업 시작.
+- 2026-03-02 (after): `test_search_chat_stream.py`에 스트리밍 토큰 전송 시 completed.answer가 스트리밍 텍스트와 동일해야 하는 케이스를 추가하고 `test_search_chat_stream`, `test_search_chat_metadata` 10건 통과를 확인.
+- 2026-03-02 (after): `test_answer_postprocessor_routing.py`에 기본 정보 빈값 행 숨김/전체 미존재 fallback 문구 케이스를 추가하고 unittest 47건 통과를 확인.
+- 2026-03-02 (before): 기본 정보 표 렌더 안정화(빈 헤더 테이블 제거/단일셀 행 보정/노이즈 행 제거) 회귀 방지를 위한 taskpane table 테스트 추가 작업 시작.
+- 2026-03-02 (after): `test_taskpane_messages_render.cjs`에 빈 헤더 표 suppress, 단일셀 row 값 보정(`-`) 케이스를 추가하고 node test 12건 통과를 확인.
+- 2026-03-02 (before): 스트리밍 라우터가 `@after_model` 결과를 우선 사용하도록 변경되는 리팩터링 회귀를 방지하기 위해 `/search/chat/stream` 테스트 케이스 보강 작업 시작.
+- 2026-03-02 (after): `test_search_chat_stream.py`에 agent 최종답변 우선 사용 케이스를 추가해 라우터 fallback 후처리가 불필요하게 실행되지 않는지 검증.
+- 2026-03-02 (after): `test_search_chat_metadata.py`에 `read_agent_final_answer` trim/타입가드 케이스를 추가하고 관련 테스트(`test_search_chat_stream`, `test_search_chat_metadata`, `test_middleware_registry`) 12건 통과를 확인.
+- 2026-03-02 (before): `answer_format` 노이즈 토큰(`#`, `---`, table delimiter row) 렌더 차단 회귀를 위해 taskpane 메시지 렌더 테스트 보강 작업 시작.
+- 2026-03-02 (before): Add-in markdown 렌더러가 공백 없는 heading/list/divider 토큰을 인식하는지 검증하기 위한 `taskpane.messages` 회귀 테스트 추가 작업 시작.
+- 2026-03-02 (after): `test_taskpane_messages_render.cjs`에 compact markdown 회귀 케이스 2건(`#제목 + 1.항목`, `---#헤딩`)을 추가하고 `node --test tests/test_taskpane_messages_render.cjs` 8건 통과를 확인.
+- 2026-03-01 (before): 근거메일 회귀 방지를 위해 복수 tool payload 우선순위(`mail_search` 우선)와 metadata 추출 계약(최대 3건/요약 라인 정규화) 테스트를 추가하는 작업 시작.
+- 2026-03-01 (after): `test_deep_chat_agent_tool_payload.py`를 추가해 복수 tool payload에서 `mail_search` 우선 선택 회귀를 고정했고, `test_search_chat_metadata.py`를 추가해 근거메일 top3/비검색 payload 무시/aggregated_summary 정규화(최대 5줄) 계약을 검증.
+- 2026-03-01 (after): `test_search_chat_selected_mail_context.py`에 non-mail tool payload가 selected-mail 근거를 덮지 않는 케이스를 추가해 조회/선택 혼합 시 evidence 안정성을 검증. 관련 테스트 11건 통과.
+- 2026-03-01 (before): 구조 안정화 리팩터링 회귀 방지를 위해 context-state 격리 및 공통 payload selector 경로 테스트를 추가하는 작업 시작.
+- 2026-03-01 (after): `test_tool_payload_selector.py`를 추가해 공통 selector의 최신 payload fallback/선호 action 우선/깨진 JSON 무시 규칙을 검증.
+- 2026-03-01 (after): `test_search_chat_selected_mail_context.py`에 selected-mail 성공 응답 후 `clear_current_mail()` 호출 보장 테스트를 추가해 요청 경계 cleanup 회귀를 고정.
+- 2026-03-01 (before): 표준 요약 템플릿/헤더 필터 회귀 방지를 위해 `answer_postprocessor` 테스트에 `standard_summary` 렌더와 `From/Sent/To` 제거 검증 케이스를 추가하는 작업 시작.
+- 2026-03-01 (after): `test_answer_postprocessor_routing.py`에 `standard_summary` 섹션 템플릿 렌더, 현재메일 기본 요약 템플릿 강제, 헤더성 라인 제거 fallback 검증 케이스를 추가하고 전체 10건 통과.
+- 2026-03-01 (before): 사용자 템플릿 품질 회귀 방지를 위해 `현재메일 N줄 요약` 동적 줄수 스타일 렌더와 `현재메일 요약` 표준 마크다운 템플릿(테이블/섹션/최종요약) 검증 테스트를 추가하는 작업 시작.
+- 2026-03-01 (after): `test_answer_postprocessor_routing.py`에 `현재메일 N줄 요약`(번호+강조+설명)과 `현재메일 요약`(표준 마크다운 템플릿) 검증 케이스를 반영하고 전체 11건 테스트 통과.
+- 2026-03-01 (before): 표준 요약 템플릿 유사도 향상을 위해 `전달 경로` 코드블록 렌더 규칙 회귀 테스트를 추가하는 작업 시작.
+- 2026-03-01 (after): `test_answer_postprocessor_routing.py`에 전달 경로 코드블록 렌더 케이스를 추가하고 관련 회귀 테스트(총 15건) 통과를 확인.
+- 2026-03-01 (before): 완결 단계 품질 보증을 위해 표준 요약 필드 누락/비정형 입력(헤더 혼합, 장문 문장) 시 템플릿 복원 회귀 테스트를 추가하는 작업 시작.
+- 2026-03-01 (after): `test_answer_postprocessor_routing.py`에 `explicit line request ignores standard_summary`, `fills requested count`, `subject from answer`, `quality log` 케이스를 추가해 총 24건 회귀 테스트 통과.
+- 2026-03-01 (after): `test_answer_postprocessor_routing.py`에 표준 요약 필드 누락 시 answer 기반 복원 케이스와 품질 진단 로그(`standard_summary_quality`) 검증 케이스를 추가하고 관련 테스트 21건 통과.
+- 2026-03-01 (before): `answer_postprocessor` fallback 진입 사유 로그 회귀를 방지하기 위해 JSON 파싱 실패 케이스 로그 검증 테스트를 추가하는 작업 시작.
+- 2026-03-01 (after): `test_answer_postprocessor_routing.py`에 JSON decode 실패 시 `reason=json_decode_error` 로그와 fallback 렌더를 검증하는 케이스를 추가하고 총 7건 테스트 통과를 확인.
+- 2026-03-01 (before): 요약 품질 개선 회귀 방지를 위해 JSON 응답 계약 기반 후처리 테스트(상세 요약 최소 줄수/중복 제거/마크다운 정리)를 추가하는 작업 시작.
+- 2026-03-01 (after): `test_answer_postprocessor_routing.py`에 JSON 계약 기반 상세 요약 최소 8줄/중복 제거/마크다운 정리 테스트를 추가하고 관련 테스트 13건 통과를 확인.
+- 2026-03-01 (before): `/search/chat`를 LLM 단일 경로로 전환한 뒤 selected-mail 회귀를 방지하기 위해 기존 direct-summary/post-action 기대 테스트를 deep-agent 경로 기준으로 갱신하는 작업 시작.
+- 2026-03-01 (after): `test_search_chat_selected_mail_context.py`를 deep-agent 단일 경로 기준으로 갱신해 선택메일 성공/실패/누락 모두 LLM 경로를 타는지 검증하고 관련 테스트 11건 통과를 확인.
+- 2026-02-28 (before): `/search/chat` 품질 회귀 확인을 위한 10문장 채팅 E2E fixture 및 실행 스크립트 추가 작업 시작.
+- 2026-02-28 (after): `tests/fixtures/chat_quality_cases.py`(10문장)와 `tests/eval_chat_quality_cases.py`를 추가해 `/search/chat` 품질 회귀를 실호출로 반복 검증할 수 있도록 구성.
+- 2026-02-28 (before): Graph 토큰 실패/조회 실패 로깅 메타데이터 파싱 회귀 방지를 위해 `GraphMailClient` 단위 테스트 추가 작업 시작.
+- 2026-02-28 (after): `test_graph_mail_client.py`를 추가해 AADSTS 메타 파싱, 토큰 실패 구조화 로그, Graph 4xx 실패 로그(request-id/error code) 3케이스를 검증.
+- 2026-02-28 (before): Outlook 선택 메일 컨텍스트 추출 로직 회귀 방지를 위해 JS 단위 테스트(`node --test`) 추가 작업 시작.
+- 2026-02-28 (after): `test_taskpane_selection_context.cjs`를 추가해 mailbox user 정규화, `itemId` 직접 추출, `getItemIdAsync` fallback 3경로를 `node --test`로 검증.
+- 2026-02-28 (before): 메일 전환 실패 시 직전 메일 재사용 회귀 방지를 위한 current_mail 캐시 초기화 테스트 추가 작업 시작.
+- 2026-02-28 (after): `test_search_chat_selected_mail_context.py`를 추가해 선택 메일 컨텍스트 실패 시 deep agent 진행 차단, current mail 캐시 초기화, 실패 응답 소스 반환을 검증.
+- 2026-02-28 (before): 채팅 버블 액션 마크업/상태 회귀 방지를 위한 taskpane UI 단위 테스트 추가 작업 시작.
+- 2026-02-28 (after): `test_taskpane_selection_context.cjs`에 메시지 액션 마크업 검증(사용자 copy-only, 어시스턴트 up/down/copy)을 추가해 총 5케이스를 `node --test`로 검증.
+- 2026-02-28 (before): Claude 스타일 액션 배치 회귀 방지를 위해 taskpane 액션 마크업/동작 테스트 업데이트 작업 시작.
+- 2026-02-28 (after): 리워크 이후에도 액션 마크업 계약(user copy-only, assistant copy/up/down)이 유지됨을 `node --test` 5케이스로 재검증.
+- 2026-02-28 (before): 사용자 버블 액션 마크업 변경(시간/재생성/수정/복사) 회귀 방지를 위해 taskpane 테스트 케이스 업데이트 작업 시작.
+- 2026-03-02 (before): 회의실 depth 예약 기능 회귀 방지를 위해 API/클라이언트/Graph 캘린더 단위 테스트 추가 작업 시작.
+- 2026-03-02 (after): `test_taskpane_helpers.cjs`에 회의실 intent 감지 케이스를 추가하고, `test_taskpane_api_stream.cjs`에 회의실 depth 조회/예약 API 호출 테스트를 추가.
+- 2026-03-02 (after): `test_bootstrap_meeting_routes.py`를 추가해 `/api/meeting-rooms` depth 응답과 `/api/meeting-rooms/book` Graph 이벤트 생성 계약을 검증.
+- 2026-03-02 (after): `test_graph_calendar_client.py`를 추가해 Graph 캘린더 이벤트 생성 성공/미설정 경로를 검증.
+- 2026-02-28 (after): 사용자 버블 액션 계약을 `retry/edit/copy + msg-meta-time`로 갱신하고 assistant 액션 계약과 함께 총 5케이스 통과를 확인.
+- 2026-02-28 (before): 선택 메일 ID 누락 시 stale current_mail 차단 회귀 방지를 위한 `/search/chat` 단위 테스트 추가 작업 시작.
+- 2026-02-28 (after): `test_search_chat_selected_mail_context.py`에 `email_id` 누락 시 `selected-mail-context-missing` 반환/agent 미호출/캐시초기화 검증 케이스를 추가.
+- 2026-02-28 (before): stale email_id 재사용 회귀 방지를 위해 taskpane 선택 컨텍스트 테스트를 cache fallback 미사용 정책 기준으로 보강 작업 시작.
+- 2026-02-28 (after): `test_taskpane_selection_context.cjs`에 `isCurrentMailQuery` 판별 테스트를 추가해 현재메일 질의 분기(cache fallback 금지) 회귀를 방지.
+- 2026-02-28 (after): `test_search_chat_selected_mail_context.py`에 현재메일 direct-summary 경로(선택 메일 본문 기반, agent 미호출) 검증 케이스를 추가.
+- 2026-02-28 (before): 선택 컨텍스트에서 async item id 우선 정책 회귀 방지를 위한 taskpane 테스트 케이스 추가 작업 시작.
+- 2026-02-28 (after): `test_taskpane_selection_context.cjs`에 `getItemIdAsync` 우선 선택 케이스를 추가해 stale direct itemId 회귀를 방지.
+- 2026-02-28 (before): 선택 컨텍스트 디버그 로깅 필드 회귀 방지를 위한 taskpane 테스트 갱신 작업 시작.
+- 2026-02-28 (after): `test_taskpane_selection_context.cjs`에 `shortId` 로깅 유틸 케이스를 추가해 디버그 로그 축약 포맷 회귀를 방지.
+- 2026-02-28 (before): ItemChanged cache clear 보강 이후 taskpane 회귀 검증(node test) 재실행 작업 시작.
+- 2026-02-28 (after): ItemChanged cache clear 보강 반영 후 `tests/test_taskpane_selection_context.cjs` 8케이스 재실행 통과.
+- 2026-02-28 (before): stale-selection 감지 헬퍼 회귀 방지를 위한 taskpane 테스트 추가 작업 시작.
+- 2026-02-28 (after): `test_taskpane_selection_context.cjs`에 stale-selection helper 존재/반환형 검증을 추가해 총 9케이스를 통과.
+- 2026-02-28 (before): 현재메일 stale id 완화 로직(ID 변경 대기 helper) 회귀 방지를 위한 taskpane 테스트 보강 작업 시작.
+- 2026-02-28 (after): `test_taskpane_selection_context.cjs`에 `waitForSelectionChange` helper 노출 검증을 추가해 총 10케이스 통과.
+- 2026-02-28 (before): Office onReady 이후 지연 로딩되는 mailbox 컨텍스트 회귀 방지를 위해 taskpane 선택 컨텍스트 테스트 추가 작업 시작.
+- 2026-02-28 (after): `test_taskpane_selection_context.cjs`에 onReady 이후 mailbox가 늦게 채워지는 시나리오를 추가해 `resolveSelectionContextOnce`가 최종적으로 `email_id`를 복원하는 케이스를 검증(총 11케이스 통과).
+- 2026-02-28 (before): ItemChanged 핸들러 등록 성공/실패 로그 회귀 방지를 위한 taskpane 테스트 보강 작업 시작.
+- 2026-02-28 (after): `test_taskpane_selection_context.cjs`에 ItemChanged 핸들러 등록 성공/미지원 안전종료 테스트 2건을 추가해 총 13케이스 통과를 확인.
+- 2026-02-28 (before): observeSelectionChanges readiness/중복등록 방지 회귀 검증을 위한 taskpane 테스트 갱신 작업 시작.
+- 2026-02-28 (after): `test_taskpane_selection_context.cjs`에서 `observeSelectionChanges` 비동기화에 맞춰 테스트를 갱신하고 중복 등록 방지 케이스를 추가해 총 14케이스 통과를 확인.
+- 2026-02-28 (before): selection context 폴링 fallback 회귀 방지를 위한 taskpane 테스트 추가 작업 시작.
+- 2026-02-28 (after): `test_taskpane_selection_context.cjs`에 polling fallback 변경 감지 테스트를 추가하고 총 15케이스 통과를 확인.
+- 2026-02-28 (before): selection observer 다중 이벤트 등록/폴링 디버그 회귀 검증을 위한 taskpane 테스트 업데이트 작업 시작.
+- 2026-02-28 (after): `test_taskpane_selection_context.cjs`에 `SelectedItemsChanged` fallback 등록 케이스를 추가하고 전체 16케이스 통과를 확인.
+- 2026-02-28 (before): `Office.EventType` 우선 참조 및 requirement 체크 유틸 추가에 대한 taskpane 테스트 보강 작업 시작.
+- 2026-02-28 (after): `test_taskpane_selection_context.cjs`에 `MailboxEnums.EventType`이 없고 `Office.EventType`만 있는 환경에서도 observer 등록이 되는 케이스를 추가해 총 17케이스 통과를 확인.
+- 2026-02-28 (before): taskpane 분리 리팩터링에 맞춘 JS 테스트/로딩 회귀 검증 작업 시작.
+- 2026-02-28 (after): taskpane 분리 리팩터링 후 `node --test tests/test_taskpane_selection_context.cjs` 17케이스 재실행 통과로 로딩/selection 회귀 없음 확인.
+- 2026-02-28 (before): 선택메일 안정화 이후 품질 측정 우선 전략으로 평가 기준셋/지표/A-B 실험 틀 구축 작업 시작.
+- 2026-02-28 (after): `eval_chat_quality_ab.py`를 추가해 baseline/candidate 서버를 동일 품질 케이스로 실행하고 success/latency/summary/report/booking 지표 delta를 자동 계산하도록 구성. `test_chat_quality_ab.py` 추가 및 unittest 통과.
+- 2026-02-28 (after): 프롬프트 A/B 실험을 baseline(8011)/candidate(8012)로 실제 실행했으나, 두 서버 모두 `selected-mail-context-missing` 경로로 응답해 품질 비교 지표가 무의미함을 확인. 다음 실험은 선택 메일 컨텍스트가 주입되는 환경에서 재수행 필요.
+- 2026-02-28 (before): 메일 컨텍스트 미주입으로 A/B 무효였던 문제를 보완하기 위해 non-mail 품질 케이스/평가 스크립트 추가 작업 시작.
+- 2026-03-01 (before): 프롬프트 후보 2~3개 재실험을 위해 non-mail A/B 실행 스크립트 재사용, 후보별 지표 비교 및 테스트 회귀 확인 작업 시작.
+- 2026-03-01 (after): `test_agent_prompts.py`를 추가해 프롬프트 variant 조회(`default` fallback/`fast_compact`/`quality_structured`)를 검증했고, non-mail A/B를 `default vs fast_compact`, `default vs quality_structured` 2회 실행해 후보 프롬프트의 지연 악화 결과를 수집.
+- 2026-03-01 (before): 후속 실험으로 단계 억제 정책 회귀 방지를 위해 `intent_rules`/`intent_parser` 테스트(추론 보강 + max step 제한) 추가 작업 시작.
+- 2026-03-01 (after): `test_intent_rules.py`(3케이스)와 `test_intent_parser_fast_path.py` max-step 제한 케이스를 추가해 총 8건 단위테스트 통과, 이후 non-mail A/B(`max_steps=6 vs 2`) 재실행으로 지연 개선(`-288.7ms`) 확인.
+- 2026-03-01 (before): 현재메일 요약 분기 개선 회귀 방지를 위해 `selected-mail` 경로 테스트(기본 요약/명시 지시 우회/DB summary 우선)를 추가·수정하는 작업 시작.
+- 2026-03-01 (after): `test_search_chat_selected_mail_context.py`를 보강해 `selected-mail-db-summary` 우선 반환과 `3줄 요약` 같은 명시 지시 시 deep-agent 우회 분기를 검증했고, `test_mail_service_summary_column.py`를 추가해 DB `summary` 컬럼→`MailRecord.summary_text` 매핑을 검증.
+- 2026-03-01 (before): 현재메일 단일 post-action 파이프라인 통합 회귀 방지를 위해 selected-mail 분기 테스트를 공통 경로 기준으로 갱신하는 작업 시작.
+- 2026-03-01 (after): `test_search_chat_selected_mail_context.py`를 갱신해 기본 요약(summary), 줄수 지시(summary+line target), 상세 요약(summary_with_key_facts) 모두 `mail_context_service.run_post_action` 단일 경로를 타는지 검증. 전체 관련 테스트 14건 통과.
+- 2026-03-01 (before): post-action 페이로드 확장 및 요약 품질 회귀 방지를 위한 테스트(메일 메타 포함/summary action 계약) 추가 작업 시작.
+- 2026-03-01 (after): `test_mail_post_action.py`에 summary 액션 mail_context 포함(제목/summary_text/body_excerpt) 검증 케이스를 추가하고 관련 회귀 26건 통과.
+- 2026-03-01 (after): `test_answer_postprocessor_summary.py`를 추가해 summary 추출/정규화 단계의 서명/연락처 노이즈 제거 규칙을 검증하고, 관련 회귀 31건 통과.
+- 2026-03-01 (before): 요약 저가치 문장 필터 회귀 방지를 위해 후처리 summary 필터 테스트(상투 문장/자기소개 제거) 추가 작업 시작.
+- 2026-03-01 (after): `test_answer_postprocessor_summary.py`에 저가치 문장 제거 케이스를 추가하고 전체 회귀 32건 통과.
+- 2026-03-01 (before): tool payload 기반 후처리 보강 회귀 테스트(표준요약 제목 보강/N줄 요약 라인 보강) 추가 작업 시작.
+- 2026-03-01 (after): `test_answer_postprocessor_routing.py`에 tool payload 기반 제목 보강/명시 줄요약 라인 우선 반영 케이스를 추가하고 관련 회귀 34건 통과.
+- 2026-03-01 (before): 메일 요약 핵심문장 선별 로직 회귀 방지를 위한 mail_text_utils 테스트(헤더/상투문 제거, 키워드 우선 선별) 추가 작업 시작.
+- 2026-03-01 (after): `test_mail_text_utils.py`를 추가해 헤더/상투 문장 제거 및 actionable 문장 우선 선별 규칙을 검증, 관련 회귀 36건 통과.
+- 2026-03-01 (after): `test_logging_config.py` 추가로 `PROMPT_TRACE_ENABLED` truthy/falsey 파싱 동작을 검증하고 관련 회귀 28건 통과.
+- 2026-03-01 (before): N줄 요약 품질 회귀 방지를 위해 근접 중복 제거/저가치 라인 차단 테스트 케이스 추가 작업 시작.
+- 2026-03-01 (after): `test_answer_postprocessor_routing.py`에 body_excerpt 우선 반영 케이스를 추가해 N줄 요약 품질 보강 회귀를 검증.
+- 2026-03-01 (after): `test_answer_postprocessor_routing.py`에 `summary_text` 우선 반영 케이스를 추가해 noisy body/model 라인보다 mail_context 요약 근거가 우선되는지 검증.
+- 2026-03-01 (before): N줄 요약 단일 소스 선택 회귀(모델 충분 시 tool 라인 비혼합) 테스트 추가 작업 시작.
+- 2026-03-01 (after): `test_answer_postprocessor_routing.py`에 explicit line 단일 소스 선택 회귀(모델 충분 시 tool 비혼합, grounded/tool fallback) 케이스를 보강하고 관련 테스트 30건 통과.
+- 2026-03-01 (before): explicit line summary가 문장 분할로 중복 라인을 생성하지 않도록 회귀 테스트 추가 작업 시작.
+- 2026-03-01 (after): `test_answer_postprocessor_routing.py`에 explicit line padding 비절단 회귀 테스트를 추가해 N줄 요약이 본문 절단 대신 보조 필드 기반으로 라인을 채우는지 검증.
+- 2026-03-01 (before): context-only tool 계약 및 explicit line model-first 정책 회귀 방지를 위한 테스트 갱신 작업 시작.
+- 2026-03-01 (after): `test_mail_post_action.py`에서 `summary_with_key_facts` contract를 context-only(deprecated)로 갱신하고, `test_answer_postprocessor_routing.py`에서 tool 생성 라인 무시(model-first) 정책 회귀 케이스로 변경.
+- 2026-03-01 (after): `test_mail_post_action.py`를 전 액션 context-only 계약 기준으로 갱신(보고서 액션 포함)하고, 라우팅/선택메일/프롬프트 테스트까지 총 36건 통과를 확인.
+- 2026-03-01 (before): DB 하이브리드 메일 검색과 근거메일 메타 경로 회귀 방지를 위한 단위 테스트 보강 작업 시작.
+- 2026-03-01 (after): `test_mail_search_service.py`(검색 결과/사람 필터), `test_search_chat_selected_mail_context.py`(mail_search tool payload evidence 노출), `test_agent_tools_registry.py`(search_mails 등록), `test_mail_text_utils.py`(발신자 표시명 추출)를 반영하고 관련 테스트 19건 통과.
+- 2026-03-01 (before): 월-only 메일 조회 연도 해석 회귀 방지와 새 tool 노출 보장을 위해 테스트 보강 작업 시작.
+- 2026-03-01 (after): `test_intent_rules.py`에 `1월달` 현재연도/`작년 1월` 전년도 해석 테스트를 추가하고, `test_agent_tools_registry.py`에 `current_date` 등록 검증을 추가.
+- 2026-03-01 (before): summary-first 메일 검색 확장 회귀 방지를 위해 검색 payload/metadata 관련 테스트 보강 작업 시작.
+- 2026-03-01 (after): `test_mail_search_service.py`에 `summary_text`/`aggregated_summary`/`metrics` 검증을 추가하고 `test_search_chat_selected_mail_context.py`에 metadata `aggregated_summary` 전달 검증을 추가.
+- 2026-03-01 (before): 조회형 요약 라우팅 회귀 방지를 위해 intent/postprocessor 테스트 보강 작업 시작.
+- 2026-03-01 (after): `test_intent_rules`에 조회 질의 step 분기 테스트를 추가하고, `test_answer_postprocessor_routing`에 non-current 조회 질의에서 standard template 미적용 회귀 테스트를 추가.
+- 2026-03-01 (before): 스트리밍 채팅 경로 회귀 방지를 위해 `/search/chat/stream` SSE 계약 테스트와 taskpane API 스트림 파서 테스트를 추가하는 작업 시작.
+- 2026-03-01 (after): `test_search_chat_stream.py`(progress/completed 이벤트 계약)과 `test_taskpane_api_stream.cjs`(SSE chunk 파싱/stream 우선 경로)를 추가하고 기존 selection 테스트와 함께 통과 확인.
+- 2026-03-01 (before): Thinking 인디케이터 상태 매핑 회귀 방지를 위해 taskpane 오케스트레이터 단위 테스트를 보강하는 작업 시작.
+- 2026-03-01 (after): `test_taskpane_selection_context.cjs`에 `_mapProgressMessage` 케이스(processing=>Thinking...., completed=>hidden)를 추가하고 stream/api 테스트와 함께 통과 확인.
+- 2026-03-01 (after): Thinking 인디케이터 미표시 대응 이후에도 `_mapProgressMessage` 회귀 케이스를 유지해 processing/completed 상태 매핑이 깨지지 않음을 재검증(node test 21건 통과).
+- 2026-03-01 (after): 인디케이터 표시 제어 방식(class 기반) 변경 후에도 taskpane stream/selection 테스트 21건이 모두 통과함을 재확인.
+- 2026-03-01 (after): Thinking 스레드 표시 전환 이후에도 taskpane API/selection 테스트 21건이 모두 통과해 기존 회귀가 없음을 확인.
+- 2026-03-01 (before): 조회 0건 회귀(근거메일 누수/0건 요약 다중 라인) 방지를 위해 metadata/postprocessor/search_chat 경계 테스트 보강 작업 시작.
+- 2026-03-01 (after): `test_search_chat_selected_mail_context.py`에 `mail_search` 0건 시 selected 근거메일 비움 케이스를 추가하고, `test_answer_postprocessor_routing.py`에 no-result 단일 문장 고정 케이스, `test_search_chat_metadata.py`에 action 정규화 케이스를 추가. 관련 회귀 44건 통과.
+- 2026-03-01 (before): `최근 N주` 질의의 연도 오인(2023 회귀) 방지를 위해 날짜 필터 파서 회귀 테스트 추가 작업 시작.
+- 2026-03-01 (after): `test_intent_rules.py`에 `최근 4주 메일 조회` absolute 범위(오늘-28일~오늘) 검증 케이스를 추가하고 관련 회귀 43건 통과.
+- 2026-03-01 (before): thread_id 전달/미들웨어 데코레이터 전환/checkpointer 연동 회귀 방지를 위해 관련 단위 테스트를 갱신·추가하는 작업 시작.
+- 2026-03-01 (after): `test_search_chat_selected_mail_context.py`를 갱신해 agent 호출 인자를 `user_message/thread_id` 기준으로 검증하고, thread_id 명시 전달/자동 생성 재사용 회귀 테스트 2건을 추가.
+- 2026-03-01 (after): `test_deep_chat_agent_tool_payload.py`에 `_resolve_thread_id` 동작(입력 유지/자동 생성) 테스트를 추가.
+- 2026-03-01 (after): `test_middleware_registry.py`를 추가해 SummarizationMiddleware의 키 유무 기반 활성화/비활성화 계약을 검증.
+- 2026-03-01 (before): `/search/chat` E2E 샘플(스레드 메모리/조회/현재메일 질의) 재현용 테스트 코드를 추가하고 실행 가능한 자동 검증 경로를 만드는 작업 시작.
+- 2026-03-01 (after): `test_search_chat_e2e_samples.py`를 추가해 `/search/chat` 샘플 10개의 completed 응답 계약과 thread_id 기반 메모리 격리 동작(동일 스레드 기억 유지/다른 스레드 격리)을 검증.
+- 2026-03-01 (after): 사용자 요청으로 `test_search_chat_selected_mail_context.py`의 컨텍스트 실패 기대값을 기존 deep-agent 경로 기준으로 원복하고 테스트 통과를 확인.
+- 2026-03-01 (before): intent parser를 Ollama-first로 전환한 뒤 회귀를 방지하기 위해 fast-path/모델우선 병합/품질게이트 fallback 테스트를 갱신하는 작업 시작.
+- 2026-03-01 (after): `test_intent_parser_fast_path.py`를 갱신해 `auto`의 단순패턴 fast-path/복합질의 Ollama 호출/필수 step 누락 시 fallback 보정 동작을 검증.
+- 2026-03-01 (before): 복합질의 20개에 대한 intent parser 품질 검증(파싱 성공, 필수 step 충족, 지연 측정)용 fixture/평가 스크립트 추가 작업 시작.
+- 2026-03-01 (after): `intent_complex_cases.py`(복합질의 20개 fixture), `eval_intent_complex_cases.py`(파싱 성공률/필수 step 충족률/지연 측정), `test_intent_complex_cases_fixture.py`(fixture 계약 검증)를 추가.
+- 2026-03-01 (after): 복합질의 평가 실행 결과(parse_success 100.0%, required_steps_pass 20.0%, avg 1926.0ms, max 3566.3ms)를 `tests/intent_complex_eval_result.json`에 저장.
+- 2026-03-01 (after): 사용자 제안 조합 3종으로 복합질의 재평가를 실행하고 결과 파일을 분리 저장(`intent_complex_eval_result_always_s2.json`, `intent_complex_eval_result_auto_s4.json`, `intent_complex_eval_result_never_s4.json`).
+- 2026-03-01 (after): 비교 결과 `always/2` 대비 `auto/4`·`never/4`의 필수 step 충족률이 20.0%→85.0%로 개선됨을 확인(파싱 성공률 100% 유지, 지연은 약 2초 수준).
+- 2026-03-01 (before): 메일 질의 회귀 자동화를 위해 E2E 질의셋(20개)과 LLM-as-Judge 기반 품질 평가 스크립트(실호출 + 점수/판정)를 추가하는 작업 시작.
+- 2026-03-01 (before): chat judge 평가 서비스/API 추가에 대한 회귀 방지를 위해 서비스 단위 테스트 및 라우트 테스트를 추가하는 작업 시작.
+
+- 2026-03-01 (after): `test_chat_eval_service.py`, `test_chat_eval_routes.py`, `test_chat_eval_cases.py`를 추가해 실행/저장/API 계약 회귀를 검증하고 unittest 5건 통과를 확인.
+
+- 2026-03-01 (before): 헤더 설정 버튼 UI 계약 회귀 방지를 위해 `taskpane.html` 구조 검증 테스트 추가 작업 시작.
+
+- 2026-03-01 (after): `test_taskpane_eval_button.cjs`를 추가해 헤더 버튼 배치(`openEvalBtn`→`newSessionBtn`)와 eval 경로 노출(`_openEvalPagePath`) 계약을 검증. 기존 selection 테스트와 함께 node test 21건 통과.
+
+- 2026-03-01 (before): chat-eval URL 정규화 회귀 방지를 위해 페이지 스크립트 계약(절대 URL 빌더/Chat URL 보정) 검증 테스트 추가 작업 시작.
+
+- 2026-03-01 (after): `test_chat_eval_page.cjs`를 추가해 chat-eval 페이지의 절대 URL 빌더/Chat URL 보정/QA API fetch 경로 계약을 검증하고 node test 통과를 확인.
+
+- 2026-03-01 (after): `test_chat_eval_page.cjs`에 Selected Email ID 기본값 존재 검증 케이스를 추가하고 node test 2건 통과를 확인.
+
+- 2026-03-01 (after): `test_chat_eval_page.cjs`를 갱신해 `resolveApiBaseOrigin`/run/latest API URL 생성 계약을 검증하고 node test 2건 통과를 확인.
+- 2026-03-01 (before): scope disambiguation(모호 질의 범위 확인)과 thread_id 유지 회귀 방지를 위해 API/JS 테스트 케이스를 추가하는 작업 시작.
+- 2026-03-01 (after): `test_followup_scope.py`를 추가해 scope 파싱/명시 범위 판별/clarification 생성/지시문 주입 규칙을 검증.
+- 2026-03-01 (after): `test_search_chat_selected_mail_context.py`에 모호 질의 `needs_clarification` 응답 및 `runtime_options.scope` 선택 재호출 경로 테스트를 추가.
+- 2026-03-01 (after): `test_chat_eval_routes.py`를 bootstrap 라우터 분리 구조로 갱신하고, `test_taskpane_api_stream.cjs`에 thread_id 유지 + scope 옵션 전달 검증 케이스를 추가.
+
+- 2026-03-01 (before): chat-eval 페이지 fallback 호출 회귀 방지를 위해 스크립트 계약 테스트를 갱신하는 작업 시작.
+
+- 2026-03-01 (after): `test_chat_eval_page.cjs`를 갱신해 `fetchWithFallback` 호출 계약(run/latest) 검증을 추가하고 node test 2건 통과를 확인.
+
+- 2026-03-01 (after): chat-eval 관련 페이지/서비스 회귀 테스트를 재실행(`test_chat_eval_page.cjs`, `test_chat_eval_service`, `test_chat_eval_routes`)해 모두 통과 확인.
+
+- 2026-03-01 (after): `test_chat_eval_page.cjs`를 갱신해 fallback 호출 함수/자동 load 제거 계약을 검증하고 node test 2건 통과를 확인.
+
+- 2026-03-01 (before): chat-eval 페이지 API 호출 구현 변경(fetch→XHR) 회귀 방지를 위해 테스트 계약 갱신 작업 시작.
+
+- 2026-03-01 (after): `test_chat_eval_page.cjs`를 갱신해 XHR fallback 호출 계약(run/latest) 검증을 반영하고 node test 2건 통과를 확인.
+
+- 2026-03-01 (after): `test_chat_eval_page.cjs`에 ngrok 헤더/비JSON 에러 문자열 계약 검증을 추가하고 node test 2건 통과를 확인.
+
+- 2026-03-01 (before): 후처리/채점기 보정 회귀 방지를 위해 `answer_postprocessor`와 `chat_eval_service` 테스트 케이스 갱신 작업 시작.
+
+- 2026-03-01 (after): `test_answer_postprocessor_routing`에 최근순 고정 렌더/0건 템플릿 케이스를 추가하고, `test_chat_eval_service`에 0건 rule override(판정기 미호출) 회귀 테스트를 추가.
+- 2026-03-01 (after): 후처리/채점/라우트 회귀 테스트 40건(`test_answer_postprocessor_routing`, `test_chat_eval_service`, `test_chat_eval_routes`, `test_search_chat_selected_mail_context`)과 `compileall app` 통과를 확인.
+
+- 2026-03-01 (before): chat-eval 페이지 결과 복사 UI/스크립트 계약 회귀 방지를 위한 테스트 갱신 작업 시작.
+
+- 2026-03-01 (after): `test_chat_eval_page.cjs`에 복사 버튼/함수/이벤트 바인딩 계약 검증을 추가하고 node test 2건 통과를 확인.
+
+- 2026-03-01 (before): recent-sort 후처리/Judge context 보정 회귀 방지를 위한 테스트 케이스 추가 작업 시작.
+
+- 2026-03-01 (after): `test_answer_postprocessor_routing`에 최근순 정렬/결과건수 캡 케이스를 추가하고, `test_chat_eval_service`에 judge_context evidence_count 정합성 케이스를 추가.
+- 2026-03-01 (after): 관련 회귀 테스트 42건(`test_answer_postprocessor_routing`, `test_chat_eval_service`, `test_search_chat_selected_mail_context`, `test_chat_eval_routes`) 및 `compileall app` 통과를 확인.
+
+- 2026-03-01 (before): 선택 재실행/진행률 관련 회귀 방지를 위한 페이지·서비스 테스트 보강 작업 시작.
+
+- 2026-03-01 (after): `test_chat_eval_service`에 `case_ids` 필터 실행 케이스를 추가하고, `test_chat_eval_routes`에 `case_ids` 전달 검증을 추가.
+- 2026-03-01 (after): `test_chat_eval_page.cjs`에 선택 실행/진행률 UI 계약(`runSelectedBtn`, `progressBar`, `runSelectedEval`) 검증을 추가.
+- 2026-03-01 (after): 페이지 테스트 2건 + 서비스/라우트 테스트 7건 + `compileall app` 통과를 확인.
+
+- 2026-03-01 (before): query 복사 버튼/전체 선택 UI 계약 회귀 방지를 위한 페이지 테스트 갱신 작업 시작.
+
+- 2026-03-01 (after): `test_chat_eval_page.cjs`에 Query 복사 버튼/공통 복사 함수 계약 검증을 추가하고 node test 2건 통과를 확인.
+
+- 2026-03-01 (before): 실데이터 기반 케이스 fixture 갱신에 따른 계약 회귀 검증 업데이트 작업 시작.
+
+- 2026-03-01 (after): 실데이터 기반 fixture 갱신 후 `test_chat_eval_cases`, `test_chat_eval_service`, `test_chat_eval_routes` 총 8건 회귀 테스트 통과를 확인.
+
+- 2026-03-01 (before): current-13/14 포맷 회귀 방지를 위해 answer_postprocessor 라우팅 테스트(수신자 표/문제-액션 분리) 추가 작업 시작.
+
+- 2026-03-01 (after): `test_answer_postprocessor_routing`에 current-13/14 대응 회귀 케이스(수신자 표 강제, 핵심문제/해야할일 분리 강제)를 추가하고 관련 테스트 29건 통과를 확인.
+- 2026-03-01 (after): chat-eval 서비스/라우트 테스트 7건 및 `compileall app` 통과를 재확인.
+
+- 2026-03-01 (before): current-17 포맷 회귀 방지를 위해 한 단락 요약 강제 렌더 테스트 케이스 추가 작업 시작.
+
+- 2026-03-01 (after): `test_answer_postprocessor_routing`에 current-17 한 단락 강제 렌더 케이스를 추가하고 후처리 테스트 30건 통과를 확인.
+- 2026-03-01 (after): `compileall app/services app` 검증 통과.
+
+- 2026-03-01 (before): 혼합형 query 세트 변경에 따른 fixture 계약 회귀 테스트 재검증 작업 시작.
+
+- 2026-03-01 (after): 혼합형 query fixture 갱신 후 `test_chat_eval_cases`, `test_chat_eval_service`, `test_chat_eval_routes` 총 8건 회귀 테스트 통과를 확인.
+
+- 2026-03-01 (before): query 문구 재작성 이후 fixture 계약 회귀 테스트 재검증 작업 시작.
+- 2026-03-01 (after): query 문구 보정 이후 `test_chat_eval_cases`, `test_chat_eval_service`, `test_chat_eval_routes` 회귀 테스트 8건 재실행 및 통과 확인.
+- 2026-03-01 (before): chat-eval 액션아이템 False Positive 재발 방지를 위해 서비스 단위 테스트(빈 액션 문장 FAIL, 실제 리스트 PASS) 추가 작업 시작.
+- 2026-03-01 (after): `test_chat_eval_service.py`에 액션아이템 포맷 가드 회귀 테스트 2건(빈 선언문 FAIL, 구조화 목록 PASS)을 추가하고 전체 관련 테스트 10건 통과를 확인.
+- 2026-03-01 (after): `test_mail_search_service.py`에 핵심 키워드 필터 회귀 케이스를 추가하고 `test_mail_search_service`, `test_search_chat_selected_mail_context`, `test_agent_tools_registry` 총 13건 테스트 통과를 확인.
+- 2026-03-01 (before): 본문 strict 필터/빈 템플릿 차단/섹션 강제 후처리 회귀 방지를 위한 테스트 케이스 추가 작업 시작.
+- 2026-03-01 (after): `test_mail_search_service.py`에 본문 strict 필터 회귀 2건(인용구문 매칭/0건 fallback 금지) 추가.
+- 2026-03-01 (after): `test_answer_postprocessor_routing.py`에 강제 섹션 렌더/보고서 raw JSON 차단 회귀 3건 추가.
+- 2026-03-01 (after): 관련 테스트 54건(`test_mail_search_service`, `test_answer_postprocessor_routing`, `test_chat_eval_service`, `test_search_chat_selected_mail_context`) 통과 확인.
+- 2026-03-01 (before): JSON 원문 노출/고특이도 질의 fallback 복원 회귀를 방지하는 테스트 케이스 추가 작업 시작.
+- 2026-03-01 (after): `test_answer_postprocessor_routing.py`에 general 계약 action_items 렌더/일반 fallback json_template_guard 회귀 2건 추가.
+- 2026-03-01 (after): `test_mail_search_service.py`에 고특이도 질의 0건 유지 회귀 1건 추가.
+- 2026-03-01 (after): 관련 테스트 57건(`test_mail_search_service`, `test_answer_postprocessor_routing`, `test_chat_eval_service`, `test_search_chat_selected_mail_context`) 통과 확인.
+- 2026-03-01 (before): 액션아이템 문구 정제/번호 목록 강제 렌더 회귀 방지를 위한 테스트 추가 작업 시작.
+- 2026-03-01 (after): `test_answer_postprocessor_routing.py`에 액션아이템 강제 렌더/접두어 제거 회귀 1건을 추가하고 전체 관련 테스트 58건 통과를 확인.
+- 2026-03-01 (after): Thinking 스타일 변경 이후 `test_taskpane_selection_context.cjs`, `test_taskpane_stream.cjs`, `test_taskpane_api.cjs` node 테스트 19건 통과를 확인.
+- 2026-03-01 (after): Thinking shimmer 스타일 변경 이후 `test_taskpane_selection_context.cjs`, `test_taskpane_stream.cjs`, `test_taskpane_api.cjs` node 테스트 19건 통과를 재확인.
+- 2026-03-01 (before): 검색형 질의 step 누락 회귀 방지를 위해 intent_rules/intent_parser 테스트 케이스 추가 작업 시작.
+- 2026-03-01 (after): `test_intent_rules.py`에 검색형 패턴(`메일에서`, `본문에 ... 포함`) 회귀 2건을 추가하고, `test_intent_parser_fast_path.py`에 search_mails 누락 fallback 보정 회귀 1건을 추가.
+- 2026-03-01 (after): 관련 테스트 17건(`test_intent_rules`, `test_intent_parser_fast_path`, `test_agent_tools_registry`) 통과를 확인.
+- 2026-03-01 (before): ExaOne 프롬프트 회귀 방지를 위해 청구기간 문구(`N월분` 등) 포함 여부를 검증하는 테스트 추가 작업 시작.
+- 2026-03-01 (after): `test_intent_parser_fast_path.py`에 프롬프트 규칙 6번 회귀 테스트를 추가하고 `tests.test_intent_parser_fast_path` 8건 통과를 확인.
+- 2026-03-01 (before): 월분 date_filter 오탐/검색 step 혼입/검색 relevance hard-gate 회귀를 방지하는 테스트 추가 작업 시작.
+- 2026-03-01 (after): `test_intent_rules.py`에 `1월분` date_filter none 회귀 테스트를 추가하고, `test_intent_parser_fast_path.py`에 검색 질의 current-mail 전용 step 제거 검증을 추가.
+- 2026-03-01 (after): `test_mail_search_service.py`에 고특이도 질의 하드게이트 회귀 테스트를 추가하고 관련 25건 테스트 통과를 확인.
+- 2026-03-01 (before): 액션아이템 질의에서 `summary_lines` 기반으로 `action_items`를 보강하는 회귀 테스트 추가 작업 시작.
+- 2026-03-01 (after): `test_answer_postprocessor_routing.py`에 action_items 비어있고 summary_lines만 있는 케이스의 액션 목록 보강 회귀 테스트를 추가.
+- 2026-03-01 (after): `test_agent_prompts.py`에 액션아이템 필드 채움 규칙 문구 존재 검증 테스트를 추가, 관련 42건 통과 확인.
+- 2026-03-01 (before): chat-eval 페이지 답변 보기 UI 회귀 방지를 위해 모달/버튼 존재 계약 테스트 추가 작업 시작.
+- 2026-03-01 (after): `test_chat_eval_page.cjs`에 `case-answer-view-btn`, `case-answer-copy-btn`, `answerModalBackdrop`, `openAnswerModal` 존재 검증을 추가하고 node test 2건 통과 확인.
+- 2026-03-01 (before): chat-eval judge_context top-k evidence 및 retrieval hard-fail 회귀 방지를 위한 테스트 추가 작업 시작.
+- 2026-03-01 (after): `test_chat_eval_service.py`에 judge_context `evidence_top_k` 전달 검증과 retrieval 근거 불일치 hard-fail 회귀 테스트를 반영하고 unittest 8건 통과 확인.
+- 2026-03-01 (before): 메시지 출력 품질 개선 회귀 방지를 위해 SSE token 이벤트/스트리밍 렌더/API 전달 계약 테스트 추가 작업 시작.
+- 2026-03-01 (after): `test_search_chat_stream.py`를 갱신해 `/search/chat/stream`의 `token` 이벤트 계약을 검증하고 unittest 통과를 확인.
+- 2026-03-01 (after): `test_taskpane_api_stream.cjs`에 token 콜백 전달 검증을 추가하고, `test_taskpane_messages_render.cjs`를 신설해 assistant markdown 강조 렌더/streaming 메서드 노출 계약을 검증.
+- 2026-03-01 (after): 실시간 토큰 직중계 전환 후 `test_search_chat_stream.py`를 agent stream mock 기반으로 갱신해 progress/token/completed 순서와 최종 answer 조립 계약을 재검증.
+- 2026-03-01 (after): stream postprocess 적용으로 최종 answer 형식이 정규화된 뒤에도 `test_search_chat_stream.py`가 통과하도록 기대값을 문자열 포함 기준으로 보정해 JSON 노출 보정 회귀를 고정.
+- 2026-03-01 (before): 스트리밍 문장 경계 버퍼링 회귀 방지를 위해 taskpane buffer 분리 함수 단위 테스트 추가 작업 시작.
+- 2026-03-01 (after): `test_taskpane_stream_buffer.cjs`를 추가해 문장 경계 flush/부분 문장 보류/강제 flush 동작을 검증하고 관련 Node 테스트 8건 통과를 확인.
+- 2026-03-02 (before): `answer_format.blocks` 우선 렌더 전환 회귀를 방지하기 위해 Add-in 메시지 렌더 테스트 확장 작업 시작.
+- 2026-03-02 (after): `test_taskpane_messages_render.cjs`에 `metadata.answer_format.blocks`(heading/ordered_list/paragraph) 우선 렌더 검증 케이스를 추가하고 Node 테스트 10건 통과를 확인.
+- 2026-03-02 (after): 포맷 메타/API 경로 회귀 재검증으로 `tests.test_answer_format_metadata`, `tests.test_search_chat_stream` Python 테스트 5건 통과를 확인.
+- 2026-03-02 (before): `answer_format`의 table/quote 블록 확장 회귀 방지를 위해 Python/Node 테스트 보강 작업 시작.
+- 2026-03-02 (after): `test_answer_format_metadata.py`에 table/quote 추출 검증 케이스를 추가하고 Python 테스트 6건 통과를 확인.
+- 2026-03-02 (after): `test_taskpane_messages_render.cjs`에 answer_format table/quote 렌더 검증을 추가하고 Node 테스트 11건 통과를 확인.
+- 2026-03-02 (before): 검색형 보고서 질의의 current_mail 오분류 회귀를 방지하기 위해 intent 규칙 테스트 보강 작업 시작.
+- 2026-03-02 (after): `test_intent_rules.py`에 `보안 취약점 ... 메일을 보고서 형식으로 정리` 검색형 분류 검증과 `현재메일 ... 정리` 보호 케이스를 추가하고 `test_intent_rules`, `test_intent_parser_fast_path` 총 20건 통과를 확인.
+- 2026-03-02 (before): 표준 요약 `주요 내용`의 headline/detail 중복 출력 회귀를 방지하기 위한 후처리 테스트 추가 작업 시작.
+- 2026-03-02 (after): `test_answer_postprocessor_routing.py`에 headline/detail 동일 케이스 중복 제거 검증을 추가하고 테스트 41건 통과를 확인.
+- 2026-03-02 (after): Add-in 타이포 조정 영향도 확인을 위해 `test_taskpane_messages_render.cjs`, `test_taskpane_api_stream.cjs` Node 테스트 11건 재통과를 확인.
+- 2026-03-02 (before): 생성 단계 요약 품질 제약/계약 정규화 강화 회귀를 고정하기 위한 테스트 추가 작업 시작.
+- 2026-03-02 (after): `test_agent_prompts.py`에 `standard_summary` 품질 제약 문구 검증을 추가하고, `test_response_contracts.py`를 신설해 유사 중복 문장 제거 계약 검증을 반영.
+- 2026-03-02 (after): `tests.test_agent_prompts`, `tests.test_response_contracts`, `tests.test_answer_postprocessor_routing` 총 51건 통과를 확인.
+- 2026-03-02 (before): 현재메일 표준요약 2-pass refiner 회귀 방지를 위해 품질 점수 선택/적용 조건 테스트 추가 작업 시작.
+- 2026-03-02 (after): `test_summary_refiner.py`를 신설해 품질 점수 비교, 유사 중복 패널티, explicit N줄 요약 skip, 품질 개선 시 후보 적용 경로를 검증.
+- 2026-03-02 (after): `tests.test_summary_refiner`, `tests.test_response_contracts`, `tests.test_agent_prompts`, `tests.test_answer_postprocessor_routing` 총 55건 통과를 확인.
+- 2026-03-02 (before): PoC 단순화(1-pass) 정책에 맞춰 refiner 관련 테스트 제거 및 기존 회귀 테스트 정합성 재검증 작업 시작.
+- 2026-03-02 (after): `test_summary_refiner.py`를 제거하고 `tests.test_response_contracts`, `tests.test_agent_prompts`, `tests.test_answer_postprocessor_routing` 51건 재통과를 확인.
+- 2026-03-02 (before): 실사용 요약 품질/렌더 이슈 재발 방지를 위해 major_points 질문형 필터, one-line 요약 중복 생략, collapsed markdown divider 파싱 테스트 추가 작업 시작.
+- 2026-03-02 (after): `test_answer_postprocessor_routing.py`에 질문형 주요내용 제거/one-line 중복 생략 케이스를 추가하고 `test_answer_format_metadata.py`에 `---###` 개행 복원 케이스를 추가.
+- 2026-03-02 (after): `tests.test_answer_format_metadata`, `tests.test_answer_postprocessor_routing`, `tests.test_agent_prompts`, `tests.test_response_contracts` 총 57건 통과를 확인.
+- 2026-03-02 (before): 스트리밍 제거 리팩터링 회귀 방지를 위해 `/search/chat/stream`, taskpane API/messages 테스트 계약을 단일 completed 응답 기준으로 갱신하는 작업 시작.
+- 2026-03-02 (after): `test_search_chat_stream.py`를 token 이벤트 의존 제거 + completed 단일 계약 검증으로 갱신.
+- 2026-03-02 (after): `test_taskpane_api_stream.cjs`에서 token 이벤트 케이스를 제거하고 stream completed 수신 경로만 검증하도록 단순화.
+- 2026-03-02 (after): `test_taskpane_messages_render.cjs`를 legacy streaming 메서드 비노출 계약으로 갱신하고 Node 테스트 16건 통과 확인.
+- 2026-03-02 (before): 기본 정보 표 값 누락 회귀 방지를 위해 answer_format table 파싱/렌더 테스트 케이스 추가 작업 시작.
+- 2026-03-02 (after): `test_answer_format_metadata.py`에 delimiter 오인 방지 회귀 테스트를 추가하고 table row value 보존을 검증.
+- 2026-03-02 (after): `test_taskpane_messages_render.cjs`에 delimiter-only header table 스킵 케이스를 추가.
+- 2026-03-02 (after): 관련 회귀 테스트 통과(Python 13건, Node 17건).
+- 2026-03-02 (before): standard_summary 장문 원문 유입(주요 내용 5,6번 노이즈) 회귀 방지를 위한 후처리 테스트 추가 작업 시작.
+- 2026-03-02 (after): `test_answer_postprocessor_routing.py`에 raw mail dump major_points 필터 회귀 테스트를 추가해 장문 원문 라인(5/6번 형태)이 렌더되지 않음을 검증.
+- 2026-03-02 (after): 관련 회귀 테스트 통과(`test_answer_postprocessor_routing` 48건, 추가 Python 18건, Node 17건).
+- 2026-03-02 (after): `test_answer_postprocessor_routing.py`에 standard_summary 보강 정책 변경(min_points=3, body_excerpt 비사용) 반영 및 raw mail dump 유입 차단 회귀 테스트를 추가.
+- 2026-03-02 (after): 관련 회귀 테스트 통과(`unittest` 57건).
+- 2026-03-02 (after): `test_answer_postprocessor_routing.py`의 standard_summary 기대값을 갱신해 `조치 필요 사항` 본문 bold(`1. **...**`) 및 하단 `> **요약:**` 미노출 계약을 검증.
+- 2026-03-02 (after): 회귀 테스트 통과(`PYTHONPATH=. venv/bin/python -m unittest tests.test_answer_postprocessor_routing` 49건, `node --test tests/test_taskpane_messages_render.cjs` 13건).
+- 2026-03-02 (before): standard_summary 기본 정보 표의 날짜 우선 정렬/사람 이름 정규화 회귀 테스트 추가 작업 시작.
+- 2026-03-02 (after): `test_answer_postprocessor_routing.py`에 기본 정보 날짜 우선/사람 이름 정규화 회귀 케이스를 추가하고 기존 수신자 기대값을 이름-only(`jaeyoung_dev`)로 갱신.
+- 2026-03-02 (after): 테스트 통과(`PYTHONPATH=. venv/bin/python -m unittest tests.test_answer_postprocessor_routing` 50건, `node --test tests/test_taskpane_messages_render.cjs` 13건).
+- 2026-03-02 (before): 메일 `조회` 응답 상단 요약 불릿 미반영 회귀를 재현/고정하기 위해 후처리 라우팅 테스트 추가 작업 시작.
+- 2026-03-02 (after): `test_answer_postprocessor_routing.py`에 `요약` 키워드 없는 조회 질의(`조영득 관련 2월 메일 조회`)의 상단 불릿 렌더 회귀 케이스를 추가.
+- 2026-03-02 (after): 회귀 테스트 통과(`./venv/bin/python -m unittest tests.test_answer_postprocessor_routing tests.test_answer_postprocessor_summary`, 55건).
+- 2026-03-02 (after): 조회 상단 `summary_text` 전용 정책 반영에 맞춰 `test_answer_postprocessor_summary.py`/`test_answer_postprocessor_routing.py` 기대값을 `## 📌 주요 내용` 형식으로 갱신하고, `test_taskpane_messages_render.cjs`에 `major-summary-heading` 클래스 회귀 테스트를 추가.
+- 2026-03-02 (after): 테스트 통과(`./venv/bin/python -m unittest tests.test_mail_search_service tests.test_answer_postprocessor_summary tests.test_answer_postprocessor_routing` 62건, `node --test tests/test_taskpane_messages_render.cjs` 14건).
+- 2026-03-02 (before): 조회 상단 하위 설명의 추가 불릿 인식 회귀를 막기 위해 `ㄴ-` 서브라인 포맷 테스트 보강 작업 시작.
+- 2026-03-02 (after): `test_answer_postprocessor_summary.py`/`test_answer_postprocessor_routing.py`에 `ㄴ-` 서브라인 렌더 기대값을 추가해 추가 불릿 인식 없이 하위 설명이 보이는지 검증.
+- 2026-03-02 (after): 테스트 통과(`./venv/bin/python -m unittest tests.test_answer_postprocessor_summary tests.test_answer_postprocessor_routing`, 55건).
+- 2026-03-02 (before): `근거메일` 헤더 스타일/문구 변경 회귀를 고정하기 위해 taskpane 메시지 렌더 테스트 추가 작업 시작.
+- 2026-03-02 (after): `test_taskpane_messages_render.cjs`에 `📬 근거 메일` 타이틀 문구/클래스(`evidence-title rich-heading major-summary-heading`) 검증 케이스를 추가.
+- 2026-03-02 (after): 테스트 통과(`node --test tests/test_taskpane_messages_render.cjs`, 15건).
+- 2026-03-02 (before): 타이포/처리시간 표시/표준요약 라벨 변경 회귀를 고정하기 위해 routing/taskpane/api stream 테스트 기대값 갱신 작업 시작.
+- 2026-03-02 (after): `test_answer_postprocessor_routing.py`의 표준요약 기대값을 `🧾 제목`, `🔎 핵심 문제 요약`, `✅ 조치 필요 사항`, 상단 `이메일 요약` 제거 기준으로 갱신하고 조회 하위라인 접두 `-` 변경을 반영.
+- 2026-03-02 (after): `test_search_chat_stream.py`에 stream completed payload의 `elapsed_ms` 포함 여부 검증을 추가.
+- 2026-03-02 (after): `test_taskpane_messages_render.cjs`에 `addElapsedDivider` 렌더 케이스를 추가해 시간 라벨(`1m 3s`)과 구분선 클래스 렌더를 검증.
+- 2026-03-02 (after): 테스트 통과(`./venv/bin/python -m unittest tests.test_answer_postprocessor_summary tests.test_answer_postprocessor_routing tests.test_search_chat_stream` 58건, `node --test tests/test_taskpane_messages_render.cjs` 16건).
+- 2026-03-02 (before): 소제목/불릿 폰트 재조정 및 표준요약 본문 bold 제거 반영을 위해 routing/summary/taskpane 렌더 테스트 기대값 재갱신 작업 시작.
+- 2026-03-02 (after): `test_answer_postprocessor_routing.py`의 표준요약 기대값(제목 bold 제거, 조치사항 bold 제거, 주요내용 일반 번호 목록 전환)을 갱신하고 `test_answer_postprocessor_summary.py`의 하위라인 접두(`-`) 기대값을 유지하도록 보정.
+- 2026-03-02 (after): 테스트 통과(`./venv/bin/python -m unittest tests.test_answer_postprocessor_summary tests.test_answer_postprocessor_routing tests.test_search_chat_stream` 58건, `node --test tests/test_taskpane_messages_render.cjs` 16건).
+- 2026-03-02 (after): 레이아웃 폭 토큰 축소 회귀 확인을 위해 `node --test tests/test_taskpane_messages_render.cjs` 재실행(16건 통과).
+- 2026-03-02 (before): elapsed divider 텍스트 포맷(`--- 12s ---` -> `12s`) 및 스타일 변경 회귀 확인 작업 시작.
+- 2026-03-02 (after): `test_taskpane_messages_render.cjs` elapsed divider 테스트에 `--- 1m 3s ---` 미노출 검증을 추가.
+- 2026-03-02 (after): `node --test tests/test_taskpane_messages_render.cjs` 16건 통과 확인.
+- 2026-03-02 (before): 아이콘 헤더 타이포(14px Bold) 및 ordered list 번호 증가 회귀 테스트/검증 작업 시작.
+- 2026-03-02 (after): `test_taskpane_messages_render.cjs` ordered list 기대값을 `rich-ol-title` 구조로 갱신.
+- 2026-03-02 (after): `1.+-설명+2.` 패턴에서 `<ol>` 1개/`rich-ol-title` 3개를 검증하는 회귀 테스트를 추가.
+- 2026-03-02 (after): `node --test tests/test_taskpane_messages_render.cjs` 17건 통과 확인.
+- 2026-03-02 (before): 레이아웃 폭 토큰 재조정(더 좁게) 반영 확인 작업 시작.
+- 2026-03-02 (after): 폭 토큰 재조정 반영 후 `node --test tests/test_taskpane_messages_render.cjs` 17건 통과 확인.
+- 2026-03-02 (before): 메일 목록 메타 라인(발신자/수신일) 제거 및 타이포 조정 반영 테스트 갱신 작업 시작.
+- 2026-03-02 (after): `test_taskpane_messages_render.cjs`에 메일 목록 메타 라인(발신자/수신일/링크) 비노출 회귀 테스트를 추가.
+- 2026-03-02 (after): `tests.test_answer_postprocessor_routing`에 malformed JSON 조각 수신 시 현재메일 표준요약 복구 회귀 테스트를 추가.
+- 2026-03-02 (after): 테스트 통과(`./venv/bin/python -m unittest tests.test_answer_postprocessor_routing` 52건, `node --test tests/test_taskpane_messages_render.cjs` 18건).
+- 2026-03-02 (before): 조회/요약 라우팅 충돌 회귀 재현 및 분기 분리 테스트 추가 작업 시작.
+- 2026-03-02 (after): `test_answer_postprocessor_routing.py`의 JSON decode 실패/현재메일 malformed JSON 케이스 기대값을 가드 정책에 맞게 갱신.
+- 2026-03-02 (after): `./venv/bin/python -m unittest tests.test_answer_postprocessor_routing` 53건 통과 확인.
+- 2026-03-02 (before): 입력풍선/Thinking 폭 정렬 수정 반영 확인 작업 시작.
+- 2026-03-02 (after): 폭 토큰/입력풍선 정렬 조정 후 `node --test tests/test_taskpane_messages_render.cjs` 18건 통과 확인.
+- 2026-03-02 (before): ordered list 번호 연속성(빈 줄 포함) 및 번호 제목 Bold 렌더 회귀 테스트 보강 작업 시작.
+- 2026-03-02 (after): `test_taskpane_messages_render.cjs`에 ordered list 빈 줄 포함 번호 연속성 회귀 테스트를 추가.
+- 2026-03-02 (after): `answer_format ordered_list`의 `rich-ol-title` 적용 검증을 추가.
+- 2026-03-02 (after): `node --test tests/test_taskpane_messages_render.cjs` 19건 통과 확인.
+- 2026-03-02 (before): 입력영역 정렬 회귀(우측 치우침) 수정 반영 확인 작업 시작.
+- 2026-03-02 (after): 레이아웃 정렬 수정 후 `node --test tests/test_taskpane_messages_render.cjs` 19건 통과 확인.
+- 2026-03-02 (before): CSS import 제거(직접 링크 전환) 반영 후 프론트 회귀 확인 작업 시작.
+- 2026-03-02 (before): 분절 ordered_list 번호 연속성(`start` 누적) 회귀 테스트 추가 작업 시작.
+- 2026-03-02 (before): JS 인라인 스타일 제거 후 프론트 회귀 테스트 실행 작업 시작.
+- 2026-03-02 (after): JS 인라인 스타일 제거 후 `node --test tests/test_taskpane_messages_render.cjs tests/test_taskpane_api_stream.cjs` 23건 통과 확인.
+- 2026-03-02 (before): 주요내용 번호 증가/레이아웃 간격 회귀 확인 테스트 보강 작업 시작.
+- 2026-03-02 (after): `test_taskpane_messages_render.cjs`에 fragmented answer_format ordered_list 번호 연속성(`start="2"`) 회귀 테스트를 추가.
+- 2026-03-02 (after): `node --test tests/test_taskpane_messages_render.cjs` 20건 통과 확인.
+- 2026-03-02 (before): 사용자 퀵 액션 표시 정책(hover→always visible) 반영 확인 작업 시작.
+- 2026-03-02 (after): 퀵 액션 고정 노출 수정 반영 후 `node --test tests/test_taskpane_messages_render.cjs` 20건 통과 확인.
+- 2026-03-02 (before): 메일 목록 본문 포맷 변경(3행 + 링크 제거) 회귀 테스트 보강 작업 시작.
+- 2026-03-02 (after): `test_taskpane_messages_render.cjs`에 메일 목록 인라인 메타 3행 분해 + 링크 제거 회귀 테스트를 추가.
+- 2026-03-02 (after): `node --test tests/test_taskpane_messages_render.cjs` 21건 통과 확인.
+- 2026-03-02 (before): 공통 행간 축소 UI 반영 후 프론트 회귀 테스트 실행 작업 시작.
+- 2026-03-02 (after): 공통 행간 축소 반영 후 `node --test tests/test_taskpane_messages_render.cjs` 21건 통과 확인.
+
+- 2026-03-02 (before): after_model tool payload 선택이 현재 턴만 참조하는지 검증하는 회귀 테스트 추가 작업 시작.
+- 2026-03-02 (after): `test_agent_middlewares_tool_payload.py` 추가로 현재 턴 우선 선택/turn-tool 부재 fallback 회귀를 고정.
+- 2026-03-02 (after): `PYTHONPATH=. ./venv/bin/python -m unittest tests.test_agent_middlewares_tool_payload tests.test_tool_payload_selector tests.test_deep_chat_agent_tool_payload tests.test_search_chat_stream` 13건 통과.
+- 2026-03-02 (before): chat_eval 케이스 수/필드 계약 테스트를 10개 시나리오 기준으로 갱신하는 작업 시작.
+- 2026-03-02 (after): `test_chat_eval_cases.py`를 10개 기준으로 갱신하고, `test_chat_eval_service.py`는 고정 case_id 의존을 제거해 테스트 내부 임시 케이스 주입 방식으로 보강.
+- 2026-03-02 (after): `PYTHONPATH=. ./venv/bin/python -m unittest tests.test_chat_eval_cases tests.test_chat_eval_service` 9건 통과.
+- 2026-03-02 (after): 조회 상단 요약 축약 변경 후 회귀 테스트 `PYTHONPATH=. ./venv/bin/python -m unittest tests.test_answer_postprocessor_summary tests.test_answer_postprocessor_routing tests.test_mail_search_service` 64건 통과.
+- 2026-03-02 (before): 별도 품질 스모크 fixture(`chat_quality_cases.py`)를 사용자 지정 10문구로 교체하는 작업 시작.
+- 2026-03-02 (after): `tests/fixtures/chat_quality_cases.py`를 사용자 지정 10문구로 교체해 E2E Judge 케이스셋과 품질 스모크 케이스셋을 동일하게 정렬.
+- 2026-03-02 (after): `PYTHONPATH=. ./venv/bin/python -m unittest tests.test_chat_quality_metrics tests.test_chat_eval_cases tests.test_chat_eval_service` 10건 통과.
+- 2026-03-02 (after): 조회 상단 렌더 포맷 변경에 맞춰 `test_answer_postprocessor_routing.py` 기대값을 메일별 제목 링크 + summary 형식으로 갱신.
+- 2026-03-02 (after): `test_taskpane_messages_render.cjs`에 markdown 링크 anchor 렌더 회귀 테스트를 추가하고 전체 렌더 테스트 22건 통과.
+- 2026-03-02 (after): 검증 실행 `PYTHONPATH=. ./venv/bin/python -m unittest tests.test_answer_postprocessor_routing tests.test_answer_postprocessor_summary tests.test_mail_search_service && node --test tests/test_taskpane_messages_render.cjs` 통과.
+- 2026-03-02 (before): 대괄호 포함 제목 markdown 링크 렌더 회귀 테스트 추가 작업 시작.
+- 2026-03-02 (after): `test_taskpane_messages_render.cjs`에 escaped bracket 제목 링크 렌더 케이스를 추가하고 `node --test` 23건 통과.
+- 2026-03-02 (after): `test_chat_eval_service.py`에 answer_format 기반 표시 텍스트가 Judge 입력/리포트 answer로 사용되는 회귀 케이스를 추가.
+- 2026-03-02 (after): `PYTHONPATH=. ./venv/bin/python -m unittest tests.test_chat_eval_service tests.test_chat_eval_cases tests.test_chat_quality_metrics` 11건 통과.
+- 2026-03-02 (before): 주요내용 제목 클릭 동작을 근거메일 버튼과 동일하게 처리하는 프론트/렌더 테스트 보강 작업 시작.
+- 2026-03-02 (after): `test_answer_postprocessor_routing.py` 링크 기대값을 `moldubot_mid` 포함 형태로 갱신.
+- 2026-03-02 (after): `test_taskpane_messages_render.cjs`에 `moldubot_mid` 링크가 `evidence-open-btn` 액션으로 매핑되는 회귀 테스트 추가.
+- 2026-03-02 (after): 검증 실행 `PYTHONPATH=. ./venv/bin/python -m unittest tests.test_answer_postprocessor_routing` 53건, `node --test tests/test_taskpane_messages_render.cjs` 24건 통과.
+- 2026-03-02 (before): 보고서 기능 회귀 방지를 위해 report 라우터/문서 변환/프론트 SSE 수신 테스트 추가 작업 시작.
+- 2026-03-02 (after): `test_report_routes.py`, `test_report_docx_service.py`, `test_taskpane_api_stream.cjs`(report SSE 케이스)를 추가하고 관련 테스트를 모두 통과.
+- 2026-03-02 (before): deterministic mail-search 후처리/qa 가드 변경 회귀 방지를 위해 관련 테스트 보강 작업 시작.
+- 2026-03-02 (after): `test_answer_postprocessor_routing.py`를 deterministic 렌더 기대값으로 갱신하고, `test_chat_eval_routes.py`에 `selected_email_id + mailbox_user` 가드(400) 케이스를 추가.
+- 2026-03-02 (before): 보고서 품질 메타데이터 전달 회귀 방지를 위한 report agent/report route/front API 테스트 보강 작업 시작.
+- 2026-03-02 (after): `test_report_agent.py`를 추가해 날짜 정규화/프롬프트 grounding/코드펜스 제거를 검증하고, `test_report_routes.py`/`test_taskpane_api_stream.cjs`에 수신일·발신자 전달 검증을 추가.
+- 2026-03-02 (after): 검증 실행 `PYTHONPATH=. ./venv/bin/python -m unittest tests.test_report_agent tests.test_report_routes tests.test_report_docx_service`(18건) + `node --test tests/test_taskpane_api_stream.cjs tests/test_taskpane_interactions.cjs tests/test_taskpane_messages_render.cjs`(31건) 통과.
+- 2026-03-02 (before): 보고서 확인 카드 비활성화 동작 회귀 방지를 위한 프론트 단위 테스트 추가 작업 시작.
+- 2026-03-02 (after): `test_taskpane_messages_render.cjs`에 `disableReportConfirmControls` 테스트를 추가하고 Node 테스트 32건 통과 확인.
+- [10:36] 완료: report preview 라우트 테스트 및 taskpane interactions/messages 회귀 테스트 통과
+
+- [11:03] 작업 시작: report 관련 테스트 케이스 외부검색 필드/분기 정리
+- [11:08] 완료: report/taskpane API 테스트를 외부검색 제거 스펙으로 갱신 및 실행 통과
+- 2026-03-04 (before): Add-in 기본 정보 섹션 1줄 메타 렌더(`날짜 · 발신자 → 수신자`)와 날짜 축약(`YYYY-MM-DD`) 회귀 방지를 위한 렌더 테스트 보강 작업 시작.
+- 2026-03-04 (after): `test_taskpane_messages_render.cjs` 기본 정보 케이스를 compact 메타 렌더 기준으로 갱신(`basic-info-inline`, 날짜 `YYYY-MM-DD` 축약, 발신자→수신자)하고 `node --test tests/test_taskpane_messages_render.cjs` 57건 통과를 확인.
+- 2026-03-04 (before): 현재메일 응답에서 근거메일 블록 비노출, 다건 조회 응답에서 근거메일 유지 동작을 검증하는 taskpane 렌더 테스트 보강 작업 시작.
+- 2026-03-04 (after): `test_taskpane_messages_render.cjs`에 `current_mail query_type` 근거메일 숨김 회귀 케이스를 추가하고 Node 렌더 테스트 58건 통과를 확인.
+- 2026-03-04 (after): `test_search_chat_metadata.py`를 실행해 metadata 확장(`query_type`) 변경 이후 백엔드 메타 회귀 11건 통과를 확인.
+- 2026-03-04 (before): 도메인 기반 next_actions 추천(실행 가능 게이트 + Top3) 회귀 방지를 위한 단위 테스트 보강 작업 시작.
+- 2026-03-04 (after): `test_next_action_recommender.py`를 도메인 기반 추천 규칙(Top3, capability 게이트, current-mail 전용 액션 제외) 중심으로 갱신하고 테스트 통과를 확인.
+- 2026-03-05 (before): `실행 체크리스트` 제거에 따른 taskpane 메시지 렌더 테스트 기대값 정리 및 회귀 테스트 보강 작업 시작.
+- 2026-03-05 (after): `test_taskpane_messages_render.cjs`의 실행 체크리스트 렌더 케이스를 제거하고, `test_taskpane_interactions.cjs`의 `action-check-toggle` 토글 케이스를 삭제.
+- 2026-03-05 (after): 프론트 회귀 통과(`node --test tests/test_taskpane_messages_render.cjs` 57 passed, `node --test tests/test_taskpane_interactions.cjs` 5 passed).
+- 2026-03-05 (before): 주요내용 근거 팝오버의 웹출처 제거/관련 메일 근거 렌더 전환 회귀를 위한 테스트 보강 작업 시작.
+- 2026-03-05 (after): `test_search_chat_metadata.py`를 `related_mails` 스키마 기준으로 갱신하고 metadata 테스트 11건 통과를 확인.
+- 2026-03-05 (after): `test_taskpane_messages_render.cjs`의 주요내용 근거 케이스를 `관련 메일 근거` 렌더 기대값으로 갱신하고 렌더 테스트 57건 통과를 확인.
+- 2026-03-05 (before): `회신 초안 작성 -> 답장하기` 액션 연동 회귀를 위한 taskpane interactions/messages 테스트 보강 작업 시작.
+- 2026-03-05 (after): `test_taskpane_chat_actions.cjs`에 `reply_draft` 메타 주입/`reply-draft-open` 호출 케이스 2건을 추가.
+- 2026-03-05 (after): `test_taskpane_messages_render.cjs`에 `reply_draft` 메타 기반 `답장하기` 버튼 렌더 케이스를 추가.
+- 2026-03-05 (after): 프론트 테스트 통과(`node --test tests/test_taskpane_chat_actions.cjs` 6, `tests/test_taskpane_messages_render.cjs` 58, `tests/test_taskpane_interactions.cjs` 5).
+- 2026-03-05 (before): next-action 기본 상태 강조 제거(hover/focus 전용) 회귀를 확인하기 위한 렌더 테스트 점검 작업 시작.
+- 2026-03-05 (after): next-action 스타일 조정 후 `test_taskpane_messages_render.cjs` 58건 회귀 테스트 통과를 확인.
+- 2026-03-05 (before): 코드/보안 맥락에서 `코드 스니펫 분석` 액션이 추천되는지 검증하는 `next_action_recommender` 단위 테스트 추가 작업 시작.
+- 2026-03-05 (after): `tests/test_next_action_recommender.py`에 코드/보안 맥락에서 `코드 스니펫 분석` 액션 추천을 검증하는 테스트를 추가했고, `./venv/bin/python -m pytest -q tests/test_next_action_recommender.py` 4건 통과를 확인.
+- 2026-03-05 (before): 질문형 회신 응답에서 `reply_draft` 버튼이 생성되지 않도록 `taskpane_chat_actions` 테스트 보강 작업 시작.
+- 2026-03-05 (after): `test_taskpane_chat_actions.cjs`에 질문형 회신 응답에서는 `reply_draft` 메타가 생성되지 않는 케이스를 추가했고, `node --test tests/test_taskpane_chat_actions.cjs` 7건 통과를 확인.
+- 2026-03-05 (after): `./venv/bin/python -m pytest -q tests/test_next_action_recommender.py` 4건 통과를 확인.
+- 2026-03-05 (before): 코드블록 렌더(언어 라벨/스타일)와 코드 스니펫 추천 질의 변경 회귀를 검증하는 테스트 보강 작업 시작.
+- 2026-03-05 (after): `test_taskpane_messages_render.cjs`에 코드블록 언어 헤더(`rich-code-head`, `language-python`) 렌더 검증 케이스를 추가.
+- 2026-03-05 (after): `test_next_action_recommender.py`에 `코드 스니펫 분석` query에 `코드 리뷰` 지시가 포함되는지 검증을 추가.
+- 2026-03-05 (after): 회귀 통과(`node --test tests/test_taskpane_messages_render.cjs` 59 passed, `node --test tests/test_taskpane_chat_actions.cjs` 7 passed, `./venv/bin/python -m pytest -q tests/test_next_action_recommender.py` 4 passed).
+- 2026-03-05 (before): `answer_format` 메타가 있어도 코드펜스가 포함된 답변은 코드블록이 실제 노출되는지 검증하는 렌더 테스트 추가 작업 시작.
+- 2026-03-05 (after): `test_taskpane_messages_render.cjs`에 `answer_format` 메타가 있어도 코드펜스 응답은 rich markdown 렌더로 코드 본문이 노출되는 회귀 테스트를 추가.
+- 2026-03-05 (after): 회귀 통과(`node --test tests/test_taskpane_messages_render.cjs` 60 passed, `node --test tests/test_taskpane_chat_actions.cjs` 7 passed).
+- 2026-03-05 (before): 코드 스니펫 액션 후처리가 결정론 템플릿(`코드 분석/코드 리뷰/코드블록`)으로 출력되는지 검증하는 단위 테스트 추가 작업 시작.
+- 2026-03-05 (after): `test_answer_postprocessor_code_review.py`를 추가해 코드 스니펫 요청의 강제 템플릿/비대상 요청/코드 부재 케이스를 검증.
+- 2026-03-05 (after): 회귀 통과(`./venv/bin/python -m pytest -q tests/test_answer_postprocessor_code_review.py` 3, `tests/test_answer_postprocessor_routing.py` 57, `node --test tests/test_taskpane_messages_render.cjs` 60).
+- 2026-03-05 (before): 코드 리뷰 스니펫 추출 시 메일 헤더 라인 제외와 2200자 제한을 검증하는 테스트 보강 작업 시작.
+- 2026-03-05 (after): `test_answer_postprocessor_code_review.py`에 메일 헤더 제외/2200자 truncation 케이스를 추가해 코드 추출 규칙을 검증.
+- 2026-03-05 (after): 회귀 통과(`./venv/bin/python -m pytest -q tests/test_answer_postprocessor_code_review.py` 5, `tests/test_answer_postprocessor_routing.py` 57, `node --test tests/test_taskpane_messages_render.cjs` 60).
+- 2026-03-05 (before): 코드 언어 판별/코드 추출 품질 강화와 highlight 렌더 연동에 대한 테스트 보강 작업 시작.
+- 2026-03-05 (after): 회귀 통과(`./venv/bin/python -m pytest -q tests/test_answer_postprocessor_code_review.py tests/test_answer_postprocessor_routing.py` 62, `node --test tests/test_taskpane_messages_render.cjs tests/test_taskpane_chat_actions.cjs` 67).
+
+- 2026-03-05 (before): 코드 리뷰 추출 소스 우선순위 변경(`body_code_excerpt` 우선) 회귀를 검증하기 위한 테스트 보강 작업 시작.
+- 2026-03-05 (after): `test_answer_postprocessor_code_review.py`에 `body_code_excerpt` 우선 추출 회귀 케이스를 추가하고, `test_mail_post_action.py`에 `mail_context.body_code_excerpt` 포함 검증을 추가해 회귀를 고정.
+- 2026-03-05 (after): `test_mail_context_service.py`에 `body_full` 누락 캐시의 Graph 재조회 보정 케이스를 추가해 선택 메일 컨텍스트 보정 회귀를 검증.
+- 2026-03-05 (before): 헤더+코드 동일 라인에서 코드 스니펫 추출이 실패하지 않도록 회귀 테스트 추가 작업 시작.
+- 2026-03-05 (after): `test_answer_postprocessor_code_review.py`에 헤더+코드 동일 라인 꼬리 복구 회귀 케이스를 추가하고 관련 pytest 64건 통과를 확인.
+- 2026-03-05 (before): 인라인 JSP/HTML 코드의 줄복원 추출 회귀를 검증하기 위한 테스트 추가 작업 시작.
+- 2026-03-05 (after): `test_answer_postprocessor_code_review.py`에 인라인 JSP/HTML 줄복원 추출 회귀 케이스를 추가하고 관련 pytest 65건 통과를 확인.
+- 2026-03-05 (before): 코드 분석 JSON 노출 차단 및 JSP highlight alias 보정 회귀 테스트 추가 작업 시작.
+- 2026-03-05 (after): `test_answer_postprocessor_code_review.py`에 JSON 노이즈 차단 케이스를 추가하고, `test_taskpane_messages_render.cjs`의 JSP 코드블록 기대값을 `language-xml` alias 기준으로 갱신. 관련 테스트(Python 66, Node 60) 통과.
+- 2026-03-05 (after): 프론트 렌더 회귀 테스트(`node --test tests/test_taskpane_messages_render.cjs`) 60건 통과를 재확인.

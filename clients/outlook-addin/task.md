@@ -4,6 +4,10 @@
 - Outlook Add-in 클라이언트 정적 리소스(Manifest/Taskpane/JS/CSS)와 서버 연동 경로를 관리.
 
 ## Change History
+- 2026-02-28 (before): 선택된 Outlook 메일의 `message_id`를 백엔드로 전달하도록 `taskpane.js` 요청 페이로드 확장 작업 시작.
+- 2026-02-28 (after): `taskpane.js`에 선택 메일 컨텍스트 추출(`itemId`→REST id 변환 시도, `mailbox_user`) 로직을 추가하고 `/search/chat` 페이로드에 `email_id`, `mailbox_user`를 포함하도록 변경.
+- 2026-02-28 (before): 채팅 입력 무반응(엔터/전송 클릭 시 메시지 미추가) 재발 방지를 위해 `taskpane.js` 초기화 루틴(Office.onReady 의존) 안전화 작업 시작.
+- 2026-02-28 (after): `taskpane.js`에 bootstrap 중복방지/Office.onReady fallback 타이머/DOMContentLoaded 병행 초기화를 추가해 이벤트 바인딩 누락 상황을 방지.
 - 2026-02-28 (before): Add-in 서버 등록을 위한 FastAPI bootstrap 연동 점검 시작.
 - 2026-02-28 (after): FastAPI 서버에서 `/addin` 정적 경로를 마운트하고 Add-in API 계약과 호환되는 기본 엔드포인트를 연결.
 - 2026-02-28 (before): `taskpane.js` 로직을 제거하고 UI 껍데기 전용 구조로 단순화 작업 시작.
@@ -15,3 +19,504 @@
 
 ## Update Rule
 - Before and after any code change in this folder, append a detailed log entry.
+- 2026-03-02 (before): 기본 정보 표에 빈 헤더 테이블/구분선 노이즈(`---`) 행/단일셀 행이 표시되는 UI 이슈를 해결하기 위한 table 렌더 가드 강화 작업 시작.
+- 2026-03-02 (after): `renderMarkdownTable`에 빈 데이터 테이블 suppress 가드(`rows.length === 0`)를 추가해 헤더만 있는 표가 표시되지 않도록 수정.
+- 2026-03-02 (after): 단일셀 row(`['최종 발신자']`)는 2열 테이블에서 `['최종 발신자', '-']`로 보정하고, `---` 단독 노이즈 row는 제외하도록 보강.
+- 2026-03-02 (after): 정적 캐시 반영을 위해 `taskpane.messages.js` 버전을 `20260302-03`으로 상향.
+- 2026-03-02 (before): `answer_format.blocks`에 섞여 내려오는 노이즈 토큰(`#`, `---`, table delimiter row)을 화면에서 필터링하기 위한 블록 렌더 가드 보강 작업 시작.
+- 2026-03-02 (after): `taskpane.messages.js`에 `isNoiseStructuralToken` 가드를 추가해 paragraph `#` 단독 토큰을 렌더에서 제외하고, paragraph `---`는 `<hr>`로 강제 렌더하도록 보정.
+- 2026-03-02 (after): `renderMarkdownTable`에 delimiter-row(`---`) 필터를 추가해 `answer_format.table`에 섞인 구분선 행이 실제 데이터 행으로 그려지지 않도록 수정.
+- 2026-03-02 (after): 캐시 무효화를 위해 `taskpane.messages.js` 정적 버전을 `20260302-02`로 재상향.
+- 2026-03-02 (before): 공백 없는 markdown 토큰(`#제목`, `1.내용`, `---#`)이 plain text로 노출되는 문제를 해결하기 위해 `taskpane.messages.js` 정규식/정규화 로직 보강 작업 시작.
+- 2026-03-02 (after): `taskpane.messages.js`에 구조 개행 보정(`insertStructuralNewlines`)을 추가하고 heading/ordered-list 정규식을 공백 optional(`\\s*`)로 확장해 `#제목`, `1.항목`, `---#` 입력이 정상 렌더되도록 수정.
+- 2026-03-02 (after): 캐시 반영을 위해 `taskpane.html`의 `taskpane.messages.js` 버전을 `20260302-01`로 갱신.
+- 2026-03-01 (before): 서버가 반환한 근거메일 목록을 assistant 메시지 하단에 렌더링하고, 항목 클릭 시 Outlook 본문 열기(`displayMessageForm`) + `webLink` fallback을 추가하는 작업 시작.
+- 2026-03-01 (after): `taskpane.api/messages/interactions/js/chat.css`를 업데이트해 `metadata.evidence_mails` 렌더링(제목/날짜/발신자)과 클릭 오픈 동작을 추가. Outlook `displayMessageForm(message_id)` 우선 시도 후 실패 시 `webLink` 새창 fallback으로 동작.
+- 2026-03-01 (after): 캐시 반영을 위해 `taskpane.html` 정적 리소스 버전을 `taskpane.css?v=20260301-04`, `taskpane.*.js?v=20260301-03`으로 갱신.
+- 2026-02-28 (before): `email_id/mailbox_user` 공백 전송 이슈를 해결하기 위해 taskpane 선택 메일 컨텍스트 수집 안정화(ItemChanged/재시도) 및 클라이언트 로그 보강 작업 시작.
+- 2026-02-28 (after): `taskpane.js`에 선택 메일 컨텍스트 비동기 재조회(`getItemIdAsync` fallback, 3회 재시도), `ItemChanged` 캐시 갱신, 빈 컨텍스트 전송 경고(`/addin/client-logs`)를 추가해 `email_id/mailbox_user` 공백 전송 재현 빈도를 낮춤.
+- 2026-02-28 (before): Claude 스타일 상호작용을 참고해 채팅 버블 액션 UI(사용자 hover 복사, 어시스턴트 👍/👎/복사, copied 토스트) 구현 작업 시작.
+- 2026-02-28 (after): `taskpane.js/css`에 메시지 액션 UI를 추가해 사용자 버블 hover 시 복사 아이콘 노출/클릭 시 Copied 표시를 구현하고, 어시스턴트 버블에 👍/👎/복사 버튼(선택 상태 포함)을 적용.
+- 2026-02-28 (before): 기존 액션 버튼 레이아웃이 어색한 문제를 수정하기 위해 Claude 스타일 기준으로 사용자/어시스턴트 액션 배치와 시각 스타일 리워크 작업 시작.
+- 2026-02-28 (after): 사용자 버블의 복사 버튼을 hover 오버레이(우측 상단)로 재배치하고 어시스턴트는 텍스트 하단 미니 아이콘 행(복사/좋아요/싫어요)으로 정리해 Claude 스타일 상호작용에 가깝게 조정.
+- 2026-02-28 (after): Outlook 캐시로 이전 스타일이 남는 문제를 방지하기 위해 `taskpane.html` 정적 리소스 쿼리버전을 `20260228-01`로 갱신.
+- 2026-02-28 (before): 액션 가시성/크기 피드백 반영을 위해 assistant 액션 항상 노출, user hover-only 유지, user 복사 버튼 사이즈 축소 스타일 조정 작업 시작.
+- 2026-02-28 (after): `taskpane.css`에서 assistant 액션은 기본 노출로 고정하고 user 복사 액션은 hover/focus 시에만 노출되도록 유지하면서 버튼/아이콘 크기를 축소해 Claude 스타일 밀도를 맞춤.
+- 2026-02-28 (before): 사용자 버블 액션을 오버레이 단일 복사에서 하단 메타 행(시간 + 재생성/수정/복사)으로 전환해 Claude 스타일에 맞추는 UI 리워크 작업 시작.
+- 2026-02-28 (after): 사용자 버블 액션을 하단 메타 행(시간, 다시 생성, 수정, 복사)으로 전환하고 버튼 크기를 축소해 Claude 스크린샷과 유사한 상호작용 밀도로 조정.
+- 2026-02-28 (before): `email_id` 공백 전송 빈도 완화를 위해 선택 컨텍스트 재시도 파라미터를 상향하고 누락 사유(reason) 클라이언트 로그를 추가하는 작업 시작.
+- 2026-02-28 (after): 선택 컨텍스트 재시도 파라미터를 `10회/220ms`로 상향하고 실패 시 `selection_context_empty` 로그에 reason(`office_mailbox_unavailable|mailbox_item_missing|item_id_missing|cache_fallback`)을 포함하도록 보강.
+- 2026-02-28 (before): 메일 전환 후 stale `email_id` 재사용 문제를 해결하기 위해 선택 컨텍스트 조회에서 cache fallback 경로를 제거하고 fresh context 강제 정책 적용 작업 시작.
+- 2026-02-28 (after): `taskpane.js`에서 `현재메일` 질의는 fresh selection context를 강제(`allowCacheFallback=false`)하도록 변경해 메일 전환 직후 이전 message_id가 재사용되는 현상을 제거.
+- 2026-02-28 (before): 메일 전환 시 `item.itemId` 스테일 가능성을 줄이기 위해 `getItemIdAsync` 결과를 우선 사용하도록 선택 컨텍스트 해석 로직 보정 작업 시작.
+- 2026-02-28 (after): `resolveSelectionContextOnce`에서 `item.itemId`보다 `getItemIdAsync` 값을 우선 선택하도록 보정해 메일 전환 직후 stale direct id 사용 가능성을 낮춤.
+- 2026-02-28 (before): 선택 컨텍스트 원인 추적을 위해 taskpane에서 ItemChanged/컨텍스트 해석/전송직전 상세 로깅 강화 작업 시작.
+- 2026-02-28 (after): `taskpane.js`에 `selection_context_before_send`, `selection_context_item_changed`, `selection_context_bootstrap` 상세 로그를 추가해 direct/async/selected item id와 최종 email_id(reason 포함)를 단계별 추적 가능하게 개선.
+- 2026-02-28 (before): 캐시/스테일 컨텍스트 완화를 위해 ItemChanged 이벤트 발생 시 selection cache를 즉시 초기화하는 로직 적용 작업 시작.
+- 2026-02-28 (after): `taskpane.js`에 `clearSelectionCache()`를 추가하고 `bootstrap`, `fresh_context_required`, `item_changed` 시점마다 캐시를 초기화해 stale selection context 재사용 가능성을 낮춤.
+- 2026-02-28 (before): 동일 선택 ID 연속 전송으로 동일 응답이 반복되는 문제를 줄이기 위해 taskpane stale-selection 감지 가드(현재메일 질의 한정) 추가 작업 시작.
+- 2026-02-28 (after): `taskpane.js`에 stale-selection 감지(`lastSentCurrentMailId` + `selectionRevision`)를 추가해 같은 선택 ID가 연속 전송될 때 서버 호출 대신 사용자 안내로 차단.
+- 2026-02-28 (before): 예전 taskpane의 컨텍스트 안정화 패턴을 반영해 현재메일 전송 직전 itemId 변경 대기(polling) 로직 추가 작업 시작.
+- 2026-02-28 (after): `requestAssistantReply`에 stale-selection 감지 후 `waitForSelectionChange`(1.8s/250ms) 대기를 추가해 메일 전환 지연 시 새 `email_id`가 반영되면 자동으로 교체 전송하도록 개선.
+- 2026-02-28 (before): 애드인 재등록 후 `office_mailbox_unavailable`로 `email_id`가 공백 전송되는 문제를 해결하기 위해 선택 컨텍스트 수집 경로와 전송 로깅 동기화 수정 작업 시작.
+- 2026-02-28 (after): `taskpane.js`에 `ensureOfficeReady`/`resolveMailboxWithRetry`/`resolveMailboxItemWithRetry`를 추가해 재등록 직후 `office_mailbox_unavailable` 케이스에서 Office 컨텍스트가 늦게 올라와도 `email_id`를 수집하도록 보강.
+- 2026-02-28 (before): `selection_context_item_changed` 로그 미출력 원인 파악을 위해 Outlook ItemChanged 핸들러 등록 결과(status/error) 로깅 및 폴백 추적 강화 작업 시작.
+- 2026-02-28 (after): `taskpane.js`의 ItemChanged 관측기에 등록 결과 콜백 로깅을 추가해 핸들러 미등록 원인(미지원/실패코드/예외)을 클라이언트 로그에서 즉시 확인할 수 있도록 개선.
+- 2026-02-28 (before): ItemChanged 핸들러 미등록 이슈 해결을 위해 `observeSelectionChanges`를 Office readiness 보장(async) + 중복 등록 방지 구조로 리팩터링 작업 시작.
+- 2026-02-28 (after): `observeSelectionChanges`에 `await ensureOfficeReady()`를 적용하고 등록 중/등록 완료 플래그를 추가해 mailbox 지연 초기화 구간에서도 ItemChanged 핸들러가 안정적으로 1회 등록되도록 개선.
+- 2026-02-28 (before): `ItemChanged` 미지원(`has_event_type=False`) 환경에서 메일 전환 반영을 위해 selection context 폴링 fallback 도입 작업 시작.
+- 2026-02-28 (after): `ItemChanged` API가 없는 환경에서도 메일 전환을 반영하도록 `pollSelectionContext`/`startSelectionPolling`을 도입해 `email_id` 변경을 주기 감지하고 캐시를 갱신하도록 개선.
+- 2026-02-28 (before): `selection_polling_started` 이후에도 동일 email_id 유지 문제 분석을 위해 `SelectedItemsChanged` 이벤트 병행 등록과 폴링 상세 로그 강화 작업 시작.
+- 2026-02-28 (after): `observeSelectionChanges`를 다중 이벤트 등록 구조로 확장해 `SelectedItemsChanged`를 fallback으로 사용하고, 폴링 디버그 로그(`selection_context_polled_snapshot`)를 추가해 direct/async/selected/email ID 고정 여부를 주기적으로 추적 가능하게 개선.
+- 2026-02-28 (before): `has_event_type=False` 원인 개선을 위해 selection observer 이벤트 상수 참조를 `Office.EventType` 우선으로 교체하고 requirement set 체크/로그 추가 작업 시작.
+- 2026-02-28 (after): `collectSelectionEventTypes`를 `Office.EventType` 우선 참조로 변경하고(`MailboxEnums.EventType` fallback), `selection_observer_requirement_support` 로그를 추가해 런타임 Mailbox requirement 지원 여부(1.5/1.13)를 함께 추적하도록 개선.
+- 2026-02-28 (before): 선택 메일 고정 이슈의 문제/해결책을 운영 참고용으로 상세 문서화하는 작업 시작.
+
+## 문제/해결책 상세 (선택 메일 고정 이슈)
+- 문제:
+  - Outlook 메일 선택을 바꿔도 `taskpane.js`에서 전송되는 `email_id`가 바뀌지 않아 첫 메일 요약이 반복됨.
+  - 일부 런타임에서 `ItemChanged` 이벤트 타입이 노출되지 않아 observer 기반 갱신이 불가능했음.
+- 원인:
+  - 이벤트 타입 참조를 `MailboxEnums.EventType`에 의존한 구간에서 `EventType` 미노출 환경이 존재.
+  - 초기화 타이밍 이슈로 observer 등록 전에 mailbox 컨텍스트가 비어 있는 경우가 존재.
+  - 이벤트 미지원/미노출 환경에서는 push 이벤트 대신 polling으로만 변경 감지가 가능.
+- 해결:
+  - `observeSelectionChanges`를 Office readiness 보장 후 실행(`ensureOfficeReady`)하고 중복 등록 방지.
+  - 이벤트 수집을 `Office.EventType` 우선 + `MailboxEnums.EventType` fallback으로 전환.
+  - `ItemChanged` + `SelectedItemsChanged` 다중 등록 시도.
+  - 폴링 fallback(`pollSelectionContext`)으로 `email_id` 변경 감지 및 캐시/리비전 갱신.
+  - 추적 로그 강화:
+    - observer 등록 경로: `selection_observer_register_attempt|registered|register_failed|unavailable`
+    - requirement 경로: `selection_observer_requirement_support`
+    - 폴링 경로: `selection_context_polled_snapshot|selection_context_polled_changed`
+- 확인 방법:
+  - 정상: 메일 전환 시 `selection_context_before_send.email_id` 변경 + `registered` 또는 `polled_changed` 발생.
+  - 비정상: `polled_snapshot.changed=false`가 지속되며 `email_id`가 고정.
+- 2026-02-28 (after): `clients/outlook-addin/task.md`에 선택 메일 고정 이슈의 문제/원인/해결/확인 방법을 상세 섹션으로 정리해 운영 참고 문서화 완료.
+- 2026-02-28 (before): `taskpane.js` 파일 크기(600+ lines) 해소를 위해 기능 분리 리팩터링 및 과도한 selection 디버그 로그 정리 작업 시작.
+- 2026-02-28 (after): 선택 컨텍스트 로직을 `taskpane.selection.js`로 분리하고 `taskpane.js`는 UI/오케스트레이션 중심으로 재구성해 파일 길이를 500줄 이하로 축소(476 lines). `taskpane.html`에 분리 스크립트 로딩 추가(v=20260228-02).
+- 2026-03-01 (before): 레퍼런스 이미지와 동일한 입력 화면 스타일(중앙 웰컴 문구, 대형 라운드 입력 박스, 하단 액션 칩)을 `taskpane.html/css/js`에 반영하는 작업 시작.
+- 2026-03-01 (after): 요청대로 액션 칩을 추가하지 않고, 입력화면/배경색만 레퍼런스 톤으로 맞춤. 웰컴 상태에서 `.app.welcome-layout`을 적용해 중앙형 레이아웃(라이트 배경, 대형 라운드 입력 박스, 가시 placeholder)을 구성하고 정적 리소스 버전을 `20260301-01`로 갱신.
+- 2026-03-01 (before): `taskpane.js` 길이 증가(490줄) 대응으로 UI/액션/API/헬퍼 모듈 분리 리팩터링 작업 시작.
+- 2026-03-01 (after): `taskpane.js`를 247줄 엔트리 오케스트레이터로 축소하고, 공통 유틸/메시지 UI/서버 요청/메시지 인터랙션을 `taskpane.helpers.js`, `taskpane.messages.js`, `taskpane.api.js`, `taskpane.interactions.js`로 분리. `taskpane.html` 스크립트 로더를 `20260301-02` 버전으로 갱신하고 기존 selection 테스트 17건 통과 확인.
+- 2026-03-01 (before): `taskpane.css` 500줄 초과(507 lines) 해소를 위해 레이아웃/채팅/컴포저 스타일을 모듈 파일로 분리하는 리팩터링 작업 시작.
+- 2026-03-01 (after): `taskpane.css`를 경량 엔트리(`@import` 3개)로 축소하고 `taskpane.layout.css`/`taskpane.chat.css`/`taskpane.composer.css`로 분리해 파일당 500줄 이하를 만족. `taskpane.html` CSS 버전을 `20260301-03`으로 갱신.
+- 2026-03-01 (before): 채팅 처리 진행상태를 사용자에게 표시하기 위해 SSE 스트림 소비 + 상태 배너 UI를 taskpane 모듈에 연동하는 작업 시작.
+- 2026-03-01 (after): `taskpane.html`에 `chatStatus` 배너를 추가하고, `taskpane.api.js`에서 `/search/chat/stream` SSE를 파싱해 progress 이벤트를 수신하도록 확장. `taskpane.js`/`taskpane.messages.js`에 상태 표시(`received/processing/completed/error`) 및 자동 clear 로직을 반영.
+- 2026-03-01 (before): `Thinking....` 인디케이터를 Claude 스타일 톤으로 개선하기 위해 위치(입력창 하단) 및 완료 시 자동 숨김 동작 수정 작업 시작.
+- 2026-03-01 (after): `chatStatus`를 입력창 하단으로 이동하고, 처리 중에는 `Thinking....`만 표시하며 완료/오류 시 즉시 숨김으로 변경. 상태점 애니메이션을 추가해 미니멀 인디케이터 톤으로 조정.
+- 2026-03-01 (after): 사용자 제보(미표시) 대응으로 `chatStatus`를 입력창 하단→상단으로 재배치하고 `taskpane.js`에 최소 노출시간(400ms) 보장 로직을 추가해 즉시 사라짐/비가시 문제를 완화.
+- 2026-03-01 (after): `chatStatus` 표시 제어를 `hidden` 속성에서 `is-visible` 클래스 기반으로 변경하고 최소 표시시간을 800ms로 상향해 Outlook WebView 미표시 편차를 줄임. 정적 버전은 `20260301-07`로 갱신.
+- 2026-03-01 (after): 인디케이터를 입력영역 배너에서 채팅 스레드 임시 메시지(`#thinkingIndicator`)로 전환해 스크롤/웹뷰 위치 편차와 무관하게 사용자 버블 바로 아래에 표시되도록 변경.
+- 2026-03-01 (before): Thinking 인디케이터 텍스트를 더 굵고 은은한 그라데이션 톤으로 개선해 현재 테마와 시각적 일관성을 높이는 CSS 미세조정 작업 시작.
+- 2026-03-01 (after): `taskpane.chat.css`의 `.thinking-inline`에 font-weight 560/자간 보강을 적용하고, 텍스트 전용 gradient + `thinkingTextDrift` 애니메이션을 추가해 은은한 강조 효과를 반영.
+
+- 2026-03-01 (before): 브라우저에서 버튼으로 E2E+Judge 평가를 실행/조회할 수 있도록 Add-in 정적 페이지(`chat-eval.html`) 추가 작업 시작.
+
+- 2026-03-01 (after): `chat-eval.html` 페이지를 추가해 설정 입력(채팅 URL/Judge/케이스수/현재메일 컨텍스트) + 실행 버튼 + 결과 요약/케이스 표 렌더를 제공.
+
+- 2026-03-01 (before): 새 세션 옆 설정(톱니) 버튼을 추가하고 클릭 시 `chat-eval.html` 테스트 페이지로 이동하는 헤더 UX 개선 작업 시작.
+
+- 2026-03-01 (after): `taskpane.html` 헤더에 `openEvalBtn`(톱니 아이콘)을 `newSessionBtn` 왼쪽에 추가하고, `taskpane.js`에서 클릭 시 `/addin/chat-eval.html`을 새 탭으로 열도록 연결. 팝업 차단 시 동일 탭 이동 fallback 적용.
+- 2026-03-01 (after): `taskpane.layout.css`에 `toolbar-icon-btn` 스타일(원형 32px, hover 톤 일치)을 추가해 기존 `새 세션` 버튼과 시각 일관성 유지.
+
+- 2026-03-01 (before): chat-eval 웹 페이지의 Judge 입력 기본값을 `gpt-5-mini`로 변경하는 UX 설정 작업 시작.
+
+- 2026-03-01 (after): `chat-eval.html`의 Judge 입력 기본값을 `gpt-5-mini`로 변경해 버튼 실행 시 기본적으로 상향된 Judge 모델이 사용되도록 개선.
+
+- 2026-03-01 (before): Office WebView URL 파싱 오류 대응을 위해 `chat-eval.html`의 fetch 경로를 절대 URL로 정규화하고 Chat URL 입력 보정(`/search/chat` 자동 부착) 로직 추가 작업 시작.
+
+- 2026-03-01 (after): `chat-eval.html`에 `buildApiUrl`/`normalizeChatUrl`를 추가해 Office WebView에서도 API 호출을 절대 URL로 정규화하고, Chat URL 입력에 `/search/chat` 누락 시 자동 보정하도록 수정.
+
+- 2026-03-01 (before): chat-eval 페이지에서 `Selected Email ID` 기본값을 고정 샘플 ID로 채우는 입력 기본값 설정 작업 시작.
+
+- 2026-03-01 (after): `chat-eval.html`의 `Selected Email ID` 입력 기본값을 지정된 EMAIL_ID로 고정해 페이지 진입 즉시 현재메일 케이스 실행에 필요한 값이 채워지도록 조정.
+
+- 2026-03-01 (before): chat-eval 페이지 URL 파싱 오류 재발 방지를 위해 API 호출 origin 계산을 `location` 의존에서 `Chat URL` 우선 추출 방식으로 보강하는 작업 시작.
+
+- 2026-03-01 (after): `chat-eval.html`에서 API origin을 `Chat URL` 입력값(`normalizeChatUrl`) 우선으로 파싱(`resolveApiBaseOrigin`)하도록 보강해 Office WebView의 `location` 편차에서도 `/qa/chat-eval/latest|run` URL 생성이 안정되도록 수정.
+
+- 2026-03-01 (before): Office WebView `fetch` URL 파싱 예외 재발 대응을 위해 chat-eval API 호출을 후보 URL 순차 fallback 구조로 보강하는 작업 시작.
+
+- 2026-03-01 (after): `chat-eval.html` API 호출을 `fetchWithFallback`(절대 URL + 상대 URL 후보 순차 시도)으로 전환해 WebView URL 파싱 예외 시에도 다음 후보로 재시도하도록 보강.
+- 2026-03-01 (after): origin 추출에서 `URL()` 생성자 의존을 제거하고 정규식 기반(`https?://host`)으로 단순화해 `SyntaxError: The string did not match the expected pattern` 재발 가능성을 낮춤.
+
+- 2026-03-01 (before): chat-eval 최근결과 조회 SyntaxError 재발 대응을 위해 API URL 생성/호출 로직을 절대 URL 우선 구조로 재정비하는 작업 시작.
+
+- 2026-03-01 (after): chat-eval API 호출 후보를 절대 URL만 사용하도록 고정하고, origin 미해결 시 명시 에러(`api_base_origin_missing`)를 반환하도록 변경해 WebView 상대경로 파싱 예외를 회피.
+- 2026-03-01 (after): API origin은 `Chat URL` 입력값 우선(`extractOrigin(normalizeChatUrl)`)으로 계산하고 초기 입력값도 해당 origin 기반으로 세팅해 `최근 결과 불러오기` 경로 안정성을 보강.
+
+- 2026-03-01 (after): chat-eval 첫 진입 시 자동 `loadLatest()` 호출을 제거해 초기 화면에서 WebView URL 파싱 오류가 즉시 노출되는 문제를 차단.
+- 2026-03-01 (after): `fetchWithFallback`을 다중 origin 후보(`Chat URL` 입력값, `location.href`, `document.baseURI`) 기반 절대 URL 순차 호출로 재구성해 `최근 결과 불러오기`의 URL 환경 의존성을 완화.
+
+- 2026-03-01 (before): WebView `fetch` URL 파싱 오류 지속 대응으로 chat-eval API 호출을 XHR 기반(`requestJsonWithFallback`)으로 전환하는 작업 시작.
+
+- 2026-03-01 (after): chat-eval API 호출을 `fetch` 기반에서 `XMLHttpRequest` 기반(`requestJsonByXhr` + `requestJsonWithFallback`)으로 전환해 Office WebView의 URL 파싱 예외 환경에서 안정적으로 최근결과/실행 호출이 가능하도록 보강.
+
+- 2026-03-01 (before): ngrok 환경에서 JSON 대신 경고 HTML 응답이 내려오는 케이스를 우회하기 위해 chat-eval XHR 헤더/파싱 진단 강화 작업 시작.
+
+- 2026-03-01 (after): XHR 요청에 `Accept: application/json`, `ngrok-skip-browser-warning: true` 헤더를 추가해 ngrok 경고 HTML 응답 유입을 완화.
+- 2026-03-01 (after): 비JSON/JSON 파싱 실패 시 상태코드+본문 preview를 포함한 에러(`xhr_non_json_response`, `xhr_json_parse_failed`)를 반환하도록 진단 메시지를 강화.
+
+- 2026-03-01 (before): chat-eval 결과를 외부 공유/수정요청에 활용할 수 있도록 `결과 복사` 버튼 및 클립보드 복사 기능 추가 작업 시작.
+
+- 2026-03-01 (after): chat-eval 컨트롤 영역에 `결과 복사` 버튼을 추가하고, 최신 리포트(summary+cases)를 TSV/JSON 텍스트로 합성해 클립보드에 복사하는 기능(`buildCopyText`, `copyLatestReport`)을 구현.
+- 2026-03-01 (after): Clipboard API 미지원 환경을 위해 textarea + `document.execCommand("copy")` fallback을 함께 적용.
+
+- 2026-03-01 (before): chat-eval 페이지에 체크 실행/진행률 표시 UI를 추가하는 작업 시작.
+
+- 2026-03-01 (after): `chat-eval.html`에 선택 실행 UX를 추가(`체크 실행/전체 선택/실패만 선택/선택 해제`)하고, 케이스 체크박스 테이블+진행률 바(`progressBar`)를 도입.
+- 2026-03-01 (after): `runSelectedEval`을 추가해 체크한 케이스를 1건씩 순차 실행하며 진행률(건수/퍼센트)을 실시간 표시하고, 실행 완료 후 병합 요약 리포트를 렌더링하도록 확장.
+
+- 2026-03-01 (before): chat-eval 케이스 행별 Query 복사 버튼 추가와 전체 선택 버튼 UX 보강 작업 시작.
+
+- 2026-03-01 (after): chat-eval 케이스 테이블 Query 셀에 행별 `복사` 버튼(`case-query-copy-btn`)을 추가하고, 클릭 시 해당 질의만 클립보드 복사되도록 이벤트 위임을 반영.
+- 2026-03-01 (after): 기존 결과 복사 로직을 `copyPlainText` 공통 함수로 정리해 Query 복사/결과 복사가 동일한 clipboard fallback 경로를 재사용하도록 개선.
+- 2026-03-01 (before): 대기 상태 문구(`Thinking...`)의 시인성을 높이기 위해 굵기/그라디언트 애니메이션 스타일 보강 작업 시작.
+- 2026-03-01 (after): `taskpane.messages.js`의 Thinking 텍스트에 `thinking-label` 클래스를 추가하고 `taskpane.chat.css`에 고가시성 스타일(14px/700) + gradient drift + WebView fallback color-shift 애니메이션을 적용.
+- 2026-03-01 (before): Thinking 텍스트를 더 굵고 잘 보이게 하며, 밝은 라이트 스윕(shimmer) 효과를 적용하는 스타일 개선 작업 시작.
+- 2026-03-01 (after): `taskpane.chat.css`의 Thinking 스타일을 고가시성으로 재조정(15px/780, letter-spacing 상향)하고 밝은 밴드가 좌우로 스윕하는 `thinkingLightSweep` 애니메이션을 적용.
+- 2026-03-01 (before): chat-eval 페이지에서 케이스별 LLM 실제 답변(raw)을 확인할 수 있도록 `답변 보기` UX(모달)와 `답변 복사` 버튼 추가 작업 시작.
+- 2026-03-01 (after): `chat-eval.html` 케이스 테이블에 `Answer` 컬럼을 추가하고 `답변 보기/답변 복사` 버튼을 구현. `answerModalBackdrop` 모달에서 케이스별 `result.answer` 원문을 표시하며, 작은 화면에서도 오버레이로 확인 가능하도록 반영.
+- 2026-03-01 (before): 채팅 모호 질의에서 범위를 사용자 선택으로 확정할 수 있도록 taskpane에 scope 확인 카드 UI(현재메일/직전조회/전체검색)와 재전송 연동을 추가하는 작업 시작.
+- 2026-03-01 (after): `taskpane.messages.js`에 scope clarification 카드(`scope-choice-btn`) 렌더를 추가하고, `taskpane.interactions.js`에서 버튼 선택 시 동일 질의를 `runtime_options.scope`와 함께 재전송하도록 연동.
+- 2026-03-01 (after): `taskpane.api.js`에 대화 `thread_id` 유지 로직을 추가해 후속 질의가 같은 스레드 컨텍스트를 재사용하도록 보강하고, `taskpane.js`의 새 세션 버튼에서 `resetThread()`를 호출하도록 연결.
+- 2026-03-01 (after): `taskpane.chat.css`에 scope 선택 카드 스타일을 추가하고 정적 리소스 캐시 버전을 `20260301-10`으로 갱신.
+- 2026-03-01 (before): 출력폼을 현재 트렌드 톤으로 정돈하기 위해 assistant 메시지 Markdown 렌더/타이포 스타일 보강과 token 스트리밍 타이핑 UI 반영 작업 시작.
+- 2026-03-01 (after): `taskpane.messages.js`에 assistant rich-text 렌더(문단/리스트/헤딩/굵게/inline code/code block)와 스트리밍 버퍼 메시지(`begin/append/finalize`)를 추가.
+- 2026-03-01 (after): `taskpane.js`에서 SSE `token` 이벤트를 받아 실시간으로 메시지를 누적 렌더하고, 완료 시 metadata 포함 최종 assistant 메시지로 커밋하도록 변경.
+- 2026-03-01 (after): `taskpane.chat.css`에 제품형 타이포 스케일(rich-body/rich-list/rich-heading/code style)과 스트리밍 caret 애니메이션을 추가, `taskpane.html` 정적 버전을 `20260301-11`로 갱신.
+- 2026-03-01 (after): API 모듈(`taskpane.api.js`)의 SSE 파서에 `token` 이벤트 전용 콜백을 추가해 서버 토큰을 즉시 UI로 전달하도록 확장.
+- 2026-03-01 (after): `taskpane.chat.css`에 `.rich-body strong` 강조 스타일(760 weight + 1.03em)을 추가해 모델이 `**중요 단어**`를 출력할 때 시인성을 강화.
+- 2026-03-01 (before): 스트리밍 중 마크다운 레이아웃 흔들림을 줄이기 위해 taskpane 토큰 렌더를 문장 경계 버퍼링 방식으로 보강하는 작업 시작.
+- 2026-03-01 (after): `taskpane.js`에 `extractFlushableStreamingText`를 추가해 토큰을 문장/줄바꿈 경계 기준으로 누적 후 flush하도록 변경하고, 짧은 partial 문장은 보류해 리스트/문단 흔들림을 줄임.
+- 2026-03-02 (before): API `metadata.answer_format(v1)` 도입에 맞춰 Add-in assistant 출력을 블록 기반 렌더로 전환하고 기존 markdown fallback과 공존시키는 작업 시작.
+- 2026-03-02 (after): `taskpane.messages.js`에 `renderAssistantBody`/`renderAnswerFormatBlocks`를 추가해 `answer_format.blocks(heading/ordered_list/unordered_list/paragraph)`가 있으면 해당 블록을 우선 렌더하고, 없거나 비정상일 때는 기존 `renderRichText` 경로로 fallback하도록 확장.
+- 2026-03-02 (before): 블록 렌더 범위를 확장하기 위해 `answer_format.blocks`의 `table/quote` 타입을 Add-in UI에 추가하는 작업 시작.
+- 2026-03-02 (after): `taskpane.messages.js`에서 `table(headers/rows)`를 `rich-table`로 렌더하고 `quote(text)`를 `rich-quote`로 렌더하도록 확장, 미지원 타입은 기존 fallback 유지.
+- 2026-03-02 (after): `taskpane.chat.css`에 `.rich-quote` 스타일을 추가해 인용문 가독성을 강화.
+- 2026-03-02 (before): 현재메일 요약 화면에서 assistant 본문/제목 글자가 과도하게 크게 보이는 문제를 완화하기 위해 타이포 스케일 조정 작업 시작.
+- 2026-03-02 (after): `taskpane.chat.css`의 assistant 타입 스케일을 조정(`rich-body` 16→15, `rich-heading` 20→18, table th/td 13/14→12/13, `strong` 과한 stroke 완화)해 요약 화면 밀도를 낮춤.
+- 2026-03-02 (before): 프론트 렌더 경로 단일화를 위해 SSE token 콜백/임시 스트리밍 버블 경로 제거 작업 시작.
+- 2026-03-02 (after): `taskpane.api.js`에서 `onToken`/token 누적 fallback을 제거하고 `completed` payload만 사용하도록 단순화.
+- 2026-03-02 (after): `taskpane.js`에서 `handleToken` 및 streaming finalize 분기를 삭제하고, assistant 메시지를 최종 응답 1회 렌더로 통일.
+- 2026-03-02 (after): `taskpane.messages.js`의 legacy streaming 메서드(`begin/append/finalize/clearStreaming...`)를 제거해 메시지 UI 책임을 단일 경로로 정리.
+- 2026-03-02 (after): 캐시 고정 방지를 위해 `taskpane.html` 정적 버전을 갱신(`taskpane.messages.js`, `taskpane.api.js`, `taskpane.js` → `v=20260302-04`).
+- 2026-03-02 (before): malformed table block 수신 시 빈/노이즈 헤더(`---`) 렌더를 차단하는 프론트 가드 보강 작업 시작.
+- 2026-03-02 (after): `answer_format` table 블록의 헤더가 delimiter-only(`---`)인 경우 렌더를 스킵하도록 가드를 추가해 빈 표/노이즈 표 노출을 차단.
+- 2026-03-02 (after): 정적 리소스 캐시 반영을 위해 `taskpane.messages.js` 버전을 `v=20260302-05`로 갱신.
+- 2026-03-02 (before): 근거메일 카드의 테두리/배경 제거를 공통 스타일로 반영하는 UI 정리 작업 시작.
+- 2026-03-02 (after): 근거메일 공통 버튼 스타일(`.evidence-open-btn`)의 테두리/배경/라운드를 제거해 카드형 박스(흰색 음영+테두리) 없이 텍스트 리스트 형태로 렌더되도록 정리.
+- 2026-03-02 (before): 조회 상단 `주요 내용` 헤더 가독성 개선(아이콘/굵기/크기 강조) 스타일 조정 작업 시작.
+- 2026-03-02 (after): `taskpane.messages.js`에 `major-summary-heading` 클래스 분기를 추가하고 `taskpane.chat.css`에서 헤더 크기/굵기(17px/760)를 강화해 `## 📌 주요 내용` 타이틀 가독성을 개선.
+- 2026-03-02 (after): 캐시 반영을 위해 `taskpane.css`/`taskpane.html` 정적 버전을 `20260302-06`으로 갱신.
+- 2026-03-02 (before): `근거메일` 타이틀도 `주요 내용`과 동일한 강조 스타일 + 이모티콘 헤더로 통일하는 UI 보정 작업 시작.
+- 2026-03-02 (after): `taskpane.messages.js`의 근거메일 타이틀을 `📬 근거 메일`로 변경하고 `evidence-title rich-heading major-summary-heading` 클래스를 적용해 `주요 내용`과 동일한 헤더 스타일로 통일.
+- 2026-03-02 (after): `taskpane.chat.css`에서 `evidence-title.major-summary-heading` 간격을 조정하고, 정적 캐시 반영을 위해 `taskpane.html` 버전을 `20260302-07`로 갱신.
+- 2026-03-02 (before): 소제목/본문 타이포 공통 크기 상향, 사용자/어시스턴트 메시지 간격 축소, 대화별 처리시간 구분선 표시 UI(`--- 1m3s ---`) 추가 작업 시작.
+- 2026-03-02 (after): 소제목 크기를 공통 `.rich-heading`(17px/760)으로 통일하고 본문 `.rich-body`를 15px로 상향해 템플릿 간 타이포를 통일.
+- 2026-03-02 (after): `chat-area` 메시지 간격을 14px→7px로 축소해 사용자/어시스턴트 버블 간 세로 간격을 절반 수준으로 조정.
+- 2026-03-02 (after): `taskpane.messages.js`에 `addElapsedDivider`를 추가하고 `taskpane.js`에서 응답 완료 시 `elapsed_ms` 기반 구분선(`--- 1m 3s ---`)을 렌더하도록 연동.
+- 2026-03-02 (after): 캐시 반영을 위해 `taskpane.css`/`taskpane.html`/`taskpane.messages.js`/`taskpane.js` 정적 버전을 `20260302-08`로 갱신.
+- 2026-03-02 (before): 소제목(아이콘 헤더) 15px, 불릿 설명 12px(표 텍스트와 동일)로 공통 타이포를 재조정하는 UI 미세 조정 작업 시작.
+- 2026-03-02 (after): `.rich-heading`을 12px/650으로 낮추고 `.rich-body`를 12px로 조정해 소제목/타이틀/본문 스케일을 표 텍스트 기준으로 통일.
+- 2026-03-02 (after): `.rich-list li`를 12px로 고정해 주요내용 하위 불릿 설명이 표 본문과 동일한 크기로 표시되도록 조정.
+- 2026-03-02 (after): 캐시 반영을 위해 `taskpane.css`/`taskpane.html` 정적 버전을 `20260302-09`로 갱신.
+- 2026-03-02 (before): 말풍선/Thinking 폭이 과도하게 넓게 보이는 문제를 완화하기 위해 채팅 레이아웃 max-width 토큰(`thread/text/user bubble`) 축소 작업 시작.
+- 2026-03-02 (after): `taskpane.layout.css`의 `--chat-thread-max-width`/`--chat-text-max-width`/`--chat-user-bubble-max-width`를 `760/640/460px`로 축소해 말풍선과 Thinking 폭을 동시 축소.
+- 2026-03-02 (after): 캐시 반영을 위해 `taskpane.css`/`taskpane.html` 정적 버전을 `20260302-10`으로 갱신.
+- 2026-03-02 (before): 대화 처리시간 구분선 중앙 텍스트의 `---` 제거와 좌우 라인 굵기/명도 강화 UI 조정 작업 시작.
+- 2026-03-02 (after): `taskpane.messages.js`의 elapsed 라벨 포맷을 `--- {label} ---`에서 `{label}`로 변경해 중앙 대시 텍스트를 제거.
+- 2026-03-02 (after): `taskpane.chat.css`의 `.msg-elapsed-line`을 2px/진한 컬러로 강화하고 `.msg-elapsed-text` weight를 상향.
+- 2026-03-02 (after): 캐시 반영을 위해 `taskpane.css`/`taskpane.html`/`taskpane.messages.js` 버전을 `20260302-11`로 갱신.
+- 2026-03-02 (before): 아이콘 소제목(제목/기본 정보/핵심 문제 요약/주요 내용/근거 메일)을 공통 14px Bold로 상향하고 주요내용 번호 목록 증가(1,2,3) 렌더 문제 수정 작업 시작.
+- 2026-03-02 (after): `.rich-heading`을 공통 14px/700으로 조정해 아이콘 소제목(제목/기본 정보/핵심 문제 요약/주요 내용/근거 메일)을 동일 스케일로 통일.
+- 2026-03-02 (after): `taskpane.messages.js`의 ordered list 렌더를 개선해 `1. 제목` 아래 `- 설명`을 동일 번호 항목의 subline으로 처리, 번호가 1/2/3으로 연속 유지되도록 수정.
+- 2026-03-02 (after): ordered title 전용 `.rich-ol-title`(14px/700)와 하위 설명 `.rich-subline`(12px/400) 스타일을 추가.
+- 2026-03-02 (after): 캐시 반영을 위해 `taskpane.css`/`taskpane.html`/`taskpane.messages.js` 버전을 `20260302-12`로 갱신.
+- 2026-03-02 (before): 채팅 폭 반영 지연 이슈 대응을 위해 layout 폭 토큰을 추가 축소하고 정적 리소스 캐시 버전을 재갱신하는 작업 시작.
+- 2026-03-02 (after): `taskpane.layout.css`의 폭 토큰을 `--chat-thread-max-width:620px`, `--chat-text-max-width:520px`, `--chat-user-bubble-max-width:360px`로 추가 축소.
+- 2026-03-02 (after): `chat-status` 폭을 고정 980px에서 `var(--chat-thread-max-width)` 기준으로 변경해 상단 상태/메시지 폭을 일관화.
+- 2026-03-02 (after): 캐시 반영을 위해 `taskpane.css`/`taskpane.html`/`taskpane.messages.js` 버전을 `20260302-13`으로 갱신.
+- 2026-03-02 (before): 메일 목록 영역에서 제목/본문 타이포를 분리(14px Bold/12px)하고 발신자/수신일 메타 라인 노출 제거 작업 시작.
+- 2026-03-02 (after): `taskpane.messages.js`에 `isMailListMetaLine` 가드를 추가해 `발신자:/수신일:/링크:` 라인이 메일 목록 본문에 노출되지 않도록 렌더 단계에서 제외.
+- 2026-03-02 (after): 정적 캐시 반영을 위해 `taskpane.css`/`taskpane.html`/`taskpane.messages.js` 버전을 `20260302-14`로 갱신.
+- 2026-03-02 (before): 입력풍선(`input-wrapper`)과 Thinking 폭이 채팅 폭 토큰과 불일치하는 이슈를 동일 토큰 기반으로 강제 정렬하는 작업 시작.
+- 2026-03-02 (after): `taskpane.composer.css`에서 `.input-area`를 center 정렬하고 `.input-wrapper` 폭을 `min(100%, var(--chat-thread-max-width))`로 고정해 입력풍선이 채팅 폭과 동일 기준을 따르도록 수정.
+- 2026-03-02 (after): welcome 레이아웃의 `.input-wrapper` 고정폭 `980px`를 제거하고 동일 토큰(`--chat-thread-max-width`)으로 통일.
+- 2026-03-02 (after): 레이아웃 폭 토큰을 `560/460/340`으로 재조정해 Thinking/assistant/user 폭을 한 단계 더 축소.
+- 2026-03-02 (after): 캐시 반영을 위해 `taskpane.css`/`taskpane.html`/`taskpane.messages.js` 버전을 `20260302-15`로 갱신.
+- 2026-03-02 (before): 주요내용 ordered list가 빈 줄 구간에서 끊겨 번호가 1로 리셋되는 문제를 수정하고 번호 제목 Bold를 모든 렌더 경로에 통일하는 작업 시작.
+- 2026-03-02 (after): `taskpane.messages.js`에서 ordered list 중간 빈 줄을 리스트 종료로 처리하지 않도록 보정해 번호가 매 항목마다 1로 리셋되는 문제를 수정.
+- 2026-03-02 (after): `answer_format.blocks`의 `ordered_list` 항목도 `<span class="rich-ol-title">`로 감싸 번호 제목 Bold(14px)를 공통 적용.
+- 2026-03-02 (after): 캐시 반영을 위해 `taskpane.css`/`taskpane.html`/`taskpane.messages.js` 버전을 `20260302-16`으로 갱신.
+- 2026-03-02 (before): 입력풍선이 우측으로 치우치는 레이아웃 깨짐 이슈를 수정하기 위해 composer 정렬 구조를 재조정하는 작업 시작.
+- 2026-03-02 (after): `.input-area`를 `display:flex` 정렬에서 `width:100%` 블록 레이아웃으로 되돌리고 `.input-wrapper`를 `width:100% + max-width: var(--chat-thread-max-width)`로 변경해 우측 치우침을 수정.
+- 2026-03-02 (after): `.thinking-message` 폭을 `var(--chat-thread-max-width)` 기준으로 통일해 입력영역/메시지/Thinking 폭 일관성을 강화.
+- 2026-03-02 (after): 캐시 반영을 위해 `taskpane.css`/`taskpane.html`/`taskpane.messages.js` 버전을 `20260302-17`로 갱신.
+- 2026-03-02 (before): `taskpane.css`의 `@import` 체인을 제거하고 `taskpane.html`에서 CSS 파일 직접 로드로 전환하는 작업 시작.
+- 2026-03-02 (before): answer_format에서 ordered/unordered 블록이 교차할 때 ordered 번호가 1로 재시작되는 문제를 `start` 누적 방식으로 보정하는 작업 시작.
+- 2026-03-02 (before): 입력영역 정렬 관련 JS 인라인 style 강제 로직을 제거하고 CSS만으로 제어하도록 정리하는 작업 시작.
+- 2026-03-02 (after): `taskpane.js`에서 입력영역 강제 정렬 함수(`enforceComposerLayout`)와 resize 리스너를 제거해 레이아웃 책임을 CSS로 단일화.
+- 2026-03-02 (after): `taskpane.html`에서 `taskpane.js` 정적 버전을 `20260302-19`로 갱신.
+- 2026-03-02 (before): Thinking-입력영역 간격이 줄지 않는 현상의 레이아웃 상태(welcome-layout 잔존/정렬 규칙) 점검 및 보정 작업 시작.
+- 2026-03-02 (after): `renderAnswerFormatBlocks`에 ordered 번호 누적 상태(`orderedStartIndex`)를 추가하고 분절 ordered_list에 `start="N"`를 부여해 주요내용 번호가 1로 고정되는 현상을 수정.
+- 2026-03-02 (after): `taskpane.html`의 `taskpane.messages.js` 버전을 `20260302-20`으로 갱신해 ordered 번호 누적 수정이 즉시 반영되도록 조정.
+- 2026-03-02 (before): 사용자 입력풍선 하단 퀵 액션을 hover 의존 없이 항상 표시되도록 UI 규칙을 전환하는 작업 시작.
+- 2026-03-02 (after): `.user-actions`를 `opacity:1/pointer-events:auto/transform:none`로 고정하고 hover 기반 노출 규칙을 제거해 퀵 액션을 입력풍선 하단에 항상 표시하도록 변경.
+- 2026-03-02 (before): `회의실` 유사 질의에서 depth 선택 카드(건물/층/회의실 + 날짜/시간/인원)로 예약을 확정하는 Add-in UI/클라이언트 연동 작업 시작.
+- 2026-03-02 (after): `taskpane.helpers.js`에 회의실 intent 감지(`isMeetingRoomBookingQuery`)를 추가하고, `taskpane.api.js`에 회의실 depth 조회/예약 API 메서드(`listMeetingRoomBuildings/Floors/Rooms`, `bookMeetingRoom`)를 추가.
+- 2026-03-02 (after): `taskpane.messages.js`에 회의실 예약 카드 렌더/옵션 갱신/폼값 추출/컨트롤 비활성화 메서드를 추가하고, `taskpane.js`에서 `회의실` 입력 시 카드 표시→층/회의실 동적 로딩→확정 예약 클릭 흐름을 연결.
+- 2026-03-02 (after): `taskpane.chat.css`에 회의실 카드 폼 스타일(`meeting-room-form-grid`, select/input`)을 추가해 모바일/데스크톱 모두 입력 가능한 레이아웃으로 반영.
+- 2026-03-02 (after): 정적 캐시 반영을 위해 `taskpane.css`와 `taskpane.messages.js` 버전을 `20260302-21`로 상향.
+- 2026-03-02 (after): `taskpane.messages.js`에 메일 목록 인라인 메타 파서(`parseInlineMailListMeta`)를 추가해 `보낸 사람/수신일/요약`을 각각 독립 문단으로 렌더링.
+- 2026-03-02 (after): `[메일 링크](...)` 및 Outlook URL continuation 라인(`outlook.live.com/owa`, `viewmodel=ReadMessageItem`)을 노이즈로 판단해 렌더에서 제외.
+- 2026-03-02 (after): `taskpane.html`의 `taskpane.messages.js` 버전을 `20260302-22`로 상향.
+- 2026-03-02 (before): 공통 텍스트 가독성 개선을 위해 본문/리스트/표의 line-height 및 문단 간격을 전역적으로 축소하는 작업 시작.
+- 2026-03-02 (after): `taskpane.chat.css`에서 공통 텍스트 행간을 축소(`msg-body`, `rich-body`, `rich-list li`, `rich-ol-title`, `rich-subline`, `rich-table td`, `md-table`)하고 문단 간격(`rich-paragraph`)을 12px→8px로 조정.
+- 2026-03-02 (after): 정적 캐시 반영을 위해 `taskpane.css` import 버전과 `taskpane.html` CSS 링크 버전을 `20260302-23`으로 갱신.
+- 2026-03-02 (before): 메일 조회 상단 `주요 내용`에 제목 클릭 링크를 표시하기 위해 markdown 링크 렌더링 및 스타일 보강 작업 시작.
+- 2026-03-02 (after): `taskpane.messages.js`에 `[text](url)` inline 링크 파싱을 추가하고 `taskpane.chat.css`에 `.rich-link` 스타일을 반영. 캐시 무효화를 위해 `taskpane.html`/`taskpane.css` 버전 갱신.
+- 2026-03-02 (before): 제목에 `[` `]` 포함 시 `[title](url)` 링크가 깨지는 렌더 버그 수정 작업 시작.
+- 2026-03-02 (after): `[\\[제목\\]](url)` 형태의 escaped bracket 링크를 anchor로 파싱하도록 inline formatter를 보강.
+- 2026-03-02 (after): `isMailLinkNoiseLine`에서 제목 markdown 링크(`[...](/owa?... )`)는 노이즈로 제거하지 않도록 예외 처리.
+- 2026-03-02 (after): `taskpane.html`의 `taskpane.messages.js` 쿼리 버전을 `v=20260302-25`로 올려 캐시 잔존 문제를 제거.
+- 2026-03-02 (after): `taskpane.messages.js`에서 `moldubot_mid` 링크를 `evidence-open-btn`로 변환하고, `taskpane.interactions.js`에서 evidence 링크 클릭 시 기본 이동을 막은 뒤 Outlook 열기 로직을 실행하도록 보강.
+- 2026-03-02 (after): 정적 캐시 갱신을 위해 `taskpane.html`의 script 버전을 `taskpane.messages.js?v=20260302-26`, `taskpane.interactions.js?v=20260302-11`로 상향.
+- 2026-03-02 (before): `보고서 생성` 텍스트 명령 기반으로 진행 카드/실시간 미리보기/DOCX 다운로드 UI를 Add-in에 연동하는 작업 시작.
+- 2026-03-02 (after): `taskpane.js/api/messages/interactions/helpers/chat.css/html`를 확장해 보고서 SSE 수신, 단계 표시, HTML 미리보기 패널, 미리보기/다운로드 액션을 구현하고 리소스 버전을 갱신.
+- 2026-03-02 (before): 보고서 생성 UX 피드백 반영(색상 톤 완화, 생성 전 확인 단계, 미리보기/다운로드 버튼 동작 보정) 작업 시작.
+- 2026-03-02 (after): `taskpane.js/messages/interactions/chat.css`를 수정해 `보고서 생성` 입력 시 확인 카드(현재 메일 제목 + 확인/취소) 후 실행하도록 변경하고, 미리보기/다운로드를 버튼 액션 기반으로 안정화.
+- 2026-03-02 (after): 보고서 진행 카드 색상을 기존 테마와 유사한 Claude 스타일 톤으로 조정하고 정적 리소스 버전을 갱신.
+
+- 2026-03-02 (before): 보고서 미리보기 공백 원인 제거를 위해 SSE html_chunk 보장 전송과 완료 렌더 폴백 보강 작업 시작.
+- 2026-03-02 (after): 보고서 완료 이벤트(fullHtml)로 미리보기 패널을 채우는 폴백을 추가하고 taskpane.messages 정적 버전을 20260302-29로 갱신.
+- 2026-03-02 (before): 보고서 생성 확인 카드에 외부문서 검색 체크박스 추가 및 요청 payload 연동 작업 시작.
+- 2026-03-02 (after): 보고서 생성 확인 카드에 \"외부 문서 검색 포함(시간 증가)\" 체크박스를 추가하고, 체크 시에만 enable_web_research=true를 /report/generate 요청 payload에 포함하도록 연동.
+- 2026-03-02 (after): 캐시 반영을 위해 taskpane 정적 리소스 버전(taskpane.css/js/messages/api)을 갱신.
+
+- 2026-03-02 (before): `보고서 작성` 입력이 보고서 트리거에 매칭되지 않아 일반 요약으로 라우팅되는 문제 수정 작업 시작.
+- 2026-03-02 (after): `taskpane.helpers.js`의 `isReportGenerationQuery`를 확장해 `보고서 작성/만들어`, `리포트 작성/생성`도 인식하도록 수정하고 `taskpane.html`의 helpers 버전을 `20260302-02`로 갱신.
+- 2026-03-02 (after): 회귀 테스트 `tests/test_taskpane_helpers.cjs`를 추가하고 관련 Node 테스트 27건 통과 확인.
+
+- 2026-03-02 (before): 보고서 미리보기 패널이 생성 중 비어 있고, `미리보기` 버튼 새 창 동작이 불안정한 문제 수정 작업 시작.
+- 2026-03-02 (after): `taskpane.messages.js`에서 report preview chunk를 raw text로 누적 표시하고 완료 시 최종 HTML로 치환하도록 변경.
+- 2026-03-02 (after): `taskpane.interactions.js`의 미리보기 액션을 Blob URL 새 창 오픈 방식으로 개선하고, popup 실패 시 기존 `document.write` fallback을 유지.
+- 2026-03-02 (after): `taskpane.html`의 정적 버전을 갱신(messages `20260302-31`, interactions `20260302-14`)해 캐시 반영을 보장.
+
+- 2026-03-02 (before): 보고서 완료 후 준비/진행 카드가 남아 UI가 복잡해지는 문제를 단일 완료 카드 UX로 단순화하는 작업 시작.
+- 2026-03-02 (after): `taskpane.messages.js`에서 완료 시 `.report-confirm-message`, `.report-progress-message`를 제거하고 `보고서가 생성됐습니다` + `파일 열기` 단일 카드만 렌더하도록 변경.
+- 2026-03-02 (after): `taskpane.interactions.js`의 보고서 미리보기 액션을 새 창 프리뷰 문서(상단 DOCX 다운로드 버튼 포함) 오픈 방식으로 개선.
+- 2026-03-02 (after): `taskpane.chat.css`에 완료 카드 스타일을 추가하고 리소스 버전을 갱신(`taskpane.css v20260302-28`, `messages v20260302-32`, `interactions v20260302-15`).
+
+- 2026-03-02 (after): `taskpane.js` 부트스트랩에 UI 빌드 로깅(`ui_build_loaded`)을 추가하고 `taskpane.html`의 script 버전을 `taskpane.js?v=20260302-23`으로 상향해 캐시 추적/무효화를 강화.
+- 2026-03-02 (before): 보고서 UI에서 html 미리보기 다다다닥 스트림 제거 및 완료 카드 단순화 작업 시작.
+- 2026-03-02 (after): 보고서 진행 카드는 단계 표시만 유지하고, 완료 시 `파일 열기`/`DOCX 다운로드` 액션 카드만 남기도록 정리.
+- 2026-03-02 (before): 보고서 생성 요청 시 메일 메타데이터(수신일/발신자) 누락으로 문서 표지 정확도가 떨어지는 문제 수정 작업 시작.
+- 2026-03-02 (after): taskpane에서 /mail/context의 received_date/from_display_name을 보고서 요청 payload(`email_received_date`, `email_sender`)로 전달하도록 수정.
+- 2026-03-02 (after): 캐시 반영을 위해 taskpane build/version을 상향(`taskpane.js` UI_BUILD `20260302-18`, `taskpane.html` script query 갱신).
+- 2026-03-02 (before): 보고서 생성 진행 중 보고서 확인 카드의 취소/확인/외부검색 옵션 중복 클릭 방지 비활성화 처리 작업 시작.
+- 2026-03-02 (after): `taskpane.messages.js`에 `disableReportConfirmControls()`를 추가하고, 확인 클릭 직후 해당 카드 컨트롤을 즉시 disabled 처리하도록 `taskpane.js`에 연동.
+
+- [10:31] 작업 시작: 보고서 완료 카드 단일 파일보기 UX(새 창 미리보기) 및 스타일 개선 착수
+- [10:36] 완료: 보고서 완료 카드 Claude 톤으로 리스타일, 파일 보기 단일 버튼/새 창 미리보기 연결, 정적 버전 갱신
+- [10:53] 작업 시작: 보고서 완료 카드 Claude 스타일 리디자인(아이콘/텍스트/버튼) 착수
+- [10:55] 이슈: 보고서 외부검색 옵션 제거 요청 반영(체크박스/문구 정리 예정)
+
+- [11:03] 작업 시작: 보고서 UI 외부검색 옵션 제거 및 완료 카드 단순화
+- [11:08] 완료: 보고서 확인 카드/진행 카드에서 외부검색 옵션 제거 및 파일보기 단일 버튼 경로 정리
+
+- [11:16] 작업 시작: 보고서 완료 카드 레이아웃/타이포 개선 및 상호작용 문구 변경
+- [11:19] 완료: 보고서 완료 카드 UI를 파일 카드형 레이아웃으로 수정(좌측 문서 아이콘/중앙 메타/우측 미리보기)
+- 2026-03-02 (before): `주간보고 작성` 트리거용 확인카드(몇 주 전 선택) + 주간보고 생성/완료 카드 UI 연동 작업 시작.
+- 2026-03-02 (after): `주간보고 작성` 확인카드(주차 선택) + 생성/완료 카드 흐름 및 파일 보기 연동 구현 완료, 관련 UI 테스트 통과.
+- 2026-03-04 (before): Outlook 메일 선택 시 채팅 상단에 현재 선택 메일 카드(제목/발신→수신 외 N명/열기 버튼)를 고정 표시하고, 화살표 버튼으로 원본 메일을 여는 UX 추가 작업 시작.
+- 2026-03-04 (after): `taskpane.html`에 `#selectedMailBanner`를 추가하고 `taskpane.layout.css`에 상단 카드 스타일을 반영.
+- 2026-03-04 (after): `taskpane.messages.js`에 선택 메일 배너 렌더(`renderSelectedMailBanner`)와 수신자 축약 포맷(`이상수, 김태호 외 N명`) 로직을 추가.
+- 2026-03-04 (after): `taskpane.js`에서 선택 컨텍스트 캐시 변경 감지 기반으로 `/mail/context`를 조회해 상단 배너를 동기화하도록 연동.
+- 2026-03-04 (after): `/mail/context` 응답에 `from_display_name`, `to_recipients`를 포함하고 `taskpane.interactions.js`에 `selected-mail-open` 액션을 추가해 화살표 버튼 클릭 시 메일 열기 동작을 연결.
+- 2026-03-04 (after): TDD 추가/통과(`node --test tests/test_taskpane_messages_render.cjs tests/test_taskpane_interactions.cjs` 62 passed), 캐시 버전 상향(`taskpane.html`/`taskpane.js`/`taskpane.messages.js`/`taskpane.interactions.js` -> `20260304-17`).
+- 2026-03-04 (issue): 상단 선택메일 배너가 카드 형태가 아닌 텍스트로만 노출됨(스타일 미적용).
+- 2026-03-04 (fix): `taskpane.css` import 버전이 과거 값(`20260304-03`)으로 고정되어 신규 `.selected-mail-banner` 스타일이 캐시로 누락된 것을 확인.
+- 2026-03-04 (after): `taskpane.css`의 `taskpane.layout.css/taskpane.chat.css/taskpane.composer.css` import 버전을 `20260304-17`로 상향해 상단 카드 스타일 로딩을 정상화.
+- 2026-03-04 (after): 구 HTML/DOM 캐시에서 `#selectedMailBanner` class 누락 시 카드 스타일이 빠지는 문제 대응으로 `renderSelectedMailBanner`에서 `selected-mail-banner` 클래스를 매 렌더 강제 보정(필요 시 동적 노드 생성)하도록 수정.
+- 2026-03-04 (after): 캐시 강제 무효화를 위해 `taskpane.css` import 버전과 `taskpane.html` 정적 리소스 버전을 `20260304-18`로 상향.
+- 2026-03-04 (after): 상단 선택메일 카드 제목 폰트를 15px→13px로 조정.
+- 2026-03-04 (after): 상단 배너 화살표 버튼은 `chatArea` 외부라 기존 interaction 위임이 닿지 않던 문제를 수정해 `taskpane.js`에서 배너/문서 위임 클릭으로 메일 열기(`openEvidenceMail`)를 직접 처리.
+- 2026-03-04 (after): 요약 탭 내부 `summary-mail-hero` 렌더를 제거해 상단 선택메일 카드와 제목 중복을 해소.
+- 2026-03-04 (after): `tests/test_taskpane_messages_render.cjs` 기대값을 갱신(요약 내부 hero 미노출)하고 Node 테스트 통과 확인.
+- 2026-03-04 (after): `기본 정보`를 개별 카드 반복(`basic-info-item`)에서 단일 카드(`basic-info-card`) 내 다중 행(`basic-info-row`) 구조로 전환.
+- 2026-03-04 (after): `taskpane.chat.css` 기본정보 스타일을 단일 카드형 레이아웃으로 조정(행 구분선/키-값 2열), 소형 타이포 적용.
+- 2026-03-04 (after): 캐시 무효화를 위해 `taskpane.css` import 및 `taskpane.html` 리소스 버전을 `20260304-19`로 상향.
+- 2026-03-04 (after): 기본정보 렌더에서 `원본 문의 발신` 키를 필터링해 화면에서 비노출 처리.
+- 2026-03-04 (after): 캐시 반영 보장을 위해 `taskpane.messages.js` 버전을 `20260304-20`으로 상향.
+- 2026-03-04 (after): 핵심 문제 요약 카드의 `한 줄 결론` 본문(`.executive-brief-summary`) 폰트 크기를 13px로 조정.
+- 2026-03-04 (after): 핵심판단 근거 팝오버(`inline-evidence-popover`)에서 메일 제목 라인(`inline-evidence-subject`)을 제거하고 날짜/발신자 메타만 노출하도록 변경.
+- 2026-03-04 (after): 캐시 무효화를 위해 `taskpane.css` import 버전(`20260304-20`)과 `taskpane.messages.js` 버전(`20260304-21`)을 상향.
+- 2026-03-04 (after): 주요내용 카드 레이아웃을 레퍼런스 스타일로 재구성(원형 번호 배지 + 제목 + 보조문장 + 소형 근거 아이콘).
+- 2026-03-04 (after): `buildMajorSummaryListHtml`를 `rich-list ordered` 기반에서 전용 구조(`major-summary-index`, `major-summary-subline`, `major-summary-evidence`)로 전환.
+- 2026-03-04 (after): 캐시 반영 보장을 위해 `taskpane.css` import 버전(`20260304-21`) 및 `taskpane.messages.js` 버전(`20260304-22`) 상향.
+- 2026-03-04 (after): 주요내용 카드 제목 타이포를 13px로 조정.
+- 2026-03-04 (after): 주요내용 번호 배지를 렌더 유효 항목 기준 순차 증가(1..N)하도록 보정.
+- 2026-03-04 (after): 근거 팝오버를 `position: fixed` + 중앙 정렬 오버레이로 변경해 카드 영역에서 잘리는 문제를 해소.
+- 2026-03-04 (after): 캐시 반영을 위해 `taskpane.css` import(`20260304-22`) 및 `taskpane.messages.js` 버전(`20260304-23`) 상향.
+- 2026-03-04 (after): 주요내용 번호 누적이 블록 단위로 1로 초기화되던 문제를 수정해 렌더 전역 인덱스(`majorSummaryRunningIndex`)를 유지하도록 보정.
+- 2026-03-04 (after): 회귀 테스트 `keeps major summary numbering across fragmented ordered blocks` 추가 및 통과.
+- 2026-03-04 (after): 캐시 반영 강제를 위해 `taskpane.messages.js` 버전을 `20260304-24`로 상향.
+- 2026-03-04 (after): 기술이슈 카드에서 `summary`와 `mail_quote`가 사실상 동일하면 인용문(`tech-issue-quote`) 렌더를 생략하도록 중복 제거 규칙 추가.
+- 2026-03-04 (after): 회귀 테스트 `suppresses duplicated tech issue quote when equal to summary` 추가 및 통과.
+- 2026-03-04 (after): 캐시 반영 보장을 위해 `taskpane.messages.js` 버전을 `20260304-25`로 상향.
+- 2026-03-04 (after): 기술이슈 근거 팝오버(`tech-source-popover`)의 가로폭을 확장하고 중앙 배치(`left:50% + translateX(-50%)`)로 조정해 좁고 치우친 레이아웃을 개선.
+- 2026-03-04 (after): 캐시 반영을 위해 `taskpane.css` import 버전을 `20260304-23`으로 상향.
+- 2026-03-04 (before): 현재메일 요약 카드의 `기본 정보`를 테이블/행 카드 대신 1줄 메타(`날짜 · 발신자 → 수신자`)로 축약하고, 날짜를 `YYYY-MM-DD`로 표기하는 UI 개선 작업 시작.
+- 2026-03-04 (after): `taskpane.messages.js`의 `기본 정보` table 렌더를 compact 메타 카드(`📅 날짜 · 👤 발신자 → 수신자`)로 전환하고, 날짜를 `YYYY-MM-DD`로 축약해 좁은 폭에서도 정보가 1줄 우선으로 보이도록 개선.
+- 2026-03-04 (after): `taskpane.chat.css`에 `basic-info-inline` 계열 스타일을 추가해 기본 정보 밀도를 높이고 모바일에서 dot 구분자 숨김/route 줄바꿈을 적용.
+- 2026-03-04 (after): 캐시 반영을 위해 `taskpane.messages.js` 버전을 `20260304-29`, `taskpane.chat.css` 버전을 `20260304-29`로 상향.
+- 2026-03-04 (before): `현재메일 요약` 응답에서 `근거 메일` 블록을 숨기고, 다건 조회 응답에서만 노출되도록 렌더 분기 보강 작업 시작.
+- 2026-03-04 (after): `taskpane.messages.js`에 `isCurrentMailResponse` 분기를 추가해 `metadata.query_type=current_mail`(또는 `answer_format.format_type=current_mail`)이면 `근거 메일` 블록을 렌더하지 않도록 수정.
+- 2026-03-04 (after): `taskpane.html`의 `taskpane.messages.js` 버전을 `20260304-30`으로 상향해 캐시 반영.
+- 2026-03-05 (before): assistant 메시지의 `실행 체크리스트` 섹션을 제거하고 `이어서 할 수 있어요`만 유지하도록 렌더/상호작용/CSS 정리 작업 시작.
+- 2026-03-05 (after): `taskpane.messages.js`에서 `실행 체크리스트` 렌더 경로(`buildActionChecklistHtml` 및 파생 헬퍼)를 제거하고 `이어서 할 수 있어요(next_actions)`만 유지하도록 정리.
+- 2026-03-05 (after): `taskpane.interactions.js`에서 `action-check-toggle` 클릭 처리 분기를 삭제.
+- 2026-03-05 (after): `taskpane.chat.css`에서 `.action-check*` 스타일 블록을 제거하고 캐시 반영을 위해 `taskpane.css/taskpane.html` 버전을 `20260305-01`로 상향.
+- 2026-03-05 (before): 주요내용 근거 팝오버에서 `기술 근거 · 웹 출처` 섹션을 제거하고 `관련 메일 근거` 섹션으로 교체하는 렌더 정리 작업 시작.
+- 2026-03-05 (after): 주요내용 근거 팝오버에서 `기술 근거 · 웹 출처` 렌더를 제거하고 `관련 메일 근거` 리스트(제목/날짜·발신자/스니펫 + 메일열기)로 전환.
+- 2026-03-05 (after): 미사용 `inline-evidence-web*` 렌더 경로를 제거하고 관련 스타일을 정리.
+- 2026-03-05 (after): 캐시 반영을 위해 `taskpane.css/taskpane.html` 버전을 `20260305-02`로 상향.
+- 2026-03-05 (before): `회신 초안 작성` next-action 실행 후 결과 메시지에 `답장하기` 버튼을 노출하고 Outlook reply compose로 연결하는 작업 시작.
+- 2026-03-05 (after): `taskpane.chat_actions.js`에서 `회신 초안 작성` next-action 결과에 `reply_draft` 메타를 주입하고 `reply-draft-open` 액션을 추가.
+- 2026-03-05 (after): `taskpane.messages.js`에 `답장하기` 버튼 렌더(`reply-draft-action-block`)를 추가하고 assistant 액션 영역에 연동.
+- 2026-03-05 (after): `taskpane.js`에 Outlook 답장창 오픈 헬퍼(`openReplyCompose -> displayReplyForm`)를 추가해 chat action으로 주입.
+- 2026-03-05 (after): 캐시 반영을 위해 `taskpane.html` 리소스 버전을 `20260305-03`으로 상향.
+- 2026-03-05 (before): `next-action` 우선순위 카드가 기본 상태에서 선택 강조처럼 보이는 문제를 해결하기 위해 hover/focus 전용 강조로 CSS 조정 작업 시작.
+- 2026-03-05 (after): `taskpane.chat.css`의 `next-action-btn.priority-high` 기본 강조를 제거하고 hover 상태에서만 강조되도록 조정해 상단 카드 고정 선택처럼 보이던 이슈를 수정.
+- 2026-03-05 (after): 캐시 반영을 위해 `taskpane.css/taskpane.html` 버전을 `20260305-04`로 상향.
+- 2026-03-05 (before): `회신 초안 작성` next-action 결과가 질문형 응답일 때도 `답장하기` 버튼이 노출되는 이슈를 수정하는 작업 시작.
+- 2026-03-05 (after): `taskpane.chat_actions.js`에 질문형 회신 감지(`isClarifyingQuestion`)를 추가해 `회신 초안 작성` 응답이 확인 질문일 때 `reply_draft(답장하기)` 버튼을 생성하지 않도록 보정.
+- 2026-03-05 (before): 코드 스니펫 출력 가독성 개선(언어 라벨 + 코드블록 스타일 확대) 및 코드 리뷰 화면형 렌더 보강 작업 시작.
+- 2026-03-05 (after): `taskpane.messages.js`의 fenced code 렌더를 확장해 언어 태그 파싱(````python`) 시 `코드 리뷰` 헤더와 언어 라벨을 함께 표시하도록 보강.
+- 2026-03-05 (after): `taskpane.chat.css`에 `.rich-code-block/.rich-code-head` 스타일을 추가하고 `.rich-pre` 폰트/line-height를 상향해 코드 스니펫 가독성을 개선.
+- 2026-03-05 (after): 캐시 무효화를 위해 `taskpane.css`(chat.css import)와 `taskpane.html`(css/messages 버전)을 `20260305-05/20260305-04`로 상향.
+- 2026-03-05 (before): `answer_format` 렌더 경로에서 코드펜스 본문이 유실되는 이슈를 해결하기 위해 코드펜스 감지 시 markdown 원문 렌더 우선 적용 작업 시작.
+- 2026-03-05 (after): `renderAssistantBody`에서 코드펜스(```` ) 포함 응답은 `answer_format` 블록 렌더를 우회하고 `renderRichText`를 우선 사용하도록 변경해 코드 본문 유실을 차단.
+- 2026-03-05 (after): 코드펜스 렌더 버그 수정 반영을 위해 `taskpane.messages.js` 정적 버전을 `20260305-05`로 상향.
+- 2026-03-05 (before): 코드 리뷰 화면 품질 향상을 위해 `highlight.js` 연동(코드블록 syntax highlight) 작업 시작.
+- 2026-03-05 (after): `taskpane.html`에 `highlight.js`(CDN) CSS/JS를 로드하고 `taskpane.messages.js`에 코드블록 post-render 하이라이팅(`hljs.highlightElement`)을 연결.
+- 2026-03-05 (after): 캐시 무효화를 위해 `taskpane.messages.js` 버전을 `20260305-06`으로 상향.
+- 2026-03-05 (after): `taskpane.messages.js`에 highlight language alias(`jsp -> xml`)를 추가하고 `taskpane.html` messages 번들을 `v=20260305-07`로 상향해 캐시 고정 문제를 완화.
+- 2026-03-05 (before): 외부 CDN 차단/지연으로 highlight.js 미적용 가능성을 제거하기 위해 highlight.js 정적 파일 로컬 번들링 전환 작업 시작.
+- 2026-03-05 (after): `taskpane.html`의 highlight.js CSS/JS를 CDN에서 로컬 정적 경로(`/addin/vendor/highlightjs/*`)로 전환하고 `manifest.xml` taskpane URL 쿼리를 상향해 add-in 캐시 고정을 완화.
+- 2026-03-05 (before): Office add-in 환경에서 hljs 미동작 시에도 색상 하이라이트를 보장하기 위해 `taskpane.messages.js`에 markup fallback 하이라이터 추가 작업 시작.
+- 2026-03-05 (after): `taskpane.messages.js`에 `applyMarkupHighlightFallback`(hljs 실패/미로드시 fallback)과 `jsp->xml` alias를 유지한 토큰 하이라이트를 추가하고, `taskpane.css` chat import/`taskpane.html` messages bundle 버전을 상향.
+
+- 2026-03-05 (before): 대형 파일(>500줄) 역할 분리 및 미사용 코드 정리 1차 작업 시작. (chat.css/messages.js 우선)
+- 2026-03-05 (after): `taskpane.chat.css`를 base/rich/evidence/next_actions/sources/actions 6개 partial로 분리하고 entry import 구조로 전환.
+- 2026-03-05 (after): `taskpane.composer.css`를 shell/quick 2개 partial로 분리하고 entry import 구조로 전환.
+- 2026-03-05 (after): `taskpane.api.endpoints.js` 신설로 endpoint 호출 책임을 분리, `taskpane.api.js`는 stream/thread 오케스트레이션 전용으로 축소.
+- 2026-03-05 (after): `taskpane.runtime_helpers.js` 신설로 `taskpane.js` 중복/잡다 로직을 분리하고 파일 길이를 446줄로 축소.
+- 2026-03-05 (after): `taskpane.chat_actions.handlers.js` 신설로 도메인 액션 처리 분리, `taskpane.chat_actions.js`를 이벤트 라우팅 중심으로 단순화.
+- 2026-03-05 (after): 정적 로딩 순서 반영(`taskpane.api.endpoints.js`, `taskpane.runtime_helpers.js`, `taskpane.chat_actions.handlers.js`) 및 manifest/taskpane asset 버전 갱신.
+- 2026-03-05 (after): 회귀 테스트 통과(`tests/test_taskpane_messages_render.cjs`, `tests/test_taskpane_chat_actions.cjs` 67 pass).
+- 2026-03-05 (before): `taskpane.messages.js` 2차 분리 시작(리치 텍스트/요약 카드 분리 우선).
+- 2026-03-05 (after): `taskpane.messages.richtext.js` 신설로 markdown/table/code-fence/highlight 로직을 분리하고 본체는 위임 호출로 정리.
+- 2026-03-05 (after): `taskpane.messages.answer_format.js` 신설로 answer_format 섹션 렌더/근거 팝오버 로직을 분리.
+- 2026-03-05 (after): `taskpane.messages.js` 2637→2034줄로 축소, 테스트 67 pass 유지.
+- 2026-03-05 (before): `taskpane.messages.js` 3차 분리 시작(카드/폼 렌더 도메인 분리 및 중복 제거).
+- 2026-03-05 (after): `taskpane.messages.js`의 중복 위임 래퍼/미사용 함수 다수 제거(중복 정리)로 2034→1914줄 추가 축소.
+- 2026-03-05 (after): 메시지 렌더 회귀 테스트 67 pass 유지.
+- 2026-03-05 (before): `taskpane.messages.js` 4차 분리 시작(카드/폼 렌더 도메인 모듈 추출, 중복/미사용 코드 제거).
+- 2026-03-05 (after): `taskpane.messages.report_cards.js`/`taskpane.messages.meeting_cards.js`/`taskpane.messages.legacy_cards.js`를 신설해 보고서/회의실/레거시 카드 렌더 책임을 분리.
+- 2026-03-05 (after): `taskpane.messages.js`에서 대형 카드 구현을 제거하고 모듈 위임 래퍼로 전환(1914→1159 lines).
+- 2026-03-05 (after): `taskpane.html` 로더에 신규 모듈 스크립트 추가, `taskpane.messages.js` 버전 `20260305-11`로 갱신.
+- 2026-03-05 (after): `manifest.xml` taskpane URL 버전을 `20260305-04`로 상향.
+- 2026-03-05 (after): 회귀 테스트 통과(`tests/test_taskpane_messages_render.cjs`, `tests/test_taskpane_chat_actions.cjs` / 67 pass).
+- 2026-03-05 (before): `taskpane.messages.js` 5차 분리 시작(상단 메타/배너/본문 렌더 모듈 추출).
+- 2026-03-05 (after): `taskpane.messages.meta.js` 신설로 선택메일 배너/근거메일/후속액션/기본정보 메타 렌더 책임 분리.
+- 2026-03-05 (after): `taskpane.messages.js`를 경량 오케스트레이터로 재작성해 1159→384 lines로 축소.
+- 2026-03-05 (after): `taskpane.html`에 `taskpane.messages.meta.js` 로더를 추가하고 `taskpane.messages.js` 버전을 `20260305-12`로 상향.
+- 2026-03-05 (after): `manifest.xml` taskpane URL 버전을 `20260305-05`로 상향.
+- 2026-03-05 (after): 회귀 테스트 통과(`tests/test_taskpane_messages_render.cjs`, `tests/test_taskpane_chat_actions.cjs` / 67 pass).
+- 2026-03-05 (before): CSS 3차 정리 시작(중복/미사용 selector 제거 및 파일 역할 단순화).
+- 2026-03-05 (after): `taskpane.chat.base.css`에서 미사용 `major-summary-evidence` 블록 제거(423→401 lines).
+- 2026-03-05 (after): `taskpane.css`의 chat import 버전을 `20260305-08`로 상향하고 `taskpane.html` CSS 버전을 `20260305-09`로 갱신.
+- 2026-03-05 (after): `manifest.xml` taskpane URL 버전을 `20260305-06`로 상향.
+- 2026-03-05 (after): 회귀 테스트 통과(`tests/test_taskpane_messages_render.cjs`, `tests/test_taskpane_chat_actions.cjs` / 67 pass).
+- 2026-03-05 (before): `taskpane.messages.meta.js` 2차 분리 시작(선택메일 배너/메타 카드 렌더 모듈 분리).
+- 2026-03-05 (after): `taskpane.messages.meta.banner.js` 신설(선택메일 배너 렌더 전담).
+- 2026-03-05 (after): `taskpane.messages.meta.blocks.js` 신설(근거/범위질문/HIL/next-action/출처/기본정보 렌더 전담).
+- 2026-03-05 (after): `taskpane.messages.meta.js`를 공유 유틸 + 모듈 조립 전용(73 lines)으로 축소.
+- 2026-03-05 (after): `taskpane.html` 로더에 meta 하위 모듈 추가, `taskpane.messages.js` 버전 `20260305-13`으로 상향.
+- 2026-03-05 (after): `manifest.xml` taskpane URL 버전을 `20260305-07`로 상향.
+- 2026-03-05 (after): 회귀 테스트 통과(`tests/test_taskpane_messages_render.cjs`, `tests/test_taskpane_chat_actions.cjs` / 67 pass).
+- 2026-03-05 (before): `taskpane.chat.sources.css` 세분화 시작(근거/웹출처 블록 분리).
+- 2026-03-05 (after): `taskpane.chat.sources.evidence.css`/`taskpane.chat.sources.web.css`를 신설해 근거메일/웹출처 스타일 역할을 분리.
+- 2026-03-05 (after): `taskpane.chat.sources.css`를 import 엔트리(6 lines)로 축소해 대형 CSS 파일 분해.
+- 2026-03-05 (after): CSS 버전 갱신(`taskpane.chat.css` sources `20260305-02`, `taskpane.css` chat `20260305-09`, `taskpane.html` `taskpane.css?v=20260305-10`).
+- 2026-03-05 (after): 회귀 테스트 통과(`tests/test_taskpane_messages_render.cjs`, `tests/test_taskpane_chat_actions.cjs` / 67 pass).
+- 2026-03-05 (before): `taskpane.chat.base.css` 세분화 시작(layout/bubble/meta/cards 분리).
+- 2026-03-05 (after): `taskpane.chat.base.thread.css`/`taskpane.chat.base.sections.css`/`taskpane.chat.base.basic_info.css`/`taskpane.chat.base.major.css`를 신설해 base 스타일 역할 분리.
+- 2026-03-05 (after): `taskpane.chat.base.css`를 import 엔트리(8 lines)로 축소해 base 대형 스타일 파일을 모듈화.
+- 2026-03-05 (after): 캐시 버전 갱신(`taskpane.chat.css` base `20260305-02`, `taskpane.css` chat `20260305-10`, `taskpane.html` `taskpane.css?v=20260305-11`, `manifest.xml` taskpane URL `v=20260305-08`).
+- 2026-03-05 (after): 회귀 테스트 통과(`tests/test_taskpane_messages_render.cjs`, `tests/test_taskpane_chat_actions.cjs` / 67 pass).
+- 2026-03-05 (before): `taskpane.chat.actions.css` 세분화 시작(actions/progress/streaming 분리).
+- 2026-03-05 (after): `taskpane.chat.actions.controls.css`/`taskpane.chat.actions.progress.css`/`taskpane.chat.actions.streaming.css`를 신설해 액션/진행/스트리밍 스타일 역할을 분리.
+- 2026-03-05 (after): `taskpane.chat.actions.css`를 import 엔트리(7 lines)로 축소해 액션 스타일 모듈화.
+- 2026-03-05 (after): 캐시 버전 갱신(`taskpane.chat.css` actions `20260305-02`, `taskpane.css` chat `20260305-11`, `taskpane.html` `taskpane.css?v=20260305-12`, `manifest.xml` taskpane URL `v=20260305-09`).
+- 2026-03-05 (after): 회귀 테스트 통과(`tests/test_taskpane_messages_render.cjs`, `tests/test_taskpane_chat_actions.cjs` / 67 pass).
+- 2026-03-05 (before): `taskpane.chat.next_actions.css` 세분화 시작(next-actions/reply-draft/scope-choice 분리).
+- 2026-03-05 (after): `taskpane.chat.next_actions.list.css`/`taskpane.chat.next_actions.reply.css`/`taskpane.chat.next_actions.scope.css`를 신설해 추천/답장버튼/스코프 선택 스타일 역할을 분리.
+- 2026-03-05 (after): `taskpane.chat.next_actions.css`를 import 엔트리(7 lines)로 축소.
+- 2026-03-05 (after): 캐시 버전 갱신(`taskpane.chat.css` next-actions `20260305-02`, `taskpane.css` chat `20260305-12`, `taskpane.html` `taskpane.css?v=20260305-13`, `manifest.xml` taskpane URL `v=20260305-10`).
+- 2026-03-05 (after): 회귀 테스트 통과(`tests/test_taskpane_messages_render.cjs`, `tests/test_taskpane_chat_actions.cjs` / 67 pass).
+- 2026-03-05 (before): `taskpane.chat.evidence.css` 세분화 시작(evidence/scope-clarification/hitl-confirm 분리).
+- 2026-03-05 (after): `taskpane.chat.evidence.core.css`/`taskpane.chat.evidence.scope.css`/`taskpane.chat.evidence.confirm.css`를 신설해 근거/범위질문/HITL 확인 스타일 역할을 분리.
+- 2026-03-05 (after): `taskpane.chat.evidence.css`를 import 엔트리(7 lines)로 축소.
+- 2026-03-05 (after): 캐시 버전 갱신(`taskpane.chat.css` evidence `20260305-02`, `taskpane.css` chat `20260305-13`, `taskpane.html` `taskpane.css?v=20260305-14`, `manifest.xml` taskpane URL `v=20260305-11`).
+- 2026-03-05 (after): 회귀 테스트 통과(`tests/test_taskpane_messages_render.cjs`, `tests/test_taskpane_chat_actions.cjs` / 67 pass).
+- 2026-03-05 (before): `taskpane.chat.rich.typography.css`/`taskpane.chat.rich.widgets.css` 경계 손상(잘린 selector) 복구 및 위젯 selector 이관 시작.
+- 2026-03-05 (after): `taskpane.chat.rich.typography.css`/`taskpane.chat.rich.widgets.css` 경계 손상 복구(잘린 `weekly-offset-select` 복원, widgets 파일 선두 dangling 속성 제거).
+- 2026-03-05 (after): 스트리밍/리포트 진행/리포트 확인/주간 오프셋 selector를 widgets로 이관해 typography(텍스트)와 widgets(컴포넌트) 역할 분리 강화.
+- 2026-03-05 (after): 캐시 버전 갱신(`taskpane.chat.rich.css` `20260305-02`, `taskpane.chat.css` rich `20260305-02`, `taskpane.css` chat `20260305-14`, `taskpane.html` `taskpane.css?v=20260305-15`, `manifest.xml` taskpane URL `v=20260305-12`).
+- 2026-03-05 (after): 회귀 테스트 통과(`tests/test_taskpane_messages_render.cjs`, `tests/test_taskpane_chat_actions.cjs` / 67 pass).
+- 2026-03-05 (before): `taskpane.messages.meeting_cards.js` 중복 옵션 빌더/카드 생성 로직 공통화 리팩터링 시작.
+- 2026-03-05 (after): `taskpane.messages.meeting_cards.js`에 공통 헬퍼를 추가해 옵션 빌더/회의실 카드 렌더 중복을 축소(`mapOptions`, `insertMeetingRoomCard`, `toTrimmedCsv`, `getChatArea`).
+- 2026-03-05 (after): `taskpane.messages.meeting_cards.js` 코드량 442→426 lines로 축소.
+- 2026-03-05 (after): `taskpane.html` meeting cards 로더 버전 `20260305-02`, `manifest.xml` taskpane URL 버전 `20260305-13`으로 갱신.
+- 2026-03-05 (after): 회귀 테스트 통과(`tests/test_taskpane_messages_render.cjs`, `tests/test_taskpane_chat_actions.cjs` / 67 pass).
+- 2026-03-05 (before): `taskpane.messages.report_cards.js` 중복 DOM 접근/상태 카드 처리 공통화 리팩터링 시작.
+- 2026-03-05 (after): `taskpane.messages.report_cards.js` 공통 헬퍼(`getChatArea`, `withChatArea`, `appendAssistantCard`)를 추가해 보고서/완료 카드 렌더 중복 제거.
+- 2026-03-05 (after): `taskpane.html` report cards 로더 버전 `20260305-02`, `manifest.xml` taskpane URL 버전 `20260305-14`로 갱신.
+- 2026-03-05 (after): 회귀 테스트 통과(`tests/test_taskpane_messages_render.cjs`, `tests/test_taskpane_chat_actions.cjs` / 67 pass).
+- 2026-03-05 (before): `taskpane.messages.legacy_cards.js` 공통 카드 렌더 헬퍼 추출 리팩터링 시작.
+- 2026-03-05 (after): `taskpane.messages.legacy_cards.js` 공통 헬퍼를 추가해 legacy 카드 렌더/컨트롤 비활성화 중복을 정리(`getChatArea`, `withChatArea`, `appendLegacyAssistantCard`, `disableControls`).
+- 2026-03-05 (after): `taskpane.html` legacy cards 로더 버전 `20260305-02`, `manifest.xml` taskpane URL 버전 `20260305-15`로 갱신.
+- 2026-03-05 (after): 회귀 테스트 통과(`tests/test_taskpane_messages_render.cjs`, `tests/test_taskpane_chat_actions.cjs` / 67 pass).
+- 2026-03-05 (before): `taskpane.messages.meeting_cards.js` 장문 함수(`addMeetingRoomScheduleCard`/`addCalendarEventCard`) 헬퍼 분리 리팩터링 시작.
+- 2026-03-05 (after): `taskpane.messages.meeting_cards.js`의 장문 함수(`addMeetingRoomScheduleCard`, `addCalendarEventCard`)를 기본값 정규화/마크업 빌더 헬퍼로 분리해 가독성 개선.
+- 2026-03-05 (after): `taskpane.html` meeting cards 로더 버전 `20260305-03`, `manifest.xml` taskpane URL 버전 `20260305-16`으로 갱신.
+- 2026-03-05 (after): 회귀 테스트 통과(`tests/test_taskpane_messages_render.cjs`, `tests/test_taskpane_chat_actions.cjs` / 67 pass).
+- 2026-03-05 (issue): 파일 라인 수가 426→462로 증가해 코드량 관리 목표와 상충. 다음 단계에서 meeting form/schedule 헬퍼를 별도 모듈로 분리해 라인 수를 재감축 예정.
+- 2026-03-05 (before): `taskpane.messages.meeting_forms.js` 분리 작업 시작( meeting_cards 헬퍼 이관 ).
+- 2026-03-05 (after): `taskpane.messages.meeting_forms.js` 신설로 meeting schedule/calendar 폼 조립 헬퍼를 분리(`normalizeMeetingSchedulePreset`, `buildMeetingRoomScheduleCardBody`, `normalizeCalendarPreset`, `buildCalendarEventCardBody`).
+- 2026-03-05 (after): `taskpane.messages.meeting_cards.js`에서 해당 헬퍼를 위임 사용하도록 변경해 파일 라인 462→366으로 축소.
+- 2026-03-05 (after): `taskpane.html`에 `meeting_forms.js` 로더 추가(v=20260305-01) 및 `meeting_cards.js` 버전 `20260305-04` 반영.
+- 2026-03-05 (after): `manifest.xml` taskpane URL 버전 `20260305-17` 갱신, 회귀 테스트 통과(`tests/test_taskpane_messages_render.cjs`, `tests/test_taskpane_chat_actions.cjs` / 67 pass).
+- 2026-03-05 (before): `report_cards`/`legacy_cards` 장문 함수(30줄 초과) 분해 리팩터링 시작.
+- 2026-03-05 (before): `report_cards`/`legacy_cards` 장문 함수(30줄+) 분해 및 중복 렌더 헬퍼 정리 계속 진행.
+- 2026-03-05 (issue): `renderPromiseSummaryList` 테스트 실패(`class="rich-table"` 기대값 불일치). → 해결: 공통 테이블 빌더 클래스 결합 로직에서 공백 클래스명 제거.
+- 2026-03-05 (after): `taskpane.messages.legacy_cards.js` 장문 렌더 함수를 헬퍼로 분해(`formatKrw`, `toSafeText`, `toSafeNumber`, `buildRichTable`, `buildPromiseSummaryRow`, `buildPromiseSummaryTable`, `buildFinanceProjectOptions`).
+- 2026-03-05 (after): `taskpane.messages.report_cards.js` 공통 헬퍼 정리(`appendReadyCard`, `disableControls`, `setControlDisabled`)로 카드/컨트롤 중복 제거.
+- 2026-03-05 (after): 캐시 버전 갱신(`taskpane.messages.report_cards.js` `20260305-03`, `taskpane.messages.legacy_cards.js` `20260305-03`, `manifest.xml` taskpane URL `v=20260305-18`).
+- 2026-03-05 (after): 회귀 테스트 통과(`tests/test_taskpane_messages_render.cjs`, `tests/test_taskpane_chat_actions.cjs` / 67 pass).
+- 2026-03-05 (before): `chat-eval.html`은 보류하고 `taskpane.selection.js`/`taskpane.messages.richtext.js` 역할 분리 리팩터링 시작.
+- 2026-03-05 (after): `taskpane.selection.js` 이벤트타입 해석/옵저버 실패 로깅/미지원 로깅 헬퍼 분리로 중복 제거 및 역할 분리.
+- 2026-03-05 (after): `taskpane.messages.richtext.js`의 코드펜스/테이블 파싱 분기 헬퍼 분리(`openCodeBlock`, `closeCodeBlock`, `consumeMarkdownTable`)로 렌더 루프 단순화.
+- 2026-03-05 (after): 캐시 버전 갱신(`taskpane.messages.richtext.js` `20260305-02`, `taskpane.selection.js` `20260305-01`, `manifest.xml` taskpane URL `v=20260305-19`).
+- 2026-03-05 (after): 회귀 테스트 통과(`tests/test_taskpane_messages_render.cjs`, `tests/test_taskpane_chat_actions.cjs` / 67 pass).
+- 2026-03-05 (before): 남은 대형 실사용 파일(`taskpane.send.js`, `taskpane.js`, `taskpane.selection.js`, `taskpane.messages.richtext.js`) 모듈 분리/중복 제거 리팩터링 시작.
+- 2026-03-05 (issue): `node --test` 실행에 Python 파일을 포함해 SyntaxError 발생. → 해결: JS(node)와 Python(pytest) 테스트 명령을 분리.
+- 2026-03-05 (after): `taskpane.send.handlers.js` 신설로 send 분기 핸들러를 분리하고 `taskpane.send.js` 본체를 449→275 lines로 축소.
+- 2026-03-05 (after): `taskpane.selection.events.js` 신설로 selection 이벤트/옵저버 로깅 로직을 분리하고 `taskpane.selection.js` 본체를 483→430 lines로 축소.
+- 2026-03-05 (after): `taskpane.messages.richtext.highlight.js` 신설로 코드 하이라이트 로직을 분리하고 `taskpane.messages.richtext.js` 본체를 448→401 lines로 축소.
+- 2026-03-05 (after): 캐시 버전 갱신(`taskpane.send.handlers.js` `20260305-01`, `taskpane.send.js` `20260305-01`, `taskpane.selection.events.js` `20260305-01`, `taskpane.selection.js` `20260305-02`, `taskpane.messages.richtext.highlight.js` `20260305-01`, `taskpane.messages.richtext.js` `20260305-03`, `manifest.xml` taskpane URL `v=20260305-22`).
+- 2026-03-05 (after): 회귀 테스트 통과(JS: `tests/test_taskpane_messages_render.cjs`, `tests/test_taskpane_chat_actions.cjs` / 67 pass, Python: `tests/test_mail_post_action.py` / 7 pass).

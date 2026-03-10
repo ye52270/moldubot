@@ -1,0 +1,36 @@
+.rich-body {
+  font-size: var(--text-base);
+  line-height: 1.48;
+  color: var(--color-text);
+}
+
+.rich-paragraph {
+  margin: 0 0 8px 0;
+}
+
+.rich-paragraph:last-child {
+  margin-bottom: 0;
+}
+
+.rich-body strong {
+  font-weight: 500;
+  font-size: 1em;
+  color: var(--color-text);
+  -webkit-text-stroke: 0;
+  text-shadow: none;
+}
+
+.rich-link {
+  color: color-mix(in srgb, var(--color-primary) 78%, #2a67c8);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  word-break: break-all;
+}
+
+.rich-heading {
+  margin: 14px 0 10px;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.45;
+  letter-spacing: 0;
+}

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from app.models.response_contracts import LLMResponseContract
+from app.services.answer_postprocessor_code_snippet import render_auto_code_snippet_text
 from app.services.answer_postprocessor_rendering_summary import render_summary_contract
 from app.services.answer_postprocessor_summary import (
     is_report_request,
@@ -24,7 +25,7 @@ def render_contract_answer(user_message: str, contract: LLMResponseContract) -> 
         return render_summary_contract(user_message=user_message, contract=contract)
     if is_report_request(user_message=user_message):
         return render_report_contract(contract=contract)
-    return render_general_contract(contract=contract)
+    return render_general_contract(user_message=user_message, contract=contract)
 
 
 def render_report_contract(contract: LLMResponseContract) -> str:
@@ -51,11 +52,12 @@ def render_report_contract(contract: LLMResponseContract) -> str:
     return normalize_multiline_text(text="\n\n".join(blocks))
 
 
-def render_general_contract(contract: LLMResponseContract) -> str:
+def render_general_contract(user_message: str, contract: LLMResponseContract) -> str:
     """
     general JSON 계약을 일반 답변 텍스트로 렌더링한다.
 
     Args:
+        user_message: 사용자 입력
         contract: JSON 계약 객체
 
     Returns:
@@ -64,7 +66,17 @@ def render_general_contract(contract: LLMResponseContract) -> str:
     if contract.reply_draft:
         return _normalize_reply_draft_text(text=contract.reply_draft)
     if contract.answer:
+        code_snippet = render_auto_code_snippet_text(
+            user_message=user_message,
+            answer=contract.answer,
+        )
+        if code_snippet:
+            return code_snippet
         return normalize_multiline_text(text=contract.answer)
+    if str(contract.format_type or "").strip().lower() == "summary":
+        summary_only = _dedupe_lines([str(item or "").strip() for item in contract.summary_lines])
+        if summary_only:
+            return normalize_multiline_text(text="\n".join(f"- {item}" for item in summary_only))
     if _has_general_multi_source_content(contract=contract):
         return _render_general_merged_lines(contract=contract)
     if contract.summary_lines:
@@ -120,6 +132,20 @@ def _render_general_merged_lines(contract: LLMResponseContract) -> str:
         *[str(item or "").strip() for item in contract.action_items],
         *[str(item or "").strip() for item in contract.required_actions],
     ]
+    deduped = _dedupe_lines(candidates)
+    return normalize_multiline_text(text="\n".join(f"- {item}" for item in deduped))
+
+
+def _dedupe_lines(candidates: list[str]) -> list[str]:
+    """
+    라인 목록을 대소문자 무시 기준으로 중복 제거한다.
+
+    Args:
+        candidates: 원본 라인 목록
+
+    Returns:
+        순서를 보존한 중복 제거 라인 목록
+    """
     deduped: list[str] = []
     seen: set[str] = set()
     for candidate in candidates:
@@ -129,7 +155,7 @@ def _render_general_merged_lines(contract: LLMResponseContract) -> str:
             continue
         seen.add(key)
         deduped.append(text)
-    return normalize_multiline_text(text="\n".join(f"- {item}" for item in deduped))
+    return deduped
 
 
 def _normalize_reply_draft_text(text: str) -> str:

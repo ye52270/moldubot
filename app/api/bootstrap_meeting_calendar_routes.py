@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import date
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -110,8 +109,6 @@ def meeting_room_book(payload: RoomBookingRequest) -> dict[str, Any]:
         return {"status": "failed", "reason": "date/start_time/end_time 형식이 유효하지 않습니다."}
     if date_text != raw_date_text:
         logger.info("meeting_room_book 날짜 변환 적용: raw_date=%s normalized_date=%s", raw_date_text, date_text)
-    if _is_past_booking_date(date_text=date_text):
-        return {"status": "failed", "reason": "과거 날짜는 예약할 수 없습니다."}
 
     matched_room = _find_meeting_room(
         rooms=load_meeting_rooms(),
@@ -123,7 +120,7 @@ def meeting_room_book(payload: RoomBookingRequest) -> dict[str, Any]:
         return {"status": "failed", "reason": "선택한 회의실을 찾지 못했습니다."}
 
     attendee_count = max(1, int(payload.attendee_count or 1))
-    title = f"[회의실] {matched_room['room_name']}"
+    title = f"[회의실] {matched_room['building']} {matched_room['floor']}층 {matched_room['room_name']}"
     calendar_body = _build_meeting_event_body(
         booking_date=date_text,
         start_time=start_time,
@@ -294,20 +291,6 @@ def _is_valid_booking_datetime(date_text: str, start_time: str, end_time: str) -
     except ValueError:
         return False
     return end_dt > start_dt
-
-
-def _is_past_booking_date(date_text: str) -> bool:
-    """
-    예약일이 과거인지 확인한다.
-
-    Args:
-        date_text: 예약일(YYYY-MM-DD)
-
-    Returns:
-        과거일이면 True
-    """
-    booking_date = datetime.strptime(date_text, "%Y-%m-%d").date()
-    return booking_date < date.today()
 
 
 def _build_meeting_event_body(

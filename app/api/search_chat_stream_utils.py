@@ -7,8 +7,26 @@ from queue import Empty, Queue
 from typing import Any, Callable
 
 from app.api.contracts import ChatRequest
+from app.core.intent_rules import is_code_review_query
 
 STREAM_PROGRESS_HEARTBEAT_SEC = 1.0
+GENERAL_STREAM_PHASE_STEPS: tuple[tuple[str, str], ...] = (
+    ("received", "요청을 확인했어요."),
+    ("retrieving_context", "메일 컨텍스트를 불러오는 중입니다."),
+    ("analyzing", "요청을 처리하고 있어요."),
+    ("critic_review", "응답 품질을 점검하고 있어요."),
+    ("revising", "응답을 다듬고 있어요."),
+    ("finalizing", "최종 결과를 정리하고 있습니다."),
+)
+
+CODE_REVIEW_STREAM_PHASE_STEPS: tuple[tuple[str, str], ...] = (
+    ("received", "요청을 확인했어요."),
+    ("retrieving_context", "메일 컨텍스트를 불러오는 중입니다."),
+    ("analyzing", "코드/문맥을 분석하고 있어요."),
+    ("critic_review", "품질 점검(critic)을 수행 중입니다."),
+    ("revising", "리뷰 결과를 보정하고 있어요."),
+    ("finalizing", "최종 결과를 정리하고 있습니다."),
+)
 
 
 def encode_stream_event(event: str, payload: dict[str, Any]) -> str:
@@ -32,7 +50,7 @@ def stream_search_chat_events(
     """SSE 이벤트 스트림 제너레이터를 생성한다."""
     result_queue: Queue[dict[str, Any]] = Queue(maxsize=1)
     token_queue: Queue[str] = Queue()
-
+    phase_steps = _resolve_phase_steps(payload=payload)
     def _run_turn_worker() -> None:
         response_payload = runner(
             payload,
@@ -46,8 +64,9 @@ def stream_search_chat_events(
 
     yield encode_stream_event(
         event="progress",
-        payload={"phase": "received", "message": "요청을 확인했어요."},
+        payload={"phase": "received", "message": "요청을 확인했어요.", "step": 1, "total_steps": len(phase_steps)},
     )
+    heartbeat_count = 0
     while worker.is_alive() or not token_queue.empty():
         emitted_token = False
         while not token_queue.empty():
@@ -60,9 +79,19 @@ def stream_search_chat_events(
                 payload={"phase": "token", "text": token_text},
             )
         if not emitted_token:
+            heartbeat_count += 1
+            progress_phase, progress_message, progress_step = _resolve_progress_state(
+                heartbeat_count=heartbeat_count,
+                phase_steps=phase_steps,
+            )
             yield encode_stream_event(
                 event="progress",
-                payload={"phase": "processing", "message": "근거 메일과 맥락을 분석 중입니다."},
+                payload={
+                    "phase": progress_phase,
+                    "message": progress_message,
+                    "step": progress_step,
+                    "total_steps": len(phase_steps),
+                },
             )
         worker.join(timeout=STREAM_PROGRESS_HEARTBEAT_SEC)
 
@@ -79,6 +108,49 @@ def stream_search_chat_events(
 
     yield encode_stream_event(
         event="progress",
-        payload={"phase": "finalizing", "message": "최종 결과를 정리하고 있습니다."},
+        payload={
+            "phase": "finalizing",
+            "message": "최종 결과를 정리하고 있습니다.",
+            "step": len(phase_steps),
+            "total_steps": len(phase_steps),
+        },
     )
     yield encode_stream_event(event="completed", payload=response_payload)
+
+
+def _resolve_phase_steps(payload: ChatRequest) -> tuple[tuple[str, str], ...]:
+    """
+    질의 성격에 따라 progress 단계 문구 세트를 선택한다.
+
+    Args:
+        payload: `/search/chat` 요청 본문
+
+    Returns:
+        진행 단계 튜플 목록
+    """
+    if is_code_review_query(user_message=str(payload.message or "")):
+        return CODE_REVIEW_STREAM_PHASE_STEPS
+    return GENERAL_STREAM_PHASE_STEPS
+
+
+def _resolve_progress_state(
+    heartbeat_count: int,
+    phase_steps: tuple[tuple[str, str], ...],
+) -> tuple[str, str, int]:
+    """
+    heartbeat 횟수에 따라 진행 단계 문구를 순환 선택한다.
+
+    Args:
+        heartbeat_count: heartbeat 누적 횟수(1-base)
+        phase_steps: 선택된 진행 단계/문구 목록
+
+    Returns:
+        (phase, message, step) 튜플
+    """
+    normalized = max(1, int(heartbeat_count))
+    if not phase_steps:
+        return "processing", "요청을 처리하고 있어요.", 1
+    max_pre_final_index = max(0, len(phase_steps) - 2)
+    index = min(normalized, max_pre_final_index)
+    phase, message = phase_steps[index]
+    return phase, message, index + 1

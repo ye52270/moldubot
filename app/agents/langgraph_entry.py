@@ -11,23 +11,22 @@ from app.agents.deep_chat_agent import (
     DEFAULT_SYSTEM_PROMPT,
 )
 from app.agents.prompts import get_agent_system_prompt
+from app.agents.subagents import get_agent_subagents
 from app.agents.tools import get_agent_tools
+from app.core.llm_runtime import is_model_provider_configured, resolve_env_model
 from app.core.logging_config import get_logger
 from app.middleware.registry import build_agent_middlewares
 
-PLACEHOLDER_OPENAI_KEY = "langgraph-studio-placeholder-key"
 logger = get_logger(__name__)
 
 
-def _ensure_openai_key() -> None:
+def _warn_if_provider_key_missing(model_name: str) -> None:
     """
-    LangGraph Studio 로컬 부팅 시 OPENAI_API_KEY 누락을 완화한다.
+    LangGraph Studio 부팅 시 모델 provider 키 누락을 경고한다.
     """
-    openai_key = str(os.getenv("OPENAI_API_KEY", "")).strip()
-    if openai_key:
+    if is_model_provider_configured(model_name=model_name):
         return
-    os.environ["OPENAI_API_KEY"] = PLACEHOLDER_OPENAI_KEY
-    logger.warning("OPENAI_API_KEY가 없어 placeholder 키를 임시 적용합니다.")
+    logger.warning("선택된 모델 provider API 키가 없어 그래프 호출 시 실패할 수 있습니다: model=%s", model_name)
 
 
 def build_graph() -> CompiledStateGraph:
@@ -37,8 +36,12 @@ def build_graph() -> CompiledStateGraph:
     Returns:
         CompiledStateGraph 인스턴스
     """
-    _ensure_openai_key()
-    model_name = str(os.getenv("MOLDUBOT_AGENT_MODEL", DEFAULT_AGENT_MODEL)).strip() or DEFAULT_AGENT_MODEL
+    model_name = resolve_env_model(
+        primary_env="MOLDUBOT_AGENT_MODEL",
+        fallback_envs=("DEFAULT_CHAT_MODEL",),
+        default_model=DEFAULT_AGENT_MODEL,
+    )
+    _warn_if_provider_key_missing(model_name=model_name)
     prompt_override = str(os.getenv("MOLDUBOT_AGENT_SYSTEM_PROMPT", "")).strip()
     prompt_variant = str(os.getenv("MOLDUBOT_AGENT_PROMPT_VARIANT", DEFAULT_PROMPT_VARIANT)).strip()
     selected_variant_prompt = get_agent_system_prompt(prompt_variant)
@@ -54,6 +57,7 @@ def build_graph() -> CompiledStateGraph:
         tools=get_agent_tools(),
         system_prompt=system_prompt,
         middleware=build_agent_middlewares(),
+        subagents=get_agent_subagents(),
         name="moldubot-chat-agent",
     )
 

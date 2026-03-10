@@ -1,0 +1,22 @@
+{
+  "version": "1.0",
+  "default_roles": {
+    "to": "수신/실행 대상",
+    "cc": "공유 대상",
+    "unknown": "역할 미상"
+  },
+  "role_hints": [
+    {"keyword": "조치", "role": "실행 담당"},
+    {"keyword": "처리", "role": "실행 담당"},
+    {"keyword": "개발", "role": "실행 담당"},
+    {"keyword": "수정", "role": "실행 담당"},
+    {"keyword": "승인", "role": "승인 담당"},
+    {"keyword": "결재", "role": "승인 담당"},
+    {"keyword": "검토", "role": "검토 담당"},
+    {"keyword": "확인", "role": "검토 담당"},
+    {"keyword": "요청", "role": "요청자"},
+    {"keyword": "문의", "role": "요청자"},
+    {"keyword": "공유", "role": "공유 대상"},
+    {"keyword": "참조", "role": "공유 대상"}
+  ]
+}

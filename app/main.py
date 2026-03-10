@@ -8,13 +8,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.api.routes import router as api_router
 from app.core.logging_config import configure_logging, get_logger
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 load_dotenv(dotenv_path=ROOT_DIR / ".env")
 configure_logging()
 logger = get_logger(__name__)
+from app.api.routes import router as api_router
+from app.api.bootstrap_routes import router as bootstrap_router
+from app.api.report_routes import router as report_router
 
 app = FastAPI(title="MolduBot API", version="0.1.0")
 
@@ -28,6 +30,8 @@ app.add_middleware(
 )
 
 app.include_router(api_router)
+app.include_router(bootstrap_router)
+app.include_router(report_router)
 logger.info("FastAPI 라우터 등록 완료")
 
 

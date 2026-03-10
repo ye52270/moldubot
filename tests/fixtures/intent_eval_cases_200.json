@@ -1,0 +1,1338 @@
+{
+  "meta": {
+    "target_count": 220,
+    "generated_count": 220,
+    "query_type_counts": {
+      "current_mail": 493,
+      "mail_search": 0,
+      "general": 364
+    },
+    "query_type_weights": {
+      "current_mail": 0.5753,
+      "mail_search": 0.0,
+      "general": 0.4247
+    }
+  },
+  "cases": [
+    {
+      "case_id": "intent_eval_001",
+      "query_type": "current_mail",
+      "utterance": "현재메일 요약해줘",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_002",
+      "query_type": "mail_search",
+      "utterance": "지난주 M365 관련 메일 조회해줘",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_003",
+      "query_type": "general",
+      "utterance": "회의실 예약 절차 알려줘",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_004",
+      "query_type": "current_mail",
+      "utterance": "현재메일 요약해줘 부탁해",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_005",
+      "query_type": "general",
+      "utterance": "회의실 예약 절차 알려줘 부탁해",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_006",
+      "query_type": "current_mail",
+      "utterance": "현재메일 요약해줘 해줘",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_007",
+      "query_type": "general",
+      "utterance": "회의실 예약 절차 알려줘 해줘",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_008",
+      "query_type": "current_mail",
+      "utterance": "현재메일 요약해줘 해주세요",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_009",
+      "query_type": "general",
+      "utterance": "회의실 예약 절차 알려줘 해주세요",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_010",
+      "query_type": "current_mail",
+      "utterance": "현재메일 요약해줘 빠르게",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_011",
+      "query_type": "general",
+      "utterance": "회의실 예약 절차 알려줘 빠르게",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_012",
+      "query_type": "current_mail",
+      "utterance": "현재메일 요약해줘 빠르게 부탁해",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_013",
+      "query_type": "general",
+      "utterance": "회의실 예약 절차 알려줘 빠르게 부탁해",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_014",
+      "query_type": "current_mail",
+      "utterance": "현재메일 요약해줘 빠르게 해줘",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_015",
+      "query_type": "general",
+      "utterance": "회의실 예약 절차 알려줘 빠르게 해줘",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_016",
+      "query_type": "current_mail",
+      "utterance": "현재메일 요약해줘 빠르게 해주세요",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_017",
+      "query_type": "general",
+      "utterance": "회의실 예약 절차 알려줘 빠르게 해주세요",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_018",
+      "query_type": "current_mail",
+      "utterance": "현재메일 요약해줘 정확하게",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_019",
+      "query_type": "general",
+      "utterance": "회의실 예약 절차 알려줘 정확하게",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_020",
+      "query_type": "current_mail",
+      "utterance": "현재메일 요약해줘 정확하게 부탁해",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_021",
+      "query_type": "general",
+      "utterance": "회의실 예약 절차 알려줘 정확하게 부탁해",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_022",
+      "query_type": "current_mail",
+      "utterance": "현재메일 요약해줘 정확하게 해줘",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_023",
+      "query_type": "general",
+      "utterance": "회의실 예약 절차 알려줘 정확하게 해줘",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_024",
+      "query_type": "current_mail",
+      "utterance": "현재메일 요약해줘 정확하게 해주세요",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_025",
+      "query_type": "general",
+      "utterance": "회의실 예약 절차 알려줘 정확하게 해주세요",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_026",
+      "query_type": "current_mail",
+      "utterance": "현재메일 요약해줘 근거 포함해서",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_027",
+      "query_type": "general",
+      "utterance": "회의실 예약 절차 알려줘 근거 포함해서",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_028",
+      "query_type": "current_mail",
+      "utterance": "현재메일 요약해줘 근거 포함해서 부탁해",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_029",
+      "query_type": "general",
+      "utterance": "회의실 예약 절차 알려줘 근거 포함해서 부탁해",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_030",
+      "query_type": "current_mail",
+      "utterance": "현재메일 요약해줘 근거 포함해서 해줘",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_031",
+      "query_type": "general",
+      "utterance": "회의실 예약 절차 알려줘 근거 포함해서 해줘",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_032",
+      "query_type": "current_mail",
+      "utterance": "현재메일 요약해줘 근거 포함해서 해주세요",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_033",
+      "query_type": "general",
+      "utterance": "회의실 예약 절차 알려줘 근거 포함해서 해주세요",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_034",
+      "query_type": "current_mail",
+      "utterance": "현재메일 요약해줘 간단히",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_035",
+      "query_type": "general",
+      "utterance": "회의실 예약 절차 알려줘 간단히",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_036",
+      "query_type": "current_mail",
+      "utterance": "현재메일 요약해줘 간단히 부탁해",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_037",
+      "query_type": "general",
+      "utterance": "회의실 예약 절차 알려줘 간단히 부탁해",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_038",
+      "query_type": "current_mail",
+      "utterance": "현재메일 요약해줘 간단히 해줘",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_039",
+      "query_type": "general",
+      "utterance": "회의실 예약 절차 알려줘 간단히 해줘",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_040",
+      "query_type": "current_mail",
+      "utterance": "현재메일 요약해줘 간단히 해주세요",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_041",
+      "query_type": "general",
+      "utterance": "회의실 예약 절차 알려줘 간단히 해주세요",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_042",
+      "query_type": "current_mail",
+      "utterance": "현재메일 상세히 요약해줘",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_043",
+      "query_type": "general",
+      "utterance": "비용정산 핵심 규정 3개로 정리해줘",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_044",
+      "query_type": "current_mail",
+      "utterance": "현재메일 상세히 요약해줘 부탁해",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_045",
+      "query_type": "general",
+      "utterance": "비용정산 핵심 규정 3개로 정리해줘 부탁해",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_046",
+      "query_type": "current_mail",
+      "utterance": "현재메일 상세히 요약해줘 해줘",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_047",
+      "query_type": "general",
+      "utterance": "비용정산 핵심 규정 3개로 정리해줘 해줘",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_048",
+      "query_type": "current_mail",
+      "utterance": "현재메일 상세히 요약해줘 해주세요",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_049",
+      "query_type": "general",
+      "utterance": "비용정산 핵심 규정 3개로 정리해줘 해주세요",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_050",
+      "query_type": "current_mail",
+      "utterance": "현재메일 상세히 요약해줘 빠르게",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_051",
+      "query_type": "general",
+      "utterance": "비용정산 핵심 규정 3개로 정리해줘 빠르게",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_052",
+      "query_type": "current_mail",
+      "utterance": "현재메일 상세히 요약해줘 빠르게 부탁해",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_053",
+      "query_type": "general",
+      "utterance": "비용정산 핵심 규정 3개로 정리해줘 빠르게 부탁해",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_054",
+      "query_type": "current_mail",
+      "utterance": "현재메일 상세히 요약해줘 빠르게 해줘",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_055",
+      "query_type": "general",
+      "utterance": "비용정산 핵심 규정 3개로 정리해줘 빠르게 해줘",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_056",
+      "query_type": "current_mail",
+      "utterance": "현재메일 상세히 요약해줘 빠르게 해주세요",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_057",
+      "query_type": "general",
+      "utterance": "비용정산 핵심 규정 3개로 정리해줘 빠르게 해주세요",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_058",
+      "query_type": "current_mail",
+      "utterance": "현재메일 상세히 요약해줘 정확하게",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_059",
+      "query_type": "general",
+      "utterance": "비용정산 핵심 규정 3개로 정리해줘 정확하게",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_060",
+      "query_type": "current_mail",
+      "utterance": "현재메일 상세히 요약해줘 정확하게 부탁해",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_061",
+      "query_type": "general",
+      "utterance": "비용정산 핵심 규정 3개로 정리해줘 정확하게 부탁해",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_062",
+      "query_type": "current_mail",
+      "utterance": "현재메일 상세히 요약해줘 정확하게 해줘",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_063",
+      "query_type": "general",
+      "utterance": "비용정산 핵심 규정 3개로 정리해줘 정확하게 해줘",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_064",
+      "query_type": "current_mail",
+      "utterance": "현재메일 상세히 요약해줘 정확하게 해주세요",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_065",
+      "query_type": "general",
+      "utterance": "비용정산 핵심 규정 3개로 정리해줘 정확하게 해주세요",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_066",
+      "query_type": "current_mail",
+      "utterance": "현재메일 상세히 요약해줘 근거 포함해서",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_067",
+      "query_type": "general",
+      "utterance": "비용정산 핵심 규정 3개로 정리해줘 근거 포함해서",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_068",
+      "query_type": "current_mail",
+      "utterance": "현재메일 상세히 요약해줘 근거 포함해서 부탁해",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_069",
+      "query_type": "general",
+      "utterance": "비용정산 핵심 규정 3개로 정리해줘 근거 포함해서 부탁해",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_070",
+      "query_type": "current_mail",
+      "utterance": "현재메일 상세히 요약해줘 근거 포함해서 해줘",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_071",
+      "query_type": "general",
+      "utterance": "비용정산 핵심 규정 3개로 정리해줘 근거 포함해서 해줘",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_072",
+      "query_type": "current_mail",
+      "utterance": "현재메일 상세히 요약해줘 근거 포함해서 해주세요",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_073",
+      "query_type": "general",
+      "utterance": "비용정산 핵심 규정 3개로 정리해줘 근거 포함해서 해주세요",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_074",
+      "query_type": "current_mail",
+      "utterance": "현재메일 상세히 요약해줘 간단히",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_075",
+      "query_type": "general",
+      "utterance": "비용정산 핵심 규정 3개로 정리해줘 간단히",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_076",
+      "query_type": "current_mail",
+      "utterance": "현재메일 상세히 요약해줘 간단히 부탁해",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_077",
+      "query_type": "general",
+      "utterance": "비용정산 핵심 규정 3개로 정리해줘 간단히 부탁해",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_078",
+      "query_type": "current_mail",
+      "utterance": "현재메일 상세히 요약해줘 간단히 해줘",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_079",
+      "query_type": "general",
+      "utterance": "비용정산 핵심 규정 3개로 정리해줘 간단히 해줘",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_080",
+      "query_type": "current_mail",
+      "utterance": "현재메일 상세히 요약해줘 간단히 해주세요",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_081",
+      "query_type": "general",
+      "utterance": "비용정산 핵심 규정 3개로 정리해줘 간단히 해주세요",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_082",
+      "query_type": "current_mail",
+      "utterance": "현재메일 3줄 요약해줘",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_083",
+      "query_type": "general",
+      "utterance": "이번주 할 일 우선순위 정리해줘",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_084",
+      "query_type": "current_mail",
+      "utterance": "현재메일 3줄 요약해줘 부탁해",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_085",
+      "query_type": "general",
+      "utterance": "이번주 할 일 우선순위 정리해줘 부탁해",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_086",
+      "query_type": "current_mail",
+      "utterance": "현재메일 3줄 요약해줘 해줘",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_087",
+      "query_type": "general",
+      "utterance": "이번주 할 일 우선순위 정리해줘 해줘",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_088",
+      "query_type": "current_mail",
+      "utterance": "현재메일 3줄 요약해줘 해주세요",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_089",
+      "query_type": "general",
+      "utterance": "이번주 할 일 우선순위 정리해줘 해주세요",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_090",
+      "query_type": "current_mail",
+      "utterance": "현재메일 3줄 요약해줘 빠르게",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_091",
+      "query_type": "general",
+      "utterance": "이번주 할 일 우선순위 정리해줘 빠르게",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_092",
+      "query_type": "current_mail",
+      "utterance": "현재메일 3줄 요약해줘 빠르게 부탁해",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_093",
+      "query_type": "general",
+      "utterance": "이번주 할 일 우선순위 정리해줘 빠르게 부탁해",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_094",
+      "query_type": "current_mail",
+      "utterance": "현재메일 3줄 요약해줘 빠르게 해줘",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_095",
+      "query_type": "general",
+      "utterance": "이번주 할 일 우선순위 정리해줘 빠르게 해줘",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_096",
+      "query_type": "current_mail",
+      "utterance": "현재메일 3줄 요약해줘 빠르게 해주세요",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_097",
+      "query_type": "general",
+      "utterance": "이번주 할 일 우선순위 정리해줘 빠르게 해주세요",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_098",
+      "query_type": "current_mail",
+      "utterance": "현재메일 3줄 요약해줘 정확하게",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_099",
+      "query_type": "general",
+      "utterance": "이번주 할 일 우선순위 정리해줘 정확하게",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_100",
+      "query_type": "current_mail",
+      "utterance": "현재메일 3줄 요약해줘 정확하게 부탁해",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_101",
+      "query_type": "general",
+      "utterance": "이번주 할 일 우선순위 정리해줘 정확하게 부탁해",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_102",
+      "query_type": "current_mail",
+      "utterance": "현재메일 3줄 요약해줘 정확하게 해줘",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_103",
+      "query_type": "general",
+      "utterance": "이번주 할 일 우선순위 정리해줘 정확하게 해줘",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_104",
+      "query_type": "current_mail",
+      "utterance": "현재메일 3줄 요약해줘 정확하게 해주세요",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_105",
+      "query_type": "general",
+      "utterance": "이번주 할 일 우선순위 정리해줘 정확하게 해주세요",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_106",
+      "query_type": "current_mail",
+      "utterance": "현재메일 3줄 요약해줘 근거 포함해서",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_107",
+      "query_type": "general",
+      "utterance": "이번주 할 일 우선순위 정리해줘 근거 포함해서",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_108",
+      "query_type": "current_mail",
+      "utterance": "현재메일 3줄 요약해줘 근거 포함해서 부탁해",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_109",
+      "query_type": "general",
+      "utterance": "이번주 할 일 우선순위 정리해줘 근거 포함해서 부탁해",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_110",
+      "query_type": "current_mail",
+      "utterance": "현재메일 3줄 요약해줘 근거 포함해서 해줘",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_111",
+      "query_type": "general",
+      "utterance": "이번주 할 일 우선순위 정리해줘 근거 포함해서 해줘",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_112",
+      "query_type": "current_mail",
+      "utterance": "현재메일 3줄 요약해줘 근거 포함해서 해주세요",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_113",
+      "query_type": "general",
+      "utterance": "이번주 할 일 우선순위 정리해줘 근거 포함해서 해주세요",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_114",
+      "query_type": "current_mail",
+      "utterance": "현재메일 3줄 요약해줘 간단히",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_115",
+      "query_type": "general",
+      "utterance": "이번주 할 일 우선순위 정리해줘 간단히",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_116",
+      "query_type": "current_mail",
+      "utterance": "현재메일 3줄 요약해줘 간단히 부탁해",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_117",
+      "query_type": "general",
+      "utterance": "이번주 할 일 우선순위 정리해줘 간단히 부탁해",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_118",
+      "query_type": "current_mail",
+      "utterance": "현재메일 3줄 요약해줘 간단히 해줘",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_119",
+      "query_type": "general",
+      "utterance": "이번주 할 일 우선순위 정리해줘 간단히 해줘",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_120",
+      "query_type": "current_mail",
+      "utterance": "현재메일 3줄 요약해줘 간단히 해주세요",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_121",
+      "query_type": "general",
+      "utterance": "이번주 할 일 우선순위 정리해줘 간단히 해주세요",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_122",
+      "query_type": "current_mail",
+      "utterance": "현재메일에서 비용이 왜 문제인지 분석해줘",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_123",
+      "query_type": "general",
+      "utterance": "팀 보고용 한 단락 문장으로 써줘",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_124",
+      "query_type": "current_mail",
+      "utterance": "현재메일에서 비용이 왜 문제인지 분석해줘 부탁해",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_125",
+      "query_type": "general",
+      "utterance": "팀 보고용 한 단락 문장으로 써줘 부탁해",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_126",
+      "query_type": "current_mail",
+      "utterance": "현재메일에서 비용이 왜 문제인지 분석해줘 해줘",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_127",
+      "query_type": "general",
+      "utterance": "팀 보고용 한 단락 문장으로 써줘 해줘",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_128",
+      "query_type": "current_mail",
+      "utterance": "현재메일에서 비용이 왜 문제인지 분석해줘 해주세요",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_129",
+      "query_type": "general",
+      "utterance": "팀 보고용 한 단락 문장으로 써줘 해주세요",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_130",
+      "query_type": "current_mail",
+      "utterance": "현재메일에서 비용이 왜 문제인지 분석해줘 빠르게",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_131",
+      "query_type": "general",
+      "utterance": "팀 보고용 한 단락 문장으로 써줘 빠르게",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_132",
+      "query_type": "current_mail",
+      "utterance": "현재메일에서 비용이 왜 문제인지 분석해줘 빠르게 부탁해",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_133",
+      "query_type": "general",
+      "utterance": "팀 보고용 한 단락 문장으로 써줘 빠르게 부탁해",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_134",
+      "query_type": "current_mail",
+      "utterance": "현재메일에서 비용이 왜 문제인지 분석해줘 빠르게 해줘",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_135",
+      "query_type": "general",
+      "utterance": "팀 보고용 한 단락 문장으로 써줘 빠르게 해줘",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_136",
+      "query_type": "current_mail",
+      "utterance": "현재메일에서 비용이 왜 문제인지 분석해줘 빠르게 해주세요",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_137",
+      "query_type": "general",
+      "utterance": "팀 보고용 한 단락 문장으로 써줘 빠르게 해주세요",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_138",
+      "query_type": "current_mail",
+      "utterance": "현재메일에서 비용이 왜 문제인지 분석해줘 정확하게",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_139",
+      "query_type": "general",
+      "utterance": "팀 보고용 한 단락 문장으로 써줘 정확하게",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_140",
+      "query_type": "current_mail",
+      "utterance": "현재메일에서 비용이 왜 문제인지 분석해줘 정확하게 부탁해",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_141",
+      "query_type": "general",
+      "utterance": "팀 보고용 한 단락 문장으로 써줘 정확하게 부탁해",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_142",
+      "query_type": "current_mail",
+      "utterance": "현재메일에서 비용이 왜 문제인지 분석해줘 정확하게 해줘",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_143",
+      "query_type": "general",
+      "utterance": "팀 보고용 한 단락 문장으로 써줘 정확하게 해줘",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_144",
+      "query_type": "current_mail",
+      "utterance": "현재메일에서 비용이 왜 문제인지 분석해줘 정확하게 해주세요",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_145",
+      "query_type": "general",
+      "utterance": "팀 보고용 한 단락 문장으로 써줘 정확하게 해주세요",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_146",
+      "query_type": "current_mail",
+      "utterance": "현재메일에서 비용이 왜 문제인지 분석해줘 근거 포함해서",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_147",
+      "query_type": "general",
+      "utterance": "팀 보고용 한 단락 문장으로 써줘 근거 포함해서",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_148",
+      "query_type": "current_mail",
+      "utterance": "현재메일에서 비용이 왜 문제인지 분석해줘 근거 포함해서 부탁해",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_149",
+      "query_type": "general",
+      "utterance": "팀 보고용 한 단락 문장으로 써줘 근거 포함해서 부탁해",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_150",
+      "query_type": "current_mail",
+      "utterance": "현재메일에서 비용이 왜 문제인지 분석해줘 근거 포함해서 해줘",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_151",
+      "query_type": "general",
+      "utterance": "팀 보고용 한 단락 문장으로 써줘 근거 포함해서 해줘",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_152",
+      "query_type": "current_mail",
+      "utterance": "현재메일에서 비용이 왜 문제인지 분석해줘 근거 포함해서 해주세요",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_153",
+      "query_type": "general",
+      "utterance": "팀 보고용 한 단락 문장으로 써줘 근거 포함해서 해주세요",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_154",
+      "query_type": "current_mail",
+      "utterance": "현재메일에서 비용이 왜 문제인지 분석해줘 간단히",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_155",
+      "query_type": "general",
+      "utterance": "팀 보고용 한 단락 문장으로 써줘 간단히",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_156",
+      "query_type": "current_mail",
+      "utterance": "현재메일에서 비용이 왜 문제인지 분석해줘 간단히 부탁해",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_157",
+      "query_type": "general",
+      "utterance": "팀 보고용 한 단락 문장으로 써줘 간단히 부탁해",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_158",
+      "query_type": "current_mail",
+      "utterance": "현재메일에서 비용이 왜 문제인지 분석해줘 간단히 해줘",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_159",
+      "query_type": "general",
+      "utterance": "팀 보고용 한 단락 문장으로 써줘 간단히 해줘",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_160",
+      "query_type": "current_mail",
+      "utterance": "현재메일에서 비용이 왜 문제인지 분석해줘 간단히 해주세요",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_161",
+      "query_type": "general",
+      "utterance": "팀 보고용 한 단락 문장으로 써줘 간단히 해주세요",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_162",
+      "query_type": "current_mail",
+      "utterance": "현재메일에서 기술 이슈 때문에 일정이 밀리는 이유 알려줘",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_163",
+      "query_type": "current_mail",
+      "utterance": "현재메일에서 기술 이슈 때문에 일정이 밀리는 이유 알려줘 부탁해",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_164",
+      "query_type": "current_mail",
+      "utterance": "현재메일에서 기술 이슈 때문에 일정이 밀리는 이유 알려줘 해줘",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_165",
+      "query_type": "current_mail",
+      "utterance": "현재메일에서 기술 이슈 때문에 일정이 밀리는 이유 알려줘 해주세요",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_166",
+      "query_type": "current_mail",
+      "utterance": "현재메일에서 기술 이슈 때문에 일정이 밀리는 이유 알려줘 빠르게",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_167",
+      "query_type": "current_mail",
+      "utterance": "현재메일에서 기술 이슈 때문에 일정이 밀리는 이유 알려줘 빠르게 부탁해",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_168",
+      "query_type": "current_mail",
+      "utterance": "현재메일에서 기술 이슈 때문에 일정이 밀리는 이유 알려줘 빠르게 해줘",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_169",
+      "query_type": "current_mail",
+      "utterance": "현재메일에서 기술 이슈 때문에 일정이 밀리는 이유 알려줘 빠르게 해주세요",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_170",
+      "query_type": "current_mail",
+      "utterance": "현재메일에서 기술 이슈 때문에 일정이 밀리는 이유 알려줘 정확하게",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_171",
+      "query_type": "current_mail",
+      "utterance": "현재메일에서 기술 이슈 때문에 일정이 밀리는 이유 알려줘 정확하게 부탁해",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_172",
+      "query_type": "current_mail",
+      "utterance": "현재메일에서 기술 이슈 때문에 일정이 밀리는 이유 알려줘 정확하게 해줘",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_173",
+      "query_type": "current_mail",
+      "utterance": "현재메일에서 기술 이슈 때문에 일정이 밀리는 이유 알려줘 정확하게 해주세요",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_174",
+      "query_type": "current_mail",
+      "utterance": "현재메일에서 기술 이슈 때문에 일정이 밀리는 이유 알려줘 근거 포함해서",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_175",
+      "query_type": "current_mail",
+      "utterance": "현재메일에서 기술 이슈 때문에 일정이 밀리는 이유 알려줘 근거 포함해서 부탁해",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_176",
+      "query_type": "current_mail",
+      "utterance": "현재메일에서 기술 이슈 때문에 일정이 밀리는 이유 알려줘 근거 포함해서 해줘",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_177",
+      "query_type": "current_mail",
+      "utterance": "현재메일에서 기술 이슈 때문에 일정이 밀리는 이유 알려줘 근거 포함해서 해주세요",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_178",
+      "query_type": "current_mail",
+      "utterance": "현재메일에서 기술 이슈 때문에 일정이 밀리는 이유 알려줘 간단히",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_179",
+      "query_type": "current_mail",
+      "utterance": "현재메일에서 기술 이슈 때문에 일정이 밀리는 이유 알려줘 간단히 부탁해",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_180",
+      "query_type": "current_mail",
+      "utterance": "현재메일에서 기술 이슈 때문에 일정이 밀리는 이유 알려줘 간단히 해줘",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_181",
+      "query_type": "current_mail",
+      "utterance": "현재메일에서 기술 이슈 때문에 일정이 밀리는 이유 알려줘 간단히 해주세요",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_182",
+      "query_type": "current_mail",
+      "utterance": "현재메일 SSL 인증서 이슈 해결 방법 알려줘",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_183",
+      "query_type": "current_mail",
+      "utterance": "현재메일 SSL 인증서 이슈 해결 방법 알려줘 부탁해",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_184",
+      "query_type": "current_mail",
+      "utterance": "현재메일 SSL 인증서 이슈 해결 방법 알려줘 해줘",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_185",
+      "query_type": "current_mail",
+      "utterance": "현재메일 SSL 인증서 이슈 해결 방법 알려줘 해주세요",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_186",
+      "query_type": "current_mail",
+      "utterance": "현재메일 SSL 인증서 이슈 해결 방법 알려줘 빠르게",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_187",
+      "query_type": "current_mail",
+      "utterance": "현재메일 SSL 인증서 이슈 해결 방법 알려줘 빠르게 부탁해",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_188",
+      "query_type": "current_mail",
+      "utterance": "현재메일 SSL 인증서 이슈 해결 방법 알려줘 빠르게 해줘",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_189",
+      "query_type": "current_mail",
+      "utterance": "현재메일 SSL 인증서 이슈 해결 방법 알려줘 빠르게 해주세요",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_190",
+      "query_type": "current_mail",
+      "utterance": "현재메일 SSL 인증서 이슈 해결 방법 알려줘 정확하게",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_191",
+      "query_type": "current_mail",
+      "utterance": "현재메일 SSL 인증서 이슈 해결 방법 알려줘 정확하게 부탁해",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_192",
+      "query_type": "current_mail",
+      "utterance": "현재메일 SSL 인증서 이슈 해결 방법 알려줘 정확하게 해줘",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_193",
+      "query_type": "current_mail",
+      "utterance": "현재메일 SSL 인증서 이슈 해결 방법 알려줘 정확하게 해주세요",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_194",
+      "query_type": "current_mail",
+      "utterance": "현재메일 SSL 인증서 이슈 해결 방법 알려줘 근거 포함해서",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_195",
+      "query_type": "current_mail",
+      "utterance": "현재메일 SSL 인증서 이슈 해결 방법 알려줘 근거 포함해서 부탁해",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_196",
+      "query_type": "current_mail",
+      "utterance": "현재메일 SSL 인증서 이슈 해결 방법 알려줘 근거 포함해서 해줘",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_197",
+      "query_type": "current_mail",
+      "utterance": "현재메일 SSL 인증서 이슈 해결 방법 알려줘 근거 포함해서 해주세요",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_198",
+      "query_type": "current_mail",
+      "utterance": "현재메일 SSL 인증서 이슈 해결 방법 알려줘 간단히",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_199",
+      "query_type": "current_mail",
+      "utterance": "현재메일 SSL 인증서 이슈 해결 방법 알려줘 간단히 부탁해",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_200",
+      "query_type": "current_mail",
+      "utterance": "현재메일 SSL 인증서 이슈 해결 방법 알려줘 간단히 해줘",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_201",
+      "query_type": "current_mail",
+      "utterance": "현재메일 SSL 인증서 이슈 해결 방법 알려줘 간단히 해주세요",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_202",
+      "query_type": "current_mail",
+      "utterance": "현재메일 수신자 분석해서 역할 표로 정리해줘",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_203",
+      "query_type": "current_mail",
+      "utterance": "현재메일 수신자 분석해서 역할 표로 정리해줘 부탁해",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_204",
+      "query_type": "current_mail",
+      "utterance": "현재메일 수신자 분석해서 역할 표로 정리해줘 해줘",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_205",
+      "query_type": "current_mail",
+      "utterance": "현재메일 수신자 분석해서 역할 표로 정리해줘 해주세요",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_206",
+      "query_type": "current_mail",
+      "utterance": "현재메일 수신자 분석해서 역할 표로 정리해줘 빠르게",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_207",
+      "query_type": "current_mail",
+      "utterance": "현재메일 수신자 분석해서 역할 표로 정리해줘 빠르게 부탁해",
+      "source": "log_weighted_template"
+    },
+    {
+      "case_id": "intent_eval_208",
+      "query_type": "current_mail",
+      "utterance": "현재메일 요약해줘 #1",
+      "source": "fallback_template"
+    },
+    {
+      "case_id": "intent_eval_209",
+      "query_type": "current_mail",
+      "utterance": "현재메일 요약해줘 부탁해 #2",
+      "source": "fallback_template"
+    },
+    {
+      "case_id": "intent_eval_210",
+      "query_type": "current_mail",
+      "utterance": "현재메일 요약해줘 해줘 #3",
+      "source": "fallback_template"
+    },
+    {
+      "case_id": "intent_eval_211",
+      "query_type": "current_mail",
+      "utterance": "현재메일 요약해줘 해주세요 #4",
+      "source": "fallback_template"
+    },
+    {
+      "case_id": "intent_eval_212",
+      "query_type": "current_mail",
+      "utterance": "현재메일 요약해줘 빠르게 #5",
+      "source": "fallback_template"
+    },
+    {
+      "case_id": "intent_eval_213",
+      "query_type": "current_mail",
+      "utterance": "현재메일 요약해줘 빠르게 부탁해 #6",
+      "source": "fallback_template"
+    },
+    {
+      "case_id": "intent_eval_214",
+      "query_type": "current_mail",
+      "utterance": "현재메일 요약해줘 빠르게 해줘 #7",
+      "source": "fallback_template"
+    },
+    {
+      "case_id": "intent_eval_215",
+      "query_type": "current_mail",
+      "utterance": "현재메일 요약해줘 빠르게 해주세요 #8",
+      "source": "fallback_template"
+    },
+    {
+      "case_id": "intent_eval_216",
+      "query_type": "current_mail",
+      "utterance": "현재메일 요약해줘 정확하게 #9",
+      "source": "fallback_template"
+    },
+    {
+      "case_id": "intent_eval_217",
+      "query_type": "current_mail",
+      "utterance": "현재메일 요약해줘 정확하게 부탁해 #10",
+      "source": "fallback_template"
+    },
+    {
+      "case_id": "intent_eval_218",
+      "query_type": "current_mail",
+      "utterance": "현재메일 요약해줘 정확하게 해줘 #11",
+      "source": "fallback_template"
+    },
+    {
+      "case_id": "intent_eval_219",
+      "query_type": "current_mail",
+      "utterance": "현재메일 요약해줘 정확하게 해주세요 #12",
+      "source": "fallback_template"
+    },
+    {
+      "case_id": "intent_eval_220",
+      "query_type": "current_mail",
+      "utterance": "현재메일 요약해줘 근거 포함해서 #13",
+      "source": "fallback_template"
+    }
+  ]
+}

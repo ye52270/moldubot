@@ -1,0 +1,962 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MolduBot Chat Eval</title>
+    <style>
+      :root {
+        --bg: #f4f6f8;
+        --panel: #ffffff;
+        --text: #16202a;
+        --muted: #5b6b79;
+        --accent: #0b66c3;
+        --line: #d9e2ea;
+      }
+      body {
+        margin: 0;
+        font-family: "Pretendard", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+        background: radial-gradient(circle at 0 0, #dbeafe, #f4f6f8 55%);
+        color: var(--text);
+      }
+      main {
+        max-width: 1200px;
+        margin: 24px auto;
+        padding: 0 16px 48px;
+      }
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 16px;
+        margin-bottom: 12px;
+        box-shadow: 0 8px 22px rgba(15, 23, 42, 0.07);
+      }
+      h1 {
+        margin: 0 0 8px;
+        font-size: 22px;
+      }
+      .muted {
+        color: var(--muted);
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 8px;
+      }
+      label {
+        font-size: 12px;
+        color: var(--muted);
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      input {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 10px;
+        font-size: 14px;
+      }
+      button {
+        border: 0;
+        border-radius: 10px;
+        padding: 10px 16px;
+        background: var(--accent);
+        color: #fff;
+        cursor: pointer;
+        font-weight: 600;
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+      th,
+      td {
+        border-bottom: 1px solid var(--line);
+        text-align: left;
+        padding: 8px;
+        vertical-align: top;
+      }
+      .pass {
+        color: #067647;
+        font-weight: 700;
+      }
+      .fail {
+        color: #b42318;
+        font-weight: 700;
+      }
+      .pending {
+        color: #6b7280;
+        font-weight: 600;
+      }
+      .running {
+        color: #b45309;
+        font-weight: 700;
+      }
+      .done {
+        color: #0369a1;
+        font-weight: 700;
+      }
+      .cell-wrap {
+        max-width: 460px;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+      .log-chip {
+        display: inline-block;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 6px 8px;
+        font-size: 12px;
+        color: #334155;
+        background: #f8fafc;
+        white-space: pre-wrap;
+      }
+      .mini-btn {
+        background: #1d4ed8;
+        padding: 6px 10px;
+        border-radius: 8px;
+        font-size: 12px;
+      }
+      .modal-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.45);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+      }
+      .modal-backdrop.open {
+        display: flex;
+      }
+      .modal-panel {
+        width: min(900px, 92vw);
+        max-height: 80vh;
+        overflow: auto;
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.25);
+        padding: 14px;
+      }
+      .modal-title {
+        margin: 0 0 8px;
+        font-size: 15px;
+      }
+      .modal-answer {
+        word-break: break-word;
+        font-size: 13px;
+        color: #0f172a;
+      }
+      .modal-answer h4 {
+        margin: 10px 0 6px;
+        font-size: 14px;
+      }
+      .modal-answer p {
+        margin: 6px 0;
+        line-height: 1.45;
+      }
+      .modal-answer blockquote {
+        margin: 8px 0;
+        padding: 8px 10px;
+        border-left: 3px solid #93c5fd;
+        background: #f8fafc;
+      }
+      .modal-answer ol,
+      .modal-answer ul {
+        margin: 6px 0 10px 18px;
+        padding: 0;
+      }
+      .modal-answer table {
+        margin-top: 8px;
+        font-size: 12px;
+      }
+      .modal-answer pre {
+        margin: 8px 0;
+        white-space: pre-wrap;
+        background: #0f172a;
+        color: #e2e8f0;
+        padding: 10px;
+        border-radius: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="panel">
+        <h1>Chat E2E + LLM Judge (Simple)</h1>
+        <p class="muted">Prompt / Pass / Judge 사유 / 실제 답변만 확인하는 단순 평가 화면입니다.</p>
+        <div class="grid">
+          <label>
+            Chat URL
+            <input id="chatUrl" />
+          </label>
+          <label>
+            Judge Model
+            <input id="judgeModel" />
+          </label>
+          <label>
+            Timeout(sec)
+            <input id="timeoutSec" type="number" min="10" max="180" value="90" />
+          </label>
+          <label>
+            Max Cases
+            <input id="maxCases" type="number" min="1" max="20" placeholder="20" />
+          </label>
+          <label>
+            Selected Email ID(옵션)
+            <input
+              id="selectedEmailId"
+              value="AQMkADAwATMwMAExLWE2YjUtZjE0Ny0wMAItMDAKAEYAAANJSop3SqTtRoJYJnLKplmtBwCbo2n1iZWzT4b1yAbcI9xBAAACAQwAAACbo2n1iZWzT4b1yAbcI9xBAAAAFYk6tQAAAA=="
+            />
+          </label>
+          <label>
+            Mailbox User(옵션)
+            <input id="mailboxUser" value="jaeyoung_dev@outlook.com" />
+          </label>
+          <label>
+            Cases File(옵션)
+            <input id="casesFile" value="testprompt.md" />
+          </label>
+        </div>
+        <div style="display:flex; gap:8px; margin-top:12px;">
+          <button id="runBtn">테스트 실행</button>
+          <button id="stopBtn" type="button">중지</button>
+          <button id="copyBtn">로그 전체 복사</button>
+          <button id="checkFailedBtn" type="button">실패만 체크</button>
+          <label style="display:flex; align-items:center; gap:6px; margin-left:8px; font-size:12px; color:#5b6b79;">
+            Guard 필터
+            <select id="guardFilter" style="padding:6px 8px; border:1px solid var(--line); border-radius:8px;">
+              <option value="">전체</option>
+              <option value="judge_llm">judge_llm</option>
+              <option value="grounding_guard">grounding_guard</option>
+              <option value="no_result_guard">no_result_guard</option>
+              <option value="format_guard">format_guard</option>
+            </select>
+          </label>
+          <label style="display:flex; align-items:center; gap:6px; font-size:12px; color:#5b6b79;">
+            Pass 필터
+            <select id="statusFilter" style="padding:6px 8px; border:1px solid var(--line); border-radius:8px;">
+              <option value="">전체</option>
+              <option value="PASS">PASS</option>
+              <option value="FAIL">FAIL</option>
+            </select>
+          </label>
+        </div>
+        <p id="status" class="muted" style="margin-top:10px;">대기 중</p>
+        <p id="currentCase" class="muted" style="margin-top:6px; font-size:12px;">현재 실행 케이스: -</p>
+        <p id="progressText" class="muted" style="margin-top:4px; font-size:12px;">진행률: 0 / 0</p>
+      </section>
+
+      <section class="panel">
+        <h2 style="margin:0 0 10px; font-size:16px;">Cases</h2>
+        <div style="overflow:auto; max-height:700px;">
+          <table>
+            <thead>
+              <tr>
+                <th>선택</th>
+                <th>Case</th>
+                <th>상태</th>
+                <th>Prompt</th>
+                <th>Pass</th>
+                <th>로그</th>
+                <th>Judge 사유</th>
+                <th>답변</th>
+              </tr>
+            </thead>
+            <tbody id="casesBody"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+    <div id="answerModal" class="modal-backdrop" aria-hidden="true">
+      <div class="modal-panel">
+        <h3 id="answerModalTitle" class="modal-title">답변</h3>
+        <div id="answerModalBody" class="modal-answer"></div>
+        <div style="margin-top:10px; text-align:right;">
+          <button id="answerModalCloseBtn" class="mini-btn" type="button">닫기</button>
+        </div>
+      </div>
+    </div>
+    <div id="logModal" class="modal-backdrop" aria-hidden="true">
+      <div class="modal-panel">
+        <h3 id="logModalTitle" class="modal-title">로그 상세</h3>
+        <div id="logModalBody" class="modal-answer"></div>
+        <div style="margin-top:10px; text-align:right;">
+          <button id="logModalCloseBtn" class="mini-btn" type="button">닫기</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const runBtn = document.getElementById("runBtn");
+      const stopBtn = document.getElementById("stopBtn");
+      const copyBtn = document.getElementById("copyBtn");
+      const checkFailedBtn = document.getElementById("checkFailedBtn");
+      const statusNode = document.getElementById("status");
+      const currentCaseNode = document.getElementById("currentCase");
+      const progressNode = document.getElementById("progressText");
+      const casesBody = document.getElementById("casesBody");
+      const answerModal = document.getElementById("answerModal");
+      const answerModalTitle = document.getElementById("answerModalTitle");
+      const answerModalBody = document.getElementById("answerModalBody");
+      const answerModalCloseBtn = document.getElementById("answerModalCloseBtn");
+      const logModal = document.getElementById("logModal");
+      const logModalTitle = document.getElementById("logModalTitle");
+      const logModalBody = document.getElementById("logModalBody");
+      const logModalCloseBtn = document.getElementById("logModalCloseBtn");
+      const guardFilterSelect = document.getElementById("guardFilter");
+      const statusFilterSelect = document.getElementById("statusFilter");
+
+      let latestReport = null;
+      let caseCatalog = [];
+      let caseRunStates = new Map();
+      let checkedCaseIds = new Set();
+      let latestCaseRowsById = new Map();
+      let isStopRequested = false;
+      let selectedGuardFilter = "";
+      let selectedStatusFilter = "";
+
+      function normalizeChatUrl(value) {
+        const raw = String(value || "").trim();
+        if (!raw) {
+          return "";
+        }
+        let normalized = raw;
+        if (!/^https?:\/\//i.test(normalized)) {
+          normalized = `https://${normalized}`;
+        }
+        if (!normalized.endsWith("/search/chat")) {
+          normalized = normalized.replace(/\/$/, "") + "/search/chat";
+        }
+        return normalized;
+      }
+
+      function resolveApiBaseOrigin() {
+        const chatUrl = normalizeChatUrl(document.getElementById("chatUrl").value.trim());
+        if (chatUrl) {
+          try {
+            return new URL(chatUrl).origin;
+          } catch (_error) {
+            return "";
+          }
+        }
+        try {
+          return window.location.origin || "";
+        } catch (_error) {
+          return "";
+        }
+      }
+
+      function buildApiCandidates(pathname) {
+        const normalizedPath = String(pathname || "").startsWith("/") ? pathname : `/${pathname}`;
+        const baseOrigin = resolveApiBaseOrigin();
+        const candidates = [];
+        if (baseOrigin) {
+          candidates.push(`${baseOrigin}${normalizedPath}`);
+        }
+        return candidates;
+      }
+
+      function requestJsonByXhr(url, method, bodyText) {
+        return new Promise((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.open(method, url, true);
+          xhr.setRequestHeader("accept", "application/json");
+          xhr.setRequestHeader("ngrok-skip-browser-warning", "1");
+          if (method !== "GET") {
+            xhr.setRequestHeader("content-type", "application/json");
+          }
+          xhr.onreadystatechange = () => {
+            if (xhr.readyState !== XMLHttpRequest.DONE) {
+              return;
+            }
+            const responseText = String(xhr.responseText || "");
+            if (xhr.status < 200 || xhr.status >= 300) {
+              reject(new Error(`xhr_status_error: status=${xhr.status} url=${url} body=${responseText.slice(0, 300)}`));
+              return;
+            }
+            try {
+              const parsed = JSON.parse(responseText || "{}");
+              resolve(parsed);
+            } catch (_error) {
+              reject(new Error(`xhr_non_json_response: status=${xhr.status} url=${url} preview=${responseText.slice(0, 120)}`));
+            }
+          };
+          xhr.onerror = () => reject(new Error(`xhr_network_error: url=${url}`));
+          xhr.send(method === "GET" ? null : bodyText);
+        });
+      }
+
+      async function requestJsonWithFallback(pathname, method, payload) {
+        const bodyText = method === "GET" ? "" : JSON.stringify(payload || {});
+        const candidates = buildApiCandidates(pathname);
+        if (!candidates.length) {
+          throw new Error("api_base_origin_missing");
+        }
+        let lastError = null;
+        for (const url of candidates) {
+          try {
+            return await requestJsonByXhr(url, method, bodyText);
+          } catch (error) {
+            lastError = error;
+          }
+        }
+        throw lastError || new Error("api_request_failed");
+      }
+
+      function setStatus(text, isError = false) {
+        statusNode.textContent = text;
+        statusNode.style.color = isError ? "#b42318" : "#5b6b79";
+      }
+
+      function setBusy(isBusy) {
+        runBtn.disabled = isBusy;
+        copyBtn.disabled = isBusy;
+        stopBtn.disabled = !isBusy;
+      }
+
+      function setCurrentCase(text) {
+        currentCaseNode.textContent = `현재 실행 케이스: ${text || "-"}`;
+      }
+
+      function setProgress(current, total) {
+        progressNode.textContent = `진행률: ${current} / ${total}`;
+      }
+
+      function readPayload() {
+        return {
+          chat_url: normalizeChatUrl(document.getElementById("chatUrl").value.trim()),
+          judge_model: document.getElementById("judgeModel").value.trim(),
+          request_timeout_sec: Number(document.getElementById("timeoutSec").value || 90),
+          max_cases: Number(document.getElementById("maxCases").value || 0) || null,
+          selected_email_id: document.getElementById("selectedEmailId").value.trim(),
+          mailbox_user: document.getElementById("mailboxUser").value.trim(),
+          cases_file: document.getElementById("casesFile").value.trim(),
+        };
+      }
+
+      function asCaseResults(report) {
+        if (!report || !Array.isArray(report.cases)) {
+          return [];
+        }
+        return report.cases;
+      }
+
+      function truncateText(text, maxChars = 180) {
+        const normalized = String(text || "").trim();
+        if (normalized.length <= maxChars) {
+          return normalized;
+        }
+        return `${normalized.slice(0, maxChars)}...`;
+      }
+
+      function buildCaseLog(result) {
+        if (!result || typeof result !== "object") {
+          return "-";
+        }
+        const parts = [];
+        const scope = String(result.resolved_scope || (result.used_current_mail_context ? "current_mail" : "global"));
+        parts.push(`scope=${scope}`);
+        parts.push(`intent=${String(result.intent_task_type || "-")}/${String(result.intent_output_format || "-")}/${Number(result.intent_confidence || 0).toFixed(2)}`);
+        parts.push(`tool=${String(result.tool_action || "-")}`);
+        parts.push(`retrieval=${String(result.search_result_count ?? "-")}`);
+        parts.push(`evidence=${String(result.evidence_count ?? "-")}(${String(result.evidence_blank_snippet_count ?? 0)} blank)`);
+        parts.push(`guard=${String(result.guard_name || "-")}`);
+        const checks = result.judge && result.judge.checks ? result.judge.checks : null;
+        if (checks) {
+          const i = checks.intent_match ? "I✓" : "I✗";
+          const f = checks.format_match ? "F✓" : "F✗";
+          const g = checks.grounded ? "G✓" : "G✗";
+          parts.push(`${i}/${f}/${g}`);
+        }
+        parts.push(`t(chat=${Number(result.elapsed_ms || 0).toFixed(1)}ms/server=${Number(result.server_elapsed_ms || 0).toFixed(1)}ms/judge=${Number(result.judge_elapsed_ms || 0).toFixed(1)}ms)`);
+        parts.push(`score=${String(result.judge?.score ?? "-")}`);
+        return parts.join(" / ");
+      }
+
+      function openAnswerModal(caseId) {
+        const row = latestCaseRowsById.get(String(caseId || ""));
+        const answer = row ? String(row.answer || "").trim() : "";
+        const rawAnswer = row ? String(row.raw_answer || "").trim() : "";
+        const answerFormat = row && typeof row.answer_format === "object" ? row.answer_format : null;
+        answerModalTitle.textContent = `답변 상세 · ${String(caseId || "-")}`;
+        answerModalBody.innerHTML = renderAnswerModalHtml({
+          answer,
+          rawAnswer,
+          answerFormat,
+        });
+        answerModal.classList.add("open");
+        answerModal.setAttribute("aria-hidden", "false");
+      }
+
+      function closeAnswerModal() {
+        answerModal.classList.remove("open");
+        answerModal.setAttribute("aria-hidden", "true");
+      }
+
+      function openLogModal(caseId) {
+        const row = latestCaseRowsById.get(String(caseId || ""));
+        logModalTitle.textContent = `로그 상세 · ${String(caseId || "-")}`;
+        logModalBody.innerHTML = `<pre>${escapeHtml(buildCaseDebugText(row))}</pre>`;
+        logModal.classList.add("open");
+        logModal.setAttribute("aria-hidden", "false");
+      }
+
+      function closeLogModal() {
+        logModal.classList.remove("open");
+        logModal.setAttribute("aria-hidden", "true");
+      }
+
+      function buildCaseDebugText(row) {
+        if (!row || typeof row !== "object") {
+          return "로그가 없습니다.";
+        }
+        const lines = [];
+        lines.push(`case_id: ${String(row.case_id || "-")}`);
+        lines.push(`status_code: ${String(row.status_code ?? "-")}`);
+        lines.push(`source: ${String(row.source || "-")}`);
+        lines.push(`query_type: ${String(row.query_type || "-")}`);
+        lines.push(`resolved_scope: ${String(row.resolved_scope || "-")}`);
+        lines.push(`used_current_mail_context: ${String(Boolean(row.used_current_mail_context))}`);
+        lines.push(`intent: ${String(row.intent_task_type || "-")} / ${String(row.intent_output_format || "-")} / ${Number(row.intent_confidence || 0).toFixed(2)}`);
+        lines.push(`tool_action: ${String(row.tool_action || "-")}`);
+        lines.push(`guard_name: ${String(row.guard_name || "-")}`);
+        lines.push(`timing_ms: chat=${Number(row.elapsed_ms || 0).toFixed(1)} / server=${Number(row.server_elapsed_ms || 0).toFixed(1)} / judge=${Number(row.judge_elapsed_ms || 0).toFixed(1)}`);
+        lines.push(`retrieval: search_result_count=${String(row.search_result_count ?? "-")} / evidence_count=${String(row.evidence_count ?? "-")} / blank_snippet=${String(row.evidence_blank_snippet_count ?? "-")}`);
+        lines.push("");
+        lines.push("[judge]");
+        lines.push(`pass: ${String(Boolean(row.judge?.pass))}`);
+        lines.push(`score: ${String(row.judge?.score ?? "-")}`);
+        lines.push(`checks: I=${String(Boolean(row.judge?.checks?.intent_match))}, F=${String(Boolean(row.judge?.checks?.format_match))}, G=${String(Boolean(row.judge?.checks?.grounded))}`);
+        lines.push(`reason: ${String(row.judge?.reason || "-")}`);
+        lines.push("");
+        lines.push("[evidence_top_k]");
+        const evidence = Array.isArray(row.evidence_top_k) ? row.evidence_top_k : [];
+        if (!evidence.length) {
+          lines.push("- (empty)");
+        } else {
+          for (let i = 0; i < evidence.length; i += 1) {
+            const item = evidence[i] || {};
+            lines.push(`${i + 1}. subject=${String(item.subject || "-")}`);
+            lines.push(`   received_date=${String(item.received_date || "-")}`);
+            lines.push(`   snippet=${String(item.snippet || "-")}`);
+          }
+        }
+        lines.push("");
+        lines.push("[metadata_snapshot]");
+        lines.push(JSON.stringify(row.metadata_snapshot || {}, null, 2));
+        return lines.join("\n");
+      }
+
+      function getCaseById(caseId) {
+        return caseCatalog.find((item) => String(item.case_id || "") === String(caseId || "")) || null;
+      }
+
+      function renderCases(report) {
+        const rows = asCaseResults(report);
+        const rowMap = new Map(rows.map((row) => [String(row.case_id || ""), row]));
+        latestCaseRowsById = rowMap;
+        const baseRows = caseCatalog.length ? caseCatalog : rows;
+        const viewRows = baseRows.filter((item) => {
+          const caseId = String(item.case_id || "");
+          const result = rowMap.get(caseId);
+          if (selectedGuardFilter && String(result?.guard_name || "") !== selectedGuardFilter) {
+            return false;
+          }
+          if (selectedStatusFilter) {
+            const pass = result && result.judge ? Boolean(result.judge.pass) : null;
+            const label = pass === null ? "" : pass ? "PASS" : "FAIL";
+            if (label !== selectedStatusFilter) {
+              return false;
+            }
+          }
+          return true;
+        });
+        casesBody.innerHTML = "";
+
+        for (const item of viewRows) {
+          const caseId = String(item.case_id || "");
+          const result = rowMap.get(caseId);
+          const tr = document.createElement("tr");
+          const state = String(caseRunStates.get(caseId) || "대기");
+          const stateClass = state === "실행중" ? "running" : state === "완료" ? "done" : "pending";
+
+          const pass = result && result.judge ? Boolean(result.judge.pass) : null;
+          const passLabel = pass === null ? "-" : pass ? "PASS" : "FAIL";
+          const passClass = pass === null ? "pending" : pass ? "pass" : "fail";
+          const reason = result && result.judge ? String(result.judge.reason || "") : "";
+          const prompt = String(item.query || result?.query || "");
+          const checked = checkedCaseIds.has(caseId) ? "checked" : "";
+          const logText = buildCaseLog(result);
+
+          tr.innerHTML = `
+            <td><input type="checkbox" class="case-check" data-case-id="${escapeHtml(caseId)}" ${checked} /></td>
+            <td>${caseId || "-"}</td>
+            <td class="${stateClass}">${state}</td>
+            <td><div class="cell-wrap">${escapeHtml(prompt)}</div></td>
+            <td class="${passClass}">${passLabel}</td>
+            <td><span class="log-chip">${escapeHtml(logText)}</span><div style="margin-top:6px;"><button type="button" class="mini-btn view-log-btn" data-case-id="${escapeHtml(caseId)}">로그 보기</button></div></td>
+            <td><div class="cell-wrap">${escapeHtml(truncateText(reason))}</div></td>
+            <td><button type="button" class="mini-btn view-answer-btn" data-case-id="${escapeHtml(caseId)}">답변 보기</button></td>
+          `;
+          casesBody.appendChild(tr);
+        }
+      }
+
+      function escapeHtml(text) {
+        return String(text || "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/\"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      }
+
+      function renderAnswerModalHtml(payload) {
+        const answer = String(payload?.answer || "").trim();
+        const rawAnswer = String(payload?.rawAnswer || "").trim();
+        const answerFormat = payload?.answerFormat && typeof payload.answerFormat === "object" ? payload.answerFormat : null;
+        const blocks = answerFormat && Array.isArray(answerFormat.blocks) ? answerFormat.blocks : [];
+        if (blocks.length) {
+          return renderAnswerBlocksHtml(blocks);
+        }
+        if (answer) {
+          return `<pre>${escapeHtml(answer)}</pre>`;
+        }
+        if (rawAnswer) {
+          return `<pre>${escapeHtml(rawAnswer)}</pre>`;
+        }
+        return "답변이 없습니다.";
+      }
+
+      function renderAnswerBlocksHtml(blocks) {
+        const lines = [];
+        for (const block of blocks) {
+          if (!block || typeof block !== "object") {
+            continue;
+          }
+          const blockType = String(block.type || "");
+          if (blockType === "heading") {
+            lines.push(`<h4>${escapeHtml(String(block.text || ""))}</h4>`);
+            continue;
+          }
+          if (blockType === "paragraph") {
+            lines.push(`<p>${escapeHtml(String(block.text || ""))}</p>`);
+            continue;
+          }
+          if (blockType === "quote") {
+            lines.push(`<blockquote>${escapeHtml(String(block.text || ""))}</blockquote>`);
+            continue;
+          }
+          if (blockType === "ordered_list" || blockType === "unordered_list") {
+            const items = Array.isArray(block.items) ? block.items : [];
+            const tag = blockType === "ordered_list" ? "ol" : "ul";
+            const itemHtml = items.map((item) => `<li>${escapeHtml(String(item || ""))}</li>`).join("");
+            lines.push(`<${tag}>${itemHtml}</${tag}>`);
+            continue;
+          }
+          if (blockType === "table") {
+            const headers = Array.isArray(block.headers) ? block.headers : [];
+            const rows = Array.isArray(block.rows) ? block.rows : [];
+            const head = headers.length
+              ? `<thead><tr>${headers.map((h) => `<th>${escapeHtml(String(h || ""))}</th>`).join("")}</tr></thead>`
+              : "";
+            const body = rows
+              .map((row) => {
+                const cols = Array.isArray(row) ? row : [];
+                return `<tr>${cols.map((c) => `<td>${escapeHtml(String(c || ""))}</td>`).join("")}</tr>`;
+              })
+              .join("");
+            lines.push(`<table>${head}<tbody>${body}</tbody></table>`);
+            continue;
+          }
+        }
+        return lines.join("") || "<pre>답변이 없습니다.</pre>";
+      }
+
+      function buildCopyText(report) {
+        if (!report || !Array.isArray(report.cases)) {
+          return "보고서가 없습니다.";
+        }
+        const lines = [];
+        lines.push(`# chat-eval-log`);
+        lines.push(`total_cases: ${report.cases.length}`);
+        lines.push("");
+        for (const row of report.cases) {
+          lines.push("---");
+          lines.push(buildCaseDebugText(row));
+          lines.push("");
+        }
+        return lines.join("\n");
+      }
+
+      async function copyPlainText(text) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(text);
+          return;
+        }
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+      }
+
+      async function runEval() {
+        isStopRequested = false;
+        setBusy(true);
+        setStatus("실행 중...");
+        try {
+          const basePayload = readPayload();
+          const maxCases = Number(basePayload.max_cases || 0);
+          const targetCases = maxCases > 0 ? caseCatalog.slice(0, maxCases) : [...caseCatalog];
+          const checkedCases = targetCases.filter((item) => checkedCaseIds.has(String(item.case_id || "")));
+          const runCases = checkedCases.length ? checkedCases : targetCases;
+          if (!targetCases.length) {
+            throw new Error("실행할 케이스가 없습니다.");
+          }
+
+          caseRunStates = new Map(caseCatalog.map((item) => [String(item.case_id || ""), "대기"]));
+          setProgress(0, runCases.length);
+          setCurrentCase("-");
+          renderCases({ cases: [] });
+
+          const mergedCases = [];
+          let stopped = false;
+          let failedCount = 0;
+          for (let index = 0; index < runCases.length; index += 1) {
+            if (isStopRequested) {
+              stopped = true;
+              break;
+            }
+            const caseId = String(runCases[index].case_id || "");
+            caseRunStates.set(caseId, "실행중");
+            setCurrentCase(`${caseId} / ${String(runCases[index].query || "")}`);
+            setStatus(`실행 중... (${index + 1}/${runCases.length})`);
+            renderCases({ cases: mergedCases });
+
+            let caseRow = null;
+            try {
+              const response = await requestJsonWithFallback("/qa/chat-eval/run", "POST", {
+                ...basePayload,
+                max_cases: null,
+                case_ids: [caseId],
+              });
+              const report = response && typeof response === "object" ? response.report : null;
+              caseRow = report && Array.isArray(report.cases) ? report.cases[0] : null;
+            } catch (error) {
+              failedCount += 1;
+              caseRow = {
+                case_id: caseId,
+                query: String(runCases[index].query || ""),
+                answer: "",
+                raw_answer: "",
+                answer_format: {},
+                source: "chat-eval-run-error",
+                status_code: 0,
+                elapsed_ms: 0,
+                server_elapsed_ms: 0,
+                judge_elapsed_ms: 0,
+                used_current_mail_context: false,
+                query_type: "",
+                resolved_scope: "",
+                intent_task_type: "",
+                intent_output_format: "",
+                intent_confidence: 0,
+                tool_action: "",
+                guard_name: "run_error",
+                search_result_count: 0,
+                evidence_count: 0,
+                evidence_blank_snippet_count: 0,
+                evidence_top_k: [],
+                metadata_snapshot: {},
+                judge: {
+                  pass: false,
+                  score: 1,
+                  reason: `run_error: ${String(error || "").slice(0, 400)}`,
+                  checks: { intent_match: false, format_match: false, grounded: false },
+                },
+              };
+            }
+            if (caseRow) {
+              mergedCases.push(caseRow);
+            }
+            caseRunStates.set(caseId, "완료");
+            setProgress(index + 1, runCases.length);
+            renderCases({ cases: mergedCases });
+          }
+
+          const passCount = mergedCases.filter((item) => Boolean(item?.judge?.pass)).length;
+          const passRate = mergedCases.length ? Math.round((passCount / mergedCases.length) * 1000) / 10 : 0;
+          latestReport = {
+            summary: { total_cases: mergedCases.length, judge_pass_rate: passRate },
+            cases: mergedCases,
+          };
+          setCurrentCase("-");
+          if (stopped || isStopRequested) {
+            setStatus(`중지됨: 완료 ${mergedCases.length}건 / 선택 ${runCases.length}건`);
+          } else {
+            setStatus(`완료: total=${mergedCases.length}, pass_rate=${passRate}%, run_error=${failedCount}`);
+          }
+        } catch (error) {
+          setStatus(`실행 실패: ${error}`, true);
+          setCurrentCase("-");
+        } finally {
+          isStopRequested = false;
+          setBusy(false);
+        }
+      }
+
+      function requestStopRun() {
+        if (runBtn.disabled !== true) {
+          return;
+        }
+        isStopRequested = true;
+        setStatus("중지 요청됨: 현재 케이스 완료 후 중단합니다.");
+      }
+
+      async function copyLatestReport() {
+        if (!latestReport) {
+          setStatus("복사할 결과가 없습니다.", true);
+          return;
+        }
+        try {
+          await copyPlainText(buildCopyText(latestReport));
+          setStatus("로그 전체를 클립보드에 복사했습니다.");
+        } catch (error) {
+          setStatus(`복사 실패: ${error}`, true);
+        }
+      }
+
+      async function loadDefaults() {
+        try {
+          const result = await requestJsonWithFallback("/qa/chat-eval/defaults", "GET");
+          const defaults = result?.defaults || {};
+          const judgeModel = String(defaults.judge_model || "").trim();
+          const mailboxUser = String(defaults.mailbox_user || "").trim();
+          if (judgeModel) {
+            document.getElementById("judgeModel").value = judgeModel;
+          }
+          if (mailboxUser) {
+            document.getElementById("mailboxUser").value = mailboxUser;
+          }
+        } catch (_error) {
+          if (!document.getElementById("judgeModel").value.trim()) {
+            document.getElementById("judgeModel").value = "gpt-5-mini";
+          }
+        }
+      }
+
+      async function loadCaseCatalog() {
+        try {
+          const casesFile = document.getElementById("casesFile").value.trim();
+          const path = casesFile ? `/qa/chat-eval/cases?cases_file=${encodeURIComponent(casesFile)}` : "/qa/chat-eval/cases";
+          const result = await requestJsonWithFallback(path, "GET");
+          caseCatalog = Array.isArray(result?.cases) ? result.cases : [];
+          caseRunStates = new Map(caseCatalog.map((item) => [String(item.case_id || ""), "대기"]));
+          checkedCaseIds = new Set(caseCatalog.map((item) => String(item.case_id || "")));
+          setProgress(0, caseCatalog.length);
+          setCurrentCase("-");
+          renderCases({ cases: [] });
+        } catch (error) {
+          setStatus(`케이스 로딩 실패: ${error}`, true);
+        }
+      }
+
+      function initDefaultChatUrl() {
+        const input = document.getElementById("chatUrl");
+        if (input.value.trim()) {
+          return;
+        }
+        try {
+          const origin = window.location.origin || "";
+          if (origin) {
+            input.value = `${origin}/search/chat`;
+          }
+        } catch (_error) {
+          input.value = "";
+        }
+      }
+
+      runBtn.addEventListener("click", runEval);
+      stopBtn.addEventListener("click", requestStopRun);
+      copyBtn.addEventListener("click", copyLatestReport);
+      checkFailedBtn.addEventListener("click", () => {
+        const failedIds = Array.from(latestCaseRowsById.entries())
+          .filter(([, row]) => row && row.judge && row.judge.pass === false)
+          .map(([caseId]) => String(caseId || ""));
+        if (failedIds.length) {
+          checkedCaseIds = new Set(failedIds);
+          renderCases(latestReport || { cases: [] });
+          setStatus(`실패 케이스 ${failedIds.length}건만 체크했습니다.`);
+          return;
+        }
+        setStatus("체크할 실패 케이스가 없습니다.");
+      });
+      document.getElementById("casesFile").addEventListener("change", loadCaseCatalog);
+      answerModalCloseBtn.addEventListener("click", closeAnswerModal);
+      logModalCloseBtn.addEventListener("click", closeLogModal);
+      answerModal.addEventListener("click", (event) => {
+        if (event.target === answerModal) {
+          closeAnswerModal();
+        }
+      });
+      logModal.addEventListener("click", (event) => {
+        if (event.target === logModal) {
+          closeLogModal();
+        }
+      });
+      guardFilterSelect.addEventListener("change", () => {
+        selectedGuardFilter = String(guardFilterSelect.value || "");
+        renderCases(latestReport || { cases: [] });
+      });
+      statusFilterSelect.addEventListener("change", () => {
+        selectedStatusFilter = String(statusFilterSelect.value || "");
+        renderCases(latestReport || { cases: [] });
+      });
+      casesBody.addEventListener("change", (event) => {
+        const target = event.target;
+        if (!target || !target.classList || !target.classList.contains("case-check")) {
+          return;
+        }
+        const caseId = String(target.getAttribute("data-case-id") || "");
+        if (!caseId) {
+          return;
+        }
+        if (target.checked) {
+          checkedCaseIds.add(caseId);
+        } else {
+          checkedCaseIds.delete(caseId);
+        }
+      });
+      casesBody.addEventListener("click", (event) => {
+        const target = event.target;
+        if (!target || !target.classList) {
+          return;
+        }
+        if (target.classList.contains("view-answer-btn")) {
+          const caseId = String(target.getAttribute("data-case-id") || "");
+          openAnswerModal(caseId);
+          return;
+        }
+        if (target.classList.contains("view-log-btn")) {
+          const caseId = String(target.getAttribute("data-case-id") || "");
+          openLogModal(caseId);
+        }
+      });
+
+      initDefaultChatUrl();
+      stopBtn.disabled = true;
+      loadDefaults();
+      loadCaseCatalog();
+    </script>
+  </body>
+</html>

@@ -12,14 +12,15 @@ from langchain.agents.middleware import (
     wrap_model_call,
     wrap_tool_call,
 )
-from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, ToolMessage
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage, ToolMessage
 from langgraph.types import Command
 
 from app.agents.tool_payload_selector import extract_preferred_tool_payload_from_messages
 from app.core.intent_rules import is_mail_search_query
 from app.core.logging_config import get_logger, is_prompt_trace_enabled
 from app.middleware.policies import (
-    compose_intent_augmented_text,
+    INTENT_SYSTEM_CONTEXT_PREFIX,
+    compose_intent_system_context,
     find_last_human_message,
     is_intent_context_injected,
     normalize_message_text,
@@ -32,6 +33,9 @@ TOOL_CALLS_KEY = "tool_calls"
 ORIGINAL_USER_INPUT_MARKER = "원본 사용자 입력:"
 TRACE_MAX_CONTENT_CHARS = 1200
 TRACE_TRUNCATION_SUFFIX = "...(truncated)"
+RAW_RESPONSE_LOG_MAX_CHARS = 4000
+RAW_MODEL_MESSAGE_TEXT_KEY = "raw_model_message_text"
+RAW_MODEL_MESSAGE_CONTENT_KEY = "raw_model_message_content"
 
 logger = get_logger(__name__)
 
@@ -96,8 +100,7 @@ def has_tool_call_signal(message: Any) -> bool:
     return False
 
 
-@before_model
-def inject_intent_decomposition_context(state: dict[str, Any], runtime: Any) -> dict[str, Any] | None:
+def _inject_intent_decomposition_context_impl(state: dict[str, Any], runtime: Any) -> dict[str, Any] | None:
     """
     모델 호출 전 마지막 사용자 입력에 의도 구조분해 컨텍스트를 주입한다.
 
@@ -113,11 +116,12 @@ def inject_intent_decomposition_context(state: dict[str, Any], runtime: Any) -> 
     if not isinstance(messages, list) or not messages:
         return None
 
+    messages = _remove_intent_system_contexts(messages=messages)
     found = find_last_human_message(messages=messages)
     if found is None:
         return None
 
-    message_index, human_message = found
+    _, human_message = found
     source_text = normalize_message_text(human_message.content)
     if not source_text:
         return None
@@ -127,10 +131,27 @@ def inject_intent_decomposition_context(state: dict[str, Any], runtime: Any) -> 
         logger.info("middleware.before_model: 단순 조회 질의로 intent 컨텍스트 주입 생략")
         return None
 
-    composed_text = compose_intent_augmented_text(user_message=source_text)
-    messages[message_index].content = composed_text
-    logger.info("middleware.before_model: 의도 구조분해 컨텍스트 주입 완료")
-    return {"messages": messages}
+    system_context = compose_intent_system_context(user_message=source_text)
+    messages = _insert_system_context_at_top_block(messages=messages, system_context=system_context)
+    state["messages"] = messages
+    logger.info("middleware.before_model: 의도 구조분해 system 컨텍스트 주입 완료")
+    return None
+
+
+@before_model
+def inject_intent_decomposition_context(state: dict[str, Any], runtime: Any) -> dict[str, Any] | None:
+    """
+    모델 호출 전 의도 구조분해 system 컨텍스트 주입 진입점.
+
+    Args:
+        state: 에이전트 상태 객체
+        runtime: LangGraph 런타임 객체
+
+    Returns:
+        메시지 변경이 있으면 {"messages": [...]} 반환
+    """
+    del state, runtime
+    return None
 
 
 @wrap_model_call
@@ -148,6 +169,7 @@ def guard_model_output(
     Returns:
         보정된 모델 응답
     """
+    _inject_intent_context_into_request_state(request=request)
     if is_prompt_trace_enabled():
         logger.info(
             "prompt_trace.model_request: %s",
@@ -176,11 +198,57 @@ def guard_model_output(
         logger.info("middleware.wrap_model_call: tool_calls 응답 감지, 빈 content 보정 생략")
         return response
 
-    answer = normalize_message_text(getattr(last_message, "content", ""))
+    raw_content = getattr(last_message, "content", "")
+    answer = _extract_text_from_model_content(content=raw_content)
+    if not answer:
+        answer = normalize_message_text(raw_content)
+    _capture_raw_model_message_on_state(
+        request=request,
+        message=last_message,
+        normalized_text=answer,
+    )
+    if answer:
+        logger.info(
+            "llm.raw_response: is_json=%s length=%s content=%s",
+            _looks_like_json_response(text=answer),
+            len(answer),
+            _truncate_for_raw_log(text=answer),
+        )
     if not answer:
         logger.warning("middleware.wrap_model_call: 공백 모델 응답 보정")
         result_messages[-1] = AIMessage(content=EMPTY_MODEL_RESPONSE_FALLBACK)
     return response
+
+
+def _inject_intent_context_into_request_state(request: Any) -> None:
+    """
+    모델 호출 직전 request.state 메시지에 의도 system 컨텍스트를 정규화 주입한다.
+
+    Args:
+        request: 모델 호출 요청 객체
+    """
+    state = getattr(request, "state", None)
+    if not isinstance(state, dict):
+        return
+    _inject_intent_decomposition_context_impl(state=state, runtime=None)
+
+
+def _capture_raw_model_message_on_state(request: Any, message: Any, normalized_text: str) -> None:
+    """
+    모델 반환 메시지의 원문 텍스트/원본 content 객체를 state에 기록한다.
+
+    Args:
+        request: 모델 호출 요청 객체
+        message: 모델이 반환한 마지막 메시지
+        normalized_text: normalize_message_text 적용 문자열
+    """
+    state = getattr(request, "state", None)
+    if not isinstance(state, dict):
+        return
+    content = getattr(message, "content", "")
+    extracted_text = _extract_text_from_model_content(content=content) or str(normalized_text or "").strip()
+    state[RAW_MODEL_MESSAGE_TEXT_KEY] = extracted_text
+    state[RAW_MODEL_MESSAGE_CONTENT_KEY] = _normalize_raw_model_content(content=content)
 
 
 @wrap_tool_call
@@ -237,13 +305,19 @@ def postprocess_model_answer(state: dict[str, Any], runtime: Any) -> dict[str, A
     ai_index, ai_message = found_ai
     if has_tool_call_signal(ai_message):
         return None
-    original_answer = normalize_message_text(ai_message.content)
+    original_answer = _extract_text_from_model_content(ai_message.content) or normalize_message_text(ai_message.content)
     if not original_answer:
         return None
 
+    raw_model_output = str(state.get(RAW_MODEL_MESSAGE_TEXT_KEY) or original_answer).strip() or original_answer
+    update_payload: dict[str, Any] = {
+        "raw_model_output": raw_model_output,
+        "raw_model_content": state.get(RAW_MODEL_MESSAGE_CONTENT_KEY),
+    }
+
     found_human = _find_last_message(messages=messages, message_type=HumanMessage)
     if found_human is None:
-        return None
+        return update_payload
     _, human_message = found_human
     original_user_message = _extract_original_user_message_from_injected_text(
         message_text=normalize_message_text(human_message.content),
@@ -256,13 +330,15 @@ def postprocess_model_answer(state: dict[str, Any], runtime: Any) -> dict[str, A
             ai_index=ai_index,
             user_message=original_user_message,
         ),
+        raw_model_content=state.get(RAW_MODEL_MESSAGE_CONTENT_KEY),
     )
     if not processed_answer or processed_answer == original_answer:
-        return None
+        return update_payload
 
     messages[ai_index].content = processed_answer
     logger.info("middleware.after_model: 최종 응답 후처리 적용")
-    return {"messages": messages}
+    update_payload["messages"] = messages
+    return update_payload
 
 
 def _find_last_message(messages: list[Any], message_type: type[BaseMessage]) -> tuple[int, BaseMessage] | None:
@@ -283,6 +359,53 @@ def _find_last_message(messages: list[Any], message_type: type[BaseMessage]) -> 
     return None
 
 
+def _remove_intent_system_contexts(messages: list[Any]) -> list[Any]:
+    """
+    메시지 목록에서 의도 라우팅 system 컨텍스트만 제거한다.
+
+    Args:
+        messages: 원본 상태 메시지 목록
+
+    Returns:
+        의도 라우팅 system 메시지가 제거된 새 목록
+    """
+    normalized: list[Any] = []
+    for message in messages:
+        if not isinstance(message, SystemMessage):
+            normalized.append(message)
+            continue
+        content = normalize_message_text(getattr(message, "content", ""))
+        if content.startswith(INTENT_SYSTEM_CONTEXT_PREFIX):
+            continue
+        normalized.append(message)
+    return normalized
+
+
+def _insert_system_context_at_top_block(messages: list[Any], system_context: str) -> list[Any]:
+    """
+    system 컨텍스트를 메시지 최상단 system 블록에 삽입한다.
+
+    Anthropic 계열 모델은 비연속 system 메시지 히스토리에 민감하므로
+    system 메시지는 항상 선두 연속 블록에만 위치하도록 강제한다.
+
+    Args:
+        messages: 의도 system 컨텍스트 제거가 반영된 메시지 목록
+        system_context: 주입할 의도 라우팅 system 텍스트
+
+    Returns:
+        system 컨텍스트가 선두 system 블록에 삽입된 새 목록
+    """
+    insert_index = 0
+    for message in messages:
+        if isinstance(message, SystemMessage):
+            insert_index += 1
+            continue
+        break
+    updated = list(messages)
+    updated.insert(insert_index, SystemMessage(content=system_context))
+    return updated
+
+
 def _extract_latest_tool_payload(messages: list[Any], ai_index: int, user_message: str) -> dict[str, Any]:
     """
     최종 AI 응답 직전의 ToolMessage에서 JSON payload를 추출한다.
@@ -297,10 +420,7 @@ def _extract_latest_tool_payload(messages: list[Any], ai_index: int, user_messag
     """
     tool_messages = _collect_tool_messages_for_current_turn(messages=messages, ai_index=ai_index)
     if not tool_messages:
-        for index in range(ai_index):
-            message = messages[index]
-            if isinstance(message, ToolMessage):
-                tool_messages.append(message)
+        return {}
 
     preferred_action = "mail_search" if _should_prefer_mail_search_payload(user_message=user_message) else ""
     return extract_preferred_tool_payload_from_messages(
@@ -430,3 +550,85 @@ def _normalize_trace_content(content: Any) -> Any:
     if isinstance(content, dict):
         return {str(key): _normalize_trace_content(value) for key, value in content.items()}
     return str(content)
+
+
+def _normalize_raw_model_content(content: Any) -> Any:
+    """
+    raw_model_content 저장용으로 content를 무손실 직렬화 가능한 형태로 정규화한다.
+
+    Notes:
+        디버그/파싱 용도이므로 길이 제한(truncate)을 적용하지 않는다.
+
+    Args:
+        content: 원본 content
+
+    Returns:
+        무손실 정규화 content
+    """
+    if isinstance(content, (str, int, float, bool)) or content is None:
+        return content
+    if isinstance(content, list):
+        return [_normalize_raw_model_content(item) for item in content]
+    if isinstance(content, dict):
+        return {str(key): _normalize_raw_model_content(value) for key, value in content.items()}
+    return str(content)
+
+
+def _extract_text_from_model_content(content: Any) -> str:
+    """
+    모델 content에서 텍스트 블록만 추출해 파싱/로그 입력으로 사용한다.
+
+    Args:
+        content: 메시지 content(str/list/dict)
+
+    Returns:
+        추출된 텍스트(없으면 빈 문자열)
+    """
+    if isinstance(content, str):
+        return content.strip()
+    if isinstance(content, dict):
+        text = content.get("text")
+        if isinstance(text, str):
+            return text.strip()
+        nested = content.get("content")
+        if isinstance(nested, str):
+            return nested.strip()
+        return ""
+    if isinstance(content, list):
+        lines: list[str] = []
+        for item in content:
+            line = _extract_text_from_model_content(item)
+            if line:
+                lines.append(line)
+        return "\n".join(lines).strip()
+    return ""
+
+
+def _looks_like_json_response(text: str) -> bool:
+    """
+    모델 원문 응답이 JSON 객체 형태인지 추정한다.
+
+    Args:
+        text: 모델 원문 문자열
+
+    Returns:
+        JSON 객체 형태로 보이면 True
+    """
+    normalized = str(text or "").strip()
+    return normalized.startswith("{") and normalized.endswith("}")
+
+
+def _truncate_for_raw_log(text: str) -> str:
+    """
+    raw response 로그 출력 길이를 제한한다.
+
+    Args:
+        text: 원본 텍스트
+
+    Returns:
+        제한 길이로 잘린 문자열
+    """
+    normalized = str(text or "")
+    if len(normalized) <= RAW_RESPONSE_LOG_MAX_CHARS:
+        return normalized
+    return normalized[:RAW_RESPONSE_LOG_MAX_CHARS] + TRACE_TRUNCATION_SUFFIX

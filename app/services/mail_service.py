@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import sqlite3
 from contextvars import ContextVar
 from dataclasses import dataclass
@@ -13,6 +14,7 @@ from app.services.mail_service_utils import (
     build_upsert_insert_query,
     build_upsert_update_query,
 )
+from app.services.mail_summary_queue_service import MailSummaryQueueService
 from app.services.mail_text_utils import (
     extract_recipients_from_body,
     select_salient_summary_sentences,
@@ -20,6 +22,7 @@ from app.services.mail_text_utils import (
 )
 
 logger = get_logger(__name__)
+SUMMARY_SYNC_ON_UPSERT_ENV = "MOLDUBOT_SUMMARY_SYNC_ON_UPSERT"
 
 
 @dataclass
@@ -33,6 +36,8 @@ class MailRecord:
         from_address: 발신자 주소/표시명
         received_date: 수신 일시 문자열
         body_text: 본문 텍스트
+        code_body_text: 코드 분석용 본문 텍스트(`body_full` 우선)
+        body_full_text: DB 원문 본문(`body_full`) 텍스트
         summary_text: 사전 생성된 요약 텍스트
         web_link: Outlook Web 링크
     """
@@ -42,6 +47,8 @@ class MailRecord:
     from_address: str
     received_date: str
     body_text: str
+    code_body_text: str = ""
+    body_full_text: str = ""
     summary_text: str = ""
     web_link: str = ""
 
@@ -65,6 +72,13 @@ class MailService:
         )
         self._has_summary_column_cache: bool | None = None
         self._has_web_link_column_cache: bool | None = None
+        self._summary_queue_service = MailSummaryQueueService(db_path=db_path)
+        self._summary_sync_on_upsert = _is_enabled(value=str(os.getenv(SUMMARY_SYNC_ON_UPSERT_ENV, "1")))
+        logger.info(
+            "mail_service.summary_sync_on_upsert: enabled=%s db_path=%s",
+            self._summary_sync_on_upsert,
+            self._db_path,
+        )
 
     def read_current_mail(self) -> MailRecord | None:
         """
@@ -137,59 +151,37 @@ class MailService:
             logger.warning("메일 DB 파일이 없어 upsert를 건너뜁니다: %s", self._db_path)
             return
         include_web_link = self._has_web_link_column()
-        update_query = build_upsert_update_query(include_web_link=include_web_link)
-        insert_query = build_upsert_insert_query(include_web_link=include_web_link)
+        include_summary = self._has_summary_column()
+        update_query = build_upsert_update_query(
+            include_web_link=include_web_link,
+            include_summary=include_summary,
+        )
+        insert_query = build_upsert_insert_query(
+            include_web_link=include_web_link,
+            include_summary=include_summary,
+        )
         body_preview = mail.body_text[:400]
+        summary_text = str(mail.summary_text or "").strip()
         conn = sqlite3.connect(str(self._db_path))
         try:
-            update_params = (
-                (
-                    mail.subject,
-                    mail.from_address,
-                    mail.received_date,
-                    body_preview,
-                    mail.body_text,
-                    mail.body_text,
-                    mail.web_link,
-                    mail.message_id,
-                )
-                if include_web_link
-                else (
-                    mail.subject,
-                    mail.from_address,
-                    mail.received_date,
-                    body_preview,
-                    mail.body_text,
-                    mail.body_text,
-                    mail.message_id,
-                )
+            update_params = self._build_upsert_update_params(
+                mail=mail,
+                body_preview=body_preview,
+                summary_text=summary_text,
+                include_web_link=include_web_link,
+                include_summary=include_summary,
             )
             updated = conn.execute(
                 update_query,
                 update_params,
             )
             if updated.rowcount == 0:
-                insert_params = (
-                    (
-                        mail.message_id,
-                        mail.subject,
-                        mail.from_address,
-                        mail.received_date,
-                        body_preview,
-                        mail.body_text,
-                        mail.body_text,
-                        mail.web_link,
-                    )
-                    if include_web_link
-                    else (
-                        mail.message_id,
-                        mail.subject,
-                        mail.from_address,
-                        mail.received_date,
-                        body_preview,
-                        mail.body_text,
-                        mail.body_text,
-                    )
+                insert_params = self._build_upsert_insert_params(
+                    mail=mail,
+                    body_preview=body_preview,
+                    summary_text=summary_text,
+                    include_web_link=include_web_link,
+                    include_summary=include_summary,
                 )
                 conn.execute(
                     insert_query,
@@ -198,6 +190,134 @@ class MailService:
             conn.commit()
         finally:
             conn.close()
+        if include_summary and not summary_text:
+            queued = self._summary_queue_service.enqueue_message(
+                message_id=mail.message_id,
+                requested_by="upsert",
+            )
+            if queued and self._summary_sync_on_upsert:
+                self._process_summary_queue_once()
+
+    def _process_summary_queue_once(self) -> None:
+        """
+        upsert 직후 summary queue 작업 1건을 동기 실행한다.
+        """
+        from app.services.mail_summary_queue_worker import MailSummaryQueueWorker
+
+        worker = MailSummaryQueueWorker(db_path=self._db_path)
+        worker.process_once()
+
+    def ensure_summary_for_message(
+        self,
+        message_id: str,
+        requested_by: str = "mail_context",
+        max_attempts: int = 3,
+    ) -> MailRecord | None:
+        """
+        특정 message_id의 summary/category가 비어 있으면 즉시 생성 시도를 수행한다.
+
+        Args:
+            message_id: 대상 message_id
+            requested_by: queue 적재 요청자 태그
+            max_attempts: worker 처리 최대 시도 횟수
+
+        Returns:
+            summary 보강 후 최신 메일 레코드(없으면 None)
+        """
+        normalized_message_id = str(message_id or "").strip()
+        if not normalized_message_id:
+            return None
+        current = self.read_mail_by_message_id(message_id=normalized_message_id)
+        if current is None or not self.supports_summary_storage():
+            return current
+        if str(current.summary_text or "").strip():
+            return current
+        self._summary_queue_service.enqueue_message(
+            message_id=normalized_message_id,
+            requested_by=str(requested_by or "mail_context").strip(),
+            force_requeue=True,
+        )
+        for _ in range(max(1, int(max_attempts))):
+            self._process_summary_queue_once()
+            refreshed = self.read_mail_by_message_id(message_id=normalized_message_id)
+            if refreshed is not None and str(refreshed.summary_text or "").strip():
+                return refreshed
+        return current
+
+    def _build_upsert_update_params(
+        self,
+        mail: MailRecord,
+        body_preview: str,
+        summary_text: str,
+        include_web_link: bool,
+        include_summary: bool,
+    ) -> tuple[str, ...]:
+        """
+        UPDATE upsert SQL 파라미터를 생성한다.
+
+        Args:
+            mail: 저장 대상 메일 레코드
+            body_preview: 본문 미리보기
+            summary_text: 저장 summary 텍스트
+            include_web_link: web_link 컬럼 포함 여부
+            include_summary: summary 컬럼 포함 여부
+
+        Returns:
+            UPDATE 파라미터 튜플
+        """
+        base_params = (
+            mail.subject,
+            mail.from_address,
+            mail.received_date,
+            body_preview,
+            mail.body_text,
+            mail.body_text,
+        )
+        if include_summary and include_web_link:
+            return base_params + (summary_text, mail.web_link, mail.message_id)
+        if include_summary:
+            return base_params + (summary_text, mail.message_id)
+        if include_web_link:
+            return base_params + (mail.web_link, mail.message_id)
+        return base_params + (mail.message_id,)
+
+    def _build_upsert_insert_params(
+        self,
+        mail: MailRecord,
+        body_preview: str,
+        summary_text: str,
+        include_web_link: bool,
+        include_summary: bool,
+    ) -> tuple[str, ...]:
+        """
+        INSERT upsert SQL 파라미터를 생성한다.
+
+        Args:
+            mail: 저장 대상 메일 레코드
+            body_preview: 본문 미리보기
+            summary_text: 저장 summary 텍스트
+            include_web_link: web_link 컬럼 포함 여부
+            include_summary: summary 컬럼 포함 여부
+
+        Returns:
+            INSERT 파라미터 튜플
+        """
+        base_params = (
+            mail.message_id,
+            mail.subject,
+            mail.from_address,
+            mail.received_date,
+            body_preview,
+            mail.body_text,
+            mail.body_text,
+        )
+        if include_summary and include_web_link:
+            return base_params + (summary_text, mail.web_link)
+        if include_summary:
+            return base_params + (summary_text,)
+        if include_web_link:
+            return base_params + (mail.web_link,)
+        return base_params
 
     def summarize_current_mail(self, line_target: int) -> list[str]:
         """
@@ -301,6 +421,8 @@ class MailService:
         query = (
             "SELECT message_id, subject, from_address, received_date, "
             "COALESCE(body_clean, body_full, body_preview, '') AS body_text, "
+            "COALESCE(body_full, body_clean, body_preview, '') AS code_body_text, "
+            "COALESCE(body_full, '') AS body_full_text, "
             f"{self._summary_select_clause()}, "
             f"{self._web_link_select_clause()} "
             "FROM emails ORDER BY received_date DESC LIMIT 1"
@@ -329,6 +451,8 @@ class MailService:
         query = (
             "SELECT message_id, subject, from_address, received_date, "
             "COALESCE(body_clean, body_full, body_preview, '') AS body_text, "
+            "COALESCE(body_full, body_clean, body_preview, '') AS code_body_text, "
+            "COALESCE(body_full, '') AS body_full_text, "
             f"{self._summary_select_clause()}, "
             f"{self._web_link_select_clause()} "
             "FROM emails WHERE message_id = ? LIMIT 1"
@@ -374,6 +498,15 @@ class MailService:
             return has_column
         finally:
             conn.close()
+
+    def supports_summary_storage(self) -> bool:
+        """
+        emails 테이블의 summary 저장 지원 여부를 반환한다.
+
+        Returns:
+            summary 컬럼이 존재하면 True
+        """
+        return self._has_summary_column()
 
     def _build_context_only_post_action_payload(self, action: str) -> dict[str, Any]:
         """
@@ -424,3 +557,16 @@ class MailService:
             return has_column
         finally:
             conn.close()
+
+
+def _is_enabled(value: str) -> bool:
+    """
+    환경변수 활성화 문자열을 bool로 변환한다.
+
+    Args:
+        value: 환경변수 값
+
+    Returns:
+        활성화 여부
+    """
+    return str(value or "").strip().lower() not in {"0", "false", "off", "no"}

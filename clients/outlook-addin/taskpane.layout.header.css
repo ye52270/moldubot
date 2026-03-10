@@ -1,0 +1,203 @@
+/* ========================================
+   MolduBot – Taskpane Layout Header
+   ======================================== */
+
+.chat-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px 0;
+  flex-shrink: 0;
+}
+
+.chat-toolbar::before {
+  content: '몰두봇';
+  font-size: 13px;
+  font-weight: 760;
+  color: color-mix(in srgb, var(--color-text) 95%, #2f271a);
+  letter-spacing: -0.01em;
+}
+
+.selected-mail-banner {
+  margin: 8px auto 0;
+  width: min(calc(100% - (var(--pane-gutter) * 2)), var(--chat-thread-max-width));
+  max-width: min(calc(100% - (var(--pane-gutter) * 2)), var(--chat-thread-max-width));
+  padding: 11px 12px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 86%, #d6cab8);
+  border-radius: 10px;
+  background: color-mix(in srgb, #ede8dc 72%, var(--color-surface));
+  box-shadow: 0 1px 2px rgba(44, 36, 22, 0.04);
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.selected-mail-banner-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--color-primary-light) 66%, #f2e4d4);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  color: color-mix(in srgb, var(--color-text-secondary) 86%, #8f8579);
+}
+
+.selected-mail-banner-main {
+  min-width: 0;
+}
+
+.selected-mail-banner-subject {
+  font-size: 12px;
+  font-weight: 720;
+  line-height: 1.32;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.selected-mail-banner-meta {
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.selected-mail-banner-badges {
+  margin-top: 5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.selected-mail-banner-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  padding: 2px 7px;
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+.selected-mail-banner-badge-icon {
+  display: none;
+}
+
+.selected-mail-banner-badge-urgent {
+  color: color-mix(in srgb, #8a3e00 86%, var(--color-text));
+  background: color-mix(in srgb, #fff2d9 86%, var(--chat-card-bg-soft));
+  border-color: color-mix(in srgb, #f0b767 60%, var(--color-border));
+}
+
+.selected-mail-banner-badge-reply {
+  color: color-mix(in srgb, #2f5d89 86%, var(--color-text));
+  background: color-mix(in srgb, #eaf3ff 84%, var(--chat-card-bg-soft));
+  border-color: color-mix(in srgb, #96b8e8 55%, var(--color-border));
+}
+
+.selected-mail-banner-badge-important {
+  color: color-mix(in srgb, #6a4a14 86%, var(--color-text));
+  background: color-mix(in srgb, #fff6dc 84%, var(--chat-card-bg-soft));
+  border-color: color-mix(in srgb, #e5c274 60%, var(--color-border));
+}
+
+.selected-mail-banner-badge-normal {
+  color: color-mix(in srgb, #416aa3 72%, var(--color-text));
+  background: color-mix(in srgb, #e6edf6 82%, var(--chat-card-bg-soft));
+  border-color: color-mix(in srgb, #c6d4ea 62%, var(--color-border));
+}
+
+.selected-mail-open-btn {
+  border: 1px solid color-mix(in srgb, var(--color-border) 84%, #d7cab7);
+  background: color-mix(in srgb, var(--color-surface) 96%, #f7f0e5);
+  color: color-mix(in srgb, var(--color-text-secondary) 80%, #74695d);
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.selected-mail-open-btn:hover {
+  color: var(--color-text);
+  border-color: color-mix(in srgb, var(--color-primary) 42%, var(--color-border));
+}
+
+.selected-mail-open-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.selected-mail-open-btn svg {
+  width: 15px;
+  height: 15px;
+}
+
+.toolbar-icon-btn {
+  width: 32px;
+  height: 32px;
+}
+
+.toolbar-icon-btn,
+.new-session-btn {
+  border: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-surface) 94%, transparent);
+  color: var(--color-text-secondary);
+  border-radius: var(--radius-full);
+  transition: border-color 120ms ease, color 120ms ease, background 120ms ease;
+}
+
+.toolbar-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.toolbar-icon-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.toolbar-icon-btn:hover {
+  border-color: color-mix(in srgb, var(--color-primary) 50%, var(--color-border));
+  color: var(--color-text);
+  background: color-mix(in srgb, var(--color-primary-light) 70%, var(--color-surface));
+}
+
+.new-session-btn {
+  height: 32px;
+  padding: 0 11px;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+  transition: border-color 120ms ease, color 120ms ease, background 120ms ease;
+}
+
+.new-session-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.new-session-btn:hover {
+  border-color: color-mix(in srgb, var(--color-primary) 50%, var(--color-border));
+  color: var(--color-text);
+  background: color-mix(in srgb, var(--color-primary-light) 70%, var(--color-surface));
+}

@@ -9,8 +9,7 @@ from statistics import mean
 from typing import Any
 from urllib import error, request
 
-from openai import OpenAI, OpenAIError
-
+from app.core.llm_runtime import invoke_text_messages, resolve_env_model
 from app.core.logging_config import get_logger
 from app.services.chat_eval_quality_metrics import build_quality_metrics
 
@@ -37,6 +36,14 @@ GROUNDING_STOPWORDS = {
     "with",
 }
 EVIDENCE_TOP_K = 5
+JUDGE_MAX_ATTEMPTS = 2
+JUDGE_RAW_LOG_MAX_CHARS = 1200
+_EVIDENCE_SNIPPET_FALLBACK_KEYS: tuple[str, ...] = (
+    "snippet",
+    "summary_text",
+    "body_excerpt",
+    "body_preview",
+)
 
 
 def default_chat_caller(
@@ -71,8 +78,12 @@ def default_chat_caller(
 
 
 def build_default_judge_caller(judge_model: str) -> Any:
-    """OpenAI 기반 LLM Judge 호출 함수를 생성한다."""
-    client = OpenAI()
+    """LLM Judge 호출 함수를 생성한다."""
+    resolved_model = resolve_env_model(
+        primary_env="MOLDUBOT_JUDGE_MODEL",
+        fallback_envs=(),
+        default_model=judge_model,
+    )
 
     def _judge(
         query: str,
@@ -127,28 +138,162 @@ def build_default_judge_caller(judge_model: str) -> Any:
             ensure_ascii=False,
         )
 
-        try:
-            completion = client.chat.completions.create(
-                model=judge_model,
-                response_format={"type": "json_object"},
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt},
-                ],
-            )
-            raw = str(completion.choices[0].message.content or "{}").strip()
-            parsed = normalize_judge_result(raw_result=raw)
-        except OpenAIError as exc:
-            logger.warning("chat_eval.judge_openai_failed: %s", exc)
-            parsed = judge_failure(reason=f"judge_openai_error: {exc}")
-        except (KeyError, IndexError, TypeError) as exc:
-            logger.warning("chat_eval.judge_response_invalid: %s", exc)
-            parsed = judge_failure(reason=f"judge_response_invalid: {exc}")
+        parsed = _run_judge_with_retry(
+            model_name=resolved_model,
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+        )
 
         elapsed_ms = round((time.perf_counter() - started) * 1000, 1)
         return parsed, elapsed_ms
 
     return _judge
+
+
+def _run_judge_with_retry(model_name: str, system_prompt: str, user_prompt: str) -> dict[str, Any]:
+    """
+    Judge LLM 응답을 재시도 포함해 파싱/정규화한다.
+
+    Args:
+        model_name: Judge 모델명
+        system_prompt: 시스템 프롬프트
+        user_prompt: 사용자 프롬프트
+
+    Returns:
+        정규화된 judge 결과 JSON
+    """
+    last_error: Exception | None = None
+    for attempt in range(1, JUDGE_MAX_ATTEMPTS + 1):
+        try:
+            raw_text = invoke_text_messages(
+                model_name=model_name,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+                timeout_sec=60,
+            )
+            logger.info(
+                "chat_eval.judge_raw_response: attempt=%s length=%s content=%s",
+                attempt,
+                len(str(raw_text or "")),
+                _truncate_judge_raw_for_log(text=raw_text),
+            )
+            return normalize_judge_result(raw_result=_extract_judge_json_text(raw_text=raw_text))
+        except (json.JSONDecodeError, ValueError, KeyError, IndexError, TypeError) as exc:
+            last_error = exc
+            logger.warning("chat_eval.judge_parse_failed: attempt=%s error=%s", attempt, exc)
+            continue
+        except Exception as exc:  # pragma: no cover - provider/runtime transient error
+            last_error = exc
+            logger.warning("chat_eval.judge_llm_failed: attempt=%s error=%s", attempt, exc)
+            continue
+    return judge_failure(reason=f"judge_llm_error: {last_error}")
+
+
+def _extract_judge_json_text(raw_text: str) -> str:
+    """
+    Judge 응답 텍스트에서 첫 JSON 객체 문자열을 추출한다.
+
+    Args:
+        raw_text: Judge 원문 응답
+
+    Returns:
+        JSON 객체 문자열
+
+    Raises:
+        ValueError: JSON 객체를 찾지 못한 경우
+    """
+    compact = _strip_markdown_json_fence(text=raw_text)
+    if not compact:
+        raise ValueError("empty_judge_response")
+    if compact.startswith("{") and compact.endswith("}"):
+        return compact
+    start_index = compact.find("{")
+    if start_index < 0:
+        raise ValueError("json_object_not_found")
+    end_index = _find_json_object_end(text=compact, start_index=start_index)
+    if end_index < 0:
+        raise ValueError("json_object_unclosed")
+    return compact[start_index : end_index + 1]
+
+
+def _strip_markdown_json_fence(text: str) -> str:
+    """
+    ```json ... ``` 형태의 마크다운 코드 펜스를 제거한다.
+
+    Args:
+        text: 원문 텍스트
+
+    Returns:
+        펜스 제거 후 텍스트
+    """
+    compact = str(text or "").strip()
+    if not compact.startswith("```"):
+        return compact
+    lines = compact.splitlines()
+    if not lines:
+        return compact
+    if lines[0].startswith("```"):
+        lines = lines[1:]
+    if lines and lines[-1].strip().startswith("```"):
+        lines = lines[:-1]
+    return "\n".join(lines).strip()
+
+
+def _find_json_object_end(text: str, start_index: int) -> int:
+    """
+    문자열 내 첫 JSON 객체의 끝 인덱스를 찾는다.
+
+    Args:
+        text: 검색 대상 문자열
+        start_index: JSON 객체 시작 인덱스(`{`)
+
+    Returns:
+        JSON 객체 끝 인덱스(`}`), 없으면 -1
+    """
+    depth = 0
+    in_string = False
+    escaped = False
+    for index in range(start_index, len(text)):
+        ch = text[index]
+        if in_string:
+            if escaped:
+                escaped = False
+                continue
+            if ch == "\\":
+                escaped = True
+                continue
+            if ch == '"':
+                in_string = False
+            continue
+        if ch == '"':
+            in_string = True
+            continue
+        if ch == "{":
+            depth += 1
+            continue
+        if ch == "}":
+            depth -= 1
+            if depth == 0:
+                return index
+    return -1
+
+
+def _truncate_judge_raw_for_log(text: str) -> str:
+    """
+    Judge raw 응답을 로그 길이 제한으로 절단한다.
+
+    Args:
+        text: 원문 텍스트
+
+    Returns:
+        절단된 로그 텍스트
+    """
+    compact = str(text or "")
+    if len(compact) <= JUDGE_RAW_LOG_MAX_CHARS:
+        return compact
+    return f"{compact[:JUDGE_RAW_LOG_MAX_CHARS]}...(truncated)"
 
 
 def normalize_judge_result(raw_result: str) -> dict[str, Any]:
@@ -261,6 +406,9 @@ def build_judge_context(metadata: dict[str, Any]) -> dict[str, Any]:
         "search_result_count": max(0, search_result_count),
         "evidence_count": max(0, aligned_evidence_count),
         "source": str(metadata.get("source") or ""),
+        "query_type": str(metadata.get("query_type") or ""),
+        "resolved_scope": str(metadata.get("resolved_scope") or ""),
+        "used_current_mail_context": bool(metadata.get("used_current_mail_context")),
         "evidence_top_k": evidence_top_k,
     }
 
@@ -364,11 +512,28 @@ def extract_evidence_top_k(metadata: dict[str, Any], top_k: int) -> list[dict[st
         extracted.append(
             {
                 "subject": str(item.get("subject") or "").strip(),
-                "snippet": str(item.get("snippet") or "").strip(),
+                "snippet": extract_evidence_snippet(item=item),
                 "received_date": str(item.get("received_date") or "").strip(),
             }
         )
     return extracted
+
+
+def extract_evidence_snippet(item: dict[str, Any]) -> str:
+    """
+    evidence 메일 항목에서 Judge 표시용 스니펫을 우선순위 기반으로 추출한다.
+
+    Args:
+        item: evidence 메일 항목
+
+    Returns:
+        스니펫 문자열
+    """
+    for key in _EVIDENCE_SNIPPET_FALLBACK_KEYS:
+        value = str(item.get(key) or "").strip()
+        if value:
+            return value
+    return str(item.get("subject") or "").strip()
 
 
 def rule_based_no_result_judge(
@@ -432,6 +597,11 @@ def rule_based_retrieval_grounding_guard(
     judge_context: dict[str, Any],
 ) -> dict[str, Any] | None:
     """retrieval 질의에서 답변-근거 불일치를 규칙 기반으로 선판정한다."""
+    query_type = str(judge_context.get("query_type") or "").strip().lower()
+    resolved_scope = str(judge_context.get("resolved_scope") or "").strip().lower()
+    used_current_mail_context = bool(judge_context.get("used_current_mail_context"))
+    if query_type == "current_mail" or resolved_scope == "current_mail" or used_current_mail_context:
+        return None
     if not is_retrieval_query(query=query):
         return None
     search_result_count = int(judge_context.get("search_result_count") or 0)

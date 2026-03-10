@@ -10,9 +10,15 @@ from app.api.bootstrap_meeting_calendar_routes import router as meeting_calendar
 from app.api.bootstrap_ops_routes import router as ops_router
 from app.api.contracts import ConfirmRequest, IntentResolveRequest, SearchByIdRequest
 from app.core.metrics import get_chat_metrics_tracker
+from app.services.next_action_recommender import recommend_next_actions
 
 router = APIRouter()
 chat_metrics = get_chat_metrics_tracker()
+CONFIRM_ACTION_TO_QUERY: dict[str, str] = {
+    "create_outlook_todo": "현재메일 기반으로 조치 필요 사항을 ToDo로 등록해줘",
+    "book_meeting_room": "현재메일 기준으로 회의실 예약해줘",
+    "create_outlook_calendar_event": "현재메일 제안 내용으로 일정 생성해줘",
+}
 
 
 @router.get("/search/chat/metrics")
@@ -67,16 +73,66 @@ def search_chat_confirm(payload: ConfirmRequest) -> dict[str, Any]:
         }
     booking_event = _extract_booking_event_metadata(tool_payload=tool_payload)
     todo_task = _extract_todo_task_metadata(tool_payload=tool_payload)
+    confirm_status, confirm_answer = _resolve_confirm_status_and_answer(
+        agent_status=status,
+        approved=bool(payload.approved),
+        answer=answer,
+        tool_payload=tool_payload,
+    )
+    next_actions = _resolve_confirm_next_actions(
+        approved=bool(payload.approved) and confirm_status == "completed",
+        tool_payload=tool_payload,
+        answer=answer,
+    )
     return {
-        "status": "completed" if status == "completed" else "failed",
+        "status": confirm_status,
         "thread_id": thread_id,
-        "answer": answer or ("승인 처리되었습니다." if payload.approved else "요청을 취소했습니다."),
+        "answer": confirm_answer,
         "metadata": {
             "confirm": {"approved": bool(payload.approved)},
             "booking_event": booking_event,
             "todo_task": todo_task,
+            "next_actions": next_actions,
         },
     }
+
+
+def _resolve_confirm_status_and_answer(
+    agent_status: str,
+    approved: bool,
+    answer: str,
+    tool_payload: object,
+) -> tuple[str, str]:
+    """
+    confirm 처리 결과 상태/응답 문구를 확정한다.
+
+    Args:
+        agent_status: 에이전트 실행 상태
+        approved: 사용자 승인 여부
+        answer: 에이전트 응답 문구
+        tool_payload: 최신 tool payload
+
+    Returns:
+        (상태, 응답 문구) 튜플
+    """
+    payload = tool_payload if isinstance(tool_payload, dict) else {}
+    tool_status = str(payload.get("status") or "").strip().lower()
+    tool_reason = str(payload.get("reason") or "").strip()
+    if approved and tool_status == "failed":
+        return (
+            "failed",
+            tool_reason or str(answer or "").strip() or "승인된 작업 실행에 실패했습니다.",
+        )
+    resolved_status = "completed" if str(agent_status or "").strip() == "completed" else "failed"
+    if resolved_status == "completed":
+        return (
+            resolved_status,
+            str(answer or "").strip() or ("승인 처리되었습니다." if approved else "요청을 취소했습니다."),
+        )
+    return (
+        resolved_status,
+        str(answer or "").strip() or tool_reason or "승인 처리 중 오류가 발생했습니다.",
+    )
 
 
 @router.post("/intents/resolve")
@@ -187,6 +243,35 @@ def _extract_todo_task_metadata(tool_payload: object) -> dict[str, str]:
         "title": title,
         "due_date": due_date,
     }
+
+
+def _resolve_confirm_next_actions(approved: bool, tool_payload: object, answer: str) -> list[dict[str, str]]:
+    """
+    confirm 완료 응답용 후속 next action 목록을 계산한다.
+
+    Args:
+        approved: 사용자 승인 여부
+        tool_payload: 최신 tool payload
+        answer: agent 답변 텍스트
+
+    Returns:
+        추천 next action 목록(없으면 빈 리스트)
+    """
+    if not approved:
+        return []
+    payload = tool_payload if isinstance(tool_payload, dict) else {}
+    action = str(payload.get("action") or "").strip().lower()
+    base_query = CONFIRM_ACTION_TO_QUERY.get(action, "")
+    if not base_query:
+        return []
+    resolved_answer = str(answer or "").strip()
+    return recommend_next_actions(
+        user_message=base_query,
+        answer=resolved_answer,
+        tool_payload=payload,
+        intent_task_type="action",
+        intent_output_format="",
+    )
 
 
 router.include_router(meeting_calendar_router)

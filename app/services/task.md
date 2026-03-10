@@ -4,11 +4,225 @@
 - Describe this folder's responsibility.
 
 ## Change History
+- 2026-02-28 (before): 선택 메일 `message_id` 기준 컨텍스트 조회(DB 캐시 + Graph fallback) 서비스 추가 작업 시작.
+- 2026-02-28 (after): `mail_context_service.py`를 추가해 `message_id` 기준 DB 캐시 조회 후 Graph fallback 조회/DB upsert/현재 메일 캐시 동기화를 구현.
+- 2026-02-28 (before): 4차 지연 최적화를 위해 현재 메일 조회를 `run_post_action` 단일 액션(`current_mail`)으로 통합하는 작업 시작.
+- 2026-02-28 (after): `run_post_action`에 `current_mail` 액션을 추가해 현재 메일 조회까지 단일 post-action 경로로 처리하도록 확장.
 - 2026-02-28: Folder initialized as part of ideal project structure refactor.
+- 2026-02-28 (before): 지연 최적화를 위해 메일 후속작업 단일 tool 실행 범위(`summary/report/key_facts/recipients/summary_with_key_facts`) 확장 작업 시작.
+- 2026-02-28 (after): `mail_service.run_post_action`에 `key_facts`, `recipients`, `summary_with_key_facts` 액션을 추가해 단일 tool 호출로 복합 메일 후속작업을 처리할 수 있도록 확장.
+- 2026-02-28 (before): 예약 날짜 해석 불일치 원인 추적을 위해 `meeting_service.py` 예약 검증 분기별 상세 로깅 추가 작업 시작.
+- 2026-02-28 (after): `meeting_service.py`에 예약 요청 수신/검증 실패(형식, 과거일, 인원, 마스터 불일치, 정원 초과, 충돌) 분기별 WARNING 로그를 추가해 원인 추적성을 강화.
+- 2026-02-28 (before): 요약/보고서/복합 요청 후처리 분기 안정화를 위해 `answer_postprocessor` 라우팅 검증 테스트 보강 작업 시작.
+- 2026-02-28 (after): `answer_postprocessor`의 문장 분해 fallback 조건을 `요약 라인 0건`으로 보정해 1건 요약 라인이 헤더로 오염되는 회귀를 제거.
 - 2026-02-28 (before): 로컬 SQLite 메일 조회/요약/핵심추출/수신자추출 및 회의실 조회/예약의 실제 처리 서비스를 추가하는 작업 시작.
 - 2026-02-28 (after): `mail_service.py`, `meeting_service.py`, `task_execution_service.py`를 추가해 실제 메일 조회/요약/핵심추출/수신자 추출/예약(충돌 검사 포함) 처리 경로를 구현하고 `내일` 예약 날짜 추론 보정을 반영.
 - 2026-02-28 (before): 3단계 표준화를 위해 메일 조회 후속작업(요약/보고서)을 단일 서비스 경로로 제공하는 API를 `mail_service.py`에 추가하는 작업 시작.
 - 2026-02-28 (after): `mail_service.py`에 `run_post_action(action, summary_line_target)`와 보고서 마크다운 합성 경로를 추가해 메일 조회 후속작업(요약/보고서)이 동일 서비스 경로를 재사용하도록 표준화.
+- 2026-02-28 (before): 예약 품질 강화를 위해 `meeting_service.py`에 예약 입력 검증(과거일/회의실 마스터/수용인원) 가드 추가 작업 시작.
+- 2026-02-28 (after): `meeting_service.py`에 예약 가드(과거일 차단, attendee_count 하한, 회의실 마스터 존재 검증, 정원 초과 차단)를 추가해 모델 추측값으로 잘못된 예약이 저장되지 않도록 보강.
+- 2026-02-28 (before): 최종 응답 품질을 일정하게 유지하기 위해 요약/보고서 응답 후처리(줄수/중복/포맷 정규화) 서비스를 추가하는 작업 시작.
+- 2026-02-28 (after): `answer_postprocessor.py`를 추가해 요약 요청의 줄수 보정/중복 제거/헤더 제거를 공통 처리하고 최종 응답 텍스트를 계약 기반으로 정규화.
+- 2026-02-28 (before): 요약 품질 개선을 위해 후처리에서 메타 문장(요약 안내문/서론) 제거 규칙을 추가하는 작업 시작.
+- 2026-02-28 (after): `answer_postprocessor.py`에 요약 메타 안내문(“요약하였습니다”, “다음과 같습니다”, “N줄로 요약”) 제거 규칙을 추가해 본문 요약 라인만 남도록 보정.
+- 2026-02-28 (before): 보고서 요청이 summary 후처리에 잘리는 회귀를 해결하기 위해 `answer_postprocessor.py` 라우팅 조건(`report` 우선)을 보정하는 작업 시작.
+- 2026-02-28 (after): `answer_postprocessor.py`에 `report` 요청 우선 분기를 추가해 summary 후처리를 건너뛰도록 수정하고, `/search/chat` 실호출에서 보고서 본문이 줄단위 요약으로 축약되지 않음을 확인.
 
 ## Update Rule
 - Before and after any code change in this folder, append a detailed log entry.
+- 2026-03-02 (before): `standard_summary` 기본 정보 섹션에서 데이터 없는 항목을 강제 표출하지 않고, 값이 있는 행만 렌더링하도록 정책 조정 작업 시작.
+- 2026-03-02 (after): `render_standard_summary_contract`를 보강해 기본 정보 테이블은 값이 있는 행만 렌더링하고(`-`/빈값 행 제외), 전부 비면 `확인 가능한 기본 정보가 없습니다.` 안내 문구를 출력하도록 변경.
+- 2026-03-01 (before): `MailService`의 현재메일 캐시를 전역 상태에서 요청 컨텍스트 격리 방식으로 전환해 동시성 오염을 줄이는 작업 시작.
+- 2026-03-01 (after): `MailService`의 `current_mail` 캐시를 Lock+인스턴스 변수에서 `ContextVar` 기반으로 전환해 동시 요청 간 상태 오염 가능성을 낮춤.
+- 2026-03-01 (before): JSON 파싱 성공 응답에서도 품질이 낮은 문제를 줄이기 위해 후처리에 헤더성 요약 라인 필터와 기본 요약 표준 템플릿 렌더(`현재메일 요약해줘`)를 추가하는 작업 시작.
+- 2026-03-01 (after): `answer_postprocessor.py`에 `standard_summary/detailed_summary` 섹션형 렌더를 추가하고, `현재메일 요약해줘`(줄 수 미명시) 질의에서 `summary` 포맷이 와도 표준 템플릿으로 렌더링되도록 보정.
+- 2026-03-01 (after): 요약 라인 정규화(`_sanitize_summary_lines`)와 헤더성 라인 탐지(`_is_header_like_line`)를 추가해 `From/Sent/To/Subject` 등 메타 라인이 핵심 요약으로 노출되는 문제를 차단.
+- 2026-03-01 (before): 사용자 템플릿 고정 출력을 위해 `answer_postprocessor`에 `현재메일 N줄 요약` 전용 렌더(번호+강조+설명)와 `현재메일 요약` 표준 마크다운 템플릿(제목/기본정보 테이블/핵심이슈/주요내용/조치사항/최종요약)을 추가하는 작업 시작.
+- 2026-03-01 (before): AGENTS 500줄 규칙 준수를 위해 `answer_postprocessor.py`의 렌더링/요약 헬퍼를 모듈 분리(`rendering`, `summary`)하는 리팩터링 작업 시작.
+- 2026-03-01 (after): `answer_postprocessor` 후처리에 사용자 템플릿 렌더를 반영해 `현재메일 N줄 요약`은 동적 N 번호 강조형(번호+굵은 핵심+설명), `현재메일 요약`은 표준 마크다운 템플릿(제목/기본정보 테이블/핵심 문제/주요 내용/조치 사항/최종 요약)으로 고정.
+- 2026-03-01 (after): 500줄 규칙 준수를 위해 `answer_postprocessor.py`를 오케스트레이션/렌더링/요약 모듈 3개(`answer_postprocessor.py`, `answer_postprocessor_rendering.py`, `answer_postprocessor_summary.py`)로 분리하고 기존 테스트 회귀 없이 통과를 확인.
+- 2026-03-01 (before): 사용자 템플릿 유사도를 높이기 위해 표준 요약 `주요 내용` 중 전달 경로 항목을 코드블록으로 출력하는 렌더 규칙 추가 작업 시작.
+- 2026-03-01 (after): `answer_postprocessor_rendering.py`의 `render_major_points`에 전달 경로 코드블록 렌더(`#### 전달 경로` + fenced block) 규칙을 추가해 사용자 기대 포맷 유사도를 개선.
+- 2026-03-01 (before): 표준 요약 품질 모니터링을 위해 `standard_summary` 필드 충족률/누락 필드 로깅을 추가하고, 비정형 응답에서 템플릿 fallback 보정 규칙을 강화하는 작업 시작.
+- 2026-03-01 (after): `answer_postprocessor_rendering.py`에 `standard_summary_quality` 로그를 추가해 누락 필드(title/sender/recipient/date/core_issue/major_points/required_actions/one_line_summary)를 기록하고 품질 관측성을 강화.
+- 2026-03-01 (after): `standard_summary`에서 `major_points/required_actions/core_issue`가 비어도 `answer` 텍스트 기반 추론으로 보완하도록 렌더 fallback을 강화해 템플릿 붕괴를 완화.
+- 2026-03-01 (before): 실로그 기반 보정으로 `현재메일 N줄 요약` 요청 시 모델이 `standard_summary`를 반환해도 N줄 요약 렌더를 강제하고, 라인 수 미충족(예: 5줄 요청에 4줄 응답) 보완 로직을 추가하는 작업 시작.
+- 2026-03-01 (after): `should_render_standard_summary`에서 `현재메일 N줄 요약` 요청을 최우선으로 제외해 모델 `format_type=standard_summary` 오응답 시에도 N줄 요약 렌더를 강제.
+- 2026-03-01 (after): `_build_summary_lines_for_target`를 추가해 `summary_lines/major_points/key_points/action_items/required_actions/core_issue/answer` 후보를 합성·확장하고 부족분을 보완해 요청 줄 수를 최대한 충족하도록 개선.
+- 2026-03-01 (before): JSON 계약 미준수 원인 파악을 위해 `answer_postprocessor`에 fallback 진입 사유별 로그(추출/디코드/검증/렌더)를 추가하는 작업 시작.
+- 2026-03-01 (after): `answer_postprocessor`에 `json_parse_failed`(empty/json_object_not_found/json_decode_error/payload_not_object/schema_validation_error) 및 `fallback_route` 로그를 추가해 계약 미준수 원인을 실시간 식별 가능하도록 개선.
+- 2026-03-01 (after): 파싱 성공 시 `json_parse_success(format_type, summary_lines/key_points/action_items count)` 로그를 추가하고, 파싱 실패 로그에 `answer_length`를 포함해 케이스 간 비교 분석이 가능하도록 보강.
+- 2026-03-01 (before): LLM JSON 응답 품질 안정화를 위해 `answer_postprocessor`에 JSON 파싱/계약 검증/요약·상세 렌더 강제 로직을 추가하는 작업 시작.
+- 2026-03-01 (after): `answer_postprocessor.py`에 JSON 계약 파싱(`_parse_llm_response_contract`)과 형식별 렌더(`summary/detailed_summary/report/general`)를 추가하고, `자세히|상세` 요청에서 최소 8줄 요약 강제를 적용.
+- 2026-02-28 (before): 선택 메일 전환 실패 시 stale 상태를 제거하기 위해 `MailService` current mail 캐시 초기화 메서드 추가 작업 시작.
+- 2026-02-28 (after): `mail_service.py`에 `clear_current_mail()`을 추가해 선택 메일 전환 실패 시 current mail 캐시를 명시적으로 초기화할 수 있도록 개선.
+- 2026-03-01 (before): DB 저장 메일의 `summary` 필드 재사용을 위해 `MailService` 조회 모델(`MailRecord`)에 요약 텍스트를 포함하고 summary 컬럼 유무를 반영한 조회 쿼리 개선 작업 시작.
+- 2026-03-01 (after): `MailRecord.summary_text` 필드를 추가하고 `MailService` 조회 쿼리에 summary 별칭(`summary_text`)을 포함. `PRAGMA table_info(emails)` 기반 summary 컬럼 존재 여부를 캐시해 컬럼이 있는 DB에서는 저장 요약을 읽고, 없는 DB도 기존 쿼리로 호환되도록 개선.
+- 2026-03-01 (before): `mail_service.py` 500줄 초과 해소와 공통 요약 파이프라인 재사용성을 위해 텍스트 처리/렌더 유틸을 별도 모듈로 분리하는 리팩터링 작업 시작.
+- 2026-03-01 (after): `mail_text_utils.py`를 추가해 문장분리/라인타겟 보정/수신자 추출/보고서 마크다운 합성을 분리하고 `mail_service.py`에서 공통 유틸을 재사용하도록 정리. `MailContextService.run_post_action` 메서드를 추가해 API가 서비스 레이어 단일 경로를 호출하도록 확장.
+- 2026-03-01 (before): standard_summary 품질 저하(제목 누락/추상화) 개선을 위해 post-action 페이로드 강화(메일 메타+본문 근거) 및 요약 action 매핑 프롬프트 보강 작업 시작.
+- 2026-03-01 (after): `mail_service.run_post_action(summary/summary_with_key_facts/report)` 결과에 `mail_context(subject/from/date/summary_text/body_excerpt)`를 추가해 LLM이 제목/핵심 근거를 안정적으로 확보하도록 개선.
+- 2026-03-01 (after): `answer_postprocessor_summary`에 signature/contact 노이즈 필터(`is_signature_noise_line`)를 추가해 `N줄 요약` 보강 라인에서 전화번호/드림/이메일 단독 라인 혼입을 제거.
+- 2026-03-01 (before): N줄 요약 품질 개선을 위해 저가치/상투 문장(확인 부탁드립니다, 자기소개 라인 등) 차단 규칙 및 핵심 키워드 기반 라인 선별 보강 작업 시작.
+- 2026-03-01 (after): `answer_postprocessor_summary`에 `is_low_value_summary_line` 규칙을 추가해 상투 문장(확인 부탁드립니다/감사합니다) 및 자기소개 라인을 N줄 요약 후보에서 제외하도록 보강.
+- 2026-03-01 (before): JSON 파싱 성공 후에도 품질이 낮은 케이스를 줄이기 위해 tool payload 기반 contract 보강 로직(표준요약 필드/명시 줄요약 라인) 추가 작업 시작.
+- 2026-03-01 (after): `postprocess_final_answer`에 tool_payload 보강 로직을 추가해 standard_summary 제목/basic_info와 명시 줄요약 summary_lines를 도구 결과 기반으로 보정.
+- 2026-03-01 (before): 현재메일 N줄 요약 품질 개선을 위해 MailService 요약문 생성 로직을 단순 앞문장 추출에서 핵심문장 점수화 기반으로 개편하는 작업 시작.
+- 2026-03-01 (after): `mail_text_utils.select_salient_summary_sentences`를 추가해 헤더/상투 문장 제거 + 핵심 키워드 점수화 선별을 적용하고 `MailService.summarize_current_mail/extract_key_facts`에 반영.
+- 2026-03-01 (before): 현재메일 N줄 요약에서 본문 재진술/중복 라인을 줄이기 위해 tool 후보 우선 로직과 summary line 중복/전달문 필터 강화 작업 시작.
+- 2026-03-01 (after): `postprocess_final_answer`의 explicit line summary 보강에서 `mail_context.body_excerpt` 기반 grounded lines가 충분할 때 이를 우선 사용하도록 변경해 본문 재진술/상투 문장 유입을 완화.
+- 2026-03-01 (after): explicit line summary 보강에서 `mail_context.summary_text`를 1순위 근거로 사용하고, 부족분만 body_excerpt 선별 라인으로 보완하도록 변경.
+- 2026-03-01 (before): explicit line summary에서 모델 summary_lines와 tool 후보가 중복 합성되는 문제를 해결하기 위해 단일 소스 선택 전략(모델 우선/fallback grounded) 및 strict 렌더 경로 도입 작업 시작.
+- 2026-03-01 (after): explicit line summary 보강 로직을 단일 소스 선택(model 충분 시 model만, 부족 시 grounded, 그 외 tool fallback)으로 재구성하고 mixed merge를 제거해 중복/본문 나열 현상을 완화.
+- 2026-03-01 (before): explicit line summary 줄수 보강 시 문장 분할로 중복이 생기는 문제를 해결하기 위해 보강 소스를 major_points/required_actions로 전환하는 작업 시작.
+- 2026-03-01 (after): `answer_postprocessor_rendering._build_explicit_line_summary`에서 `_expand_lines`(문장 절단 보강)를 제거하고, 부족 라인을 `major_points/required_actions/action_items/key_points/core_issue/one_line_summary/answer` 우선 보강으로 교체해 N줄 요약의 중복/절단을 완화.
+- 2026-03-01 (before): tool 과역할 해소를 위해 `run_post_action(summary_with_key_facts)` 반환을 context-only로 축소하고 explicit line postprocessor를 모델 우선 전략으로 단순화하는 작업 시작.
+- 2026-03-01 (after): `run_post_action(summary_with_key_facts)`를 `deprecated_context_only` payload로 전환해 tool이 생성 요약(summary_lines/key_facts)을 직접 반환하지 않도록 축소.
+- 2026-03-01 (after): explicit line summary postprocessor를 model-first로 단순화하고 tool payload의 생성 라인(summary_lines/key_facts) 병합 로직을 제거.
+- 2026-03-01 (after): `run_post_action`를 `current_mail` 외 액션도 모두 `status=context_only + mail_context` 계약으로 통일하고, `_build_report_payload`/보고서 마크다운 생성 경로를 제거해 tool의 생성 책임을 정리.
+- 2026-03-01 (before): DB 우선 메일 조건 조회를 위해 하이브리드 검색 서비스(키워드 + 벡터 유사도 재랭킹) 추가 작업 시작.
+- 2026-03-01 (after): `mail_search_service.py`를 추가해 SQLite 후보 조회 + 해시 임베딩 코사인 + RRF 재랭킹 기반 `mail_search` payload를 반환하도록 구현.
+- 2026-03-01 (after): `mail_service.py`/`mail_context_service.py`에 `web_link` 저장·전달 및 `from_display_name` 보강을 반영해 근거메일 UI 메타(제목/날짜/발신자/링크) 근거를 제공.
+- 2026-03-01 (before): `mail_service.py` 500줄 초과 상태(534줄)와 헬퍼 중복 정의를 해소하기 위해 `mail_service_utils.py` 이관 마무리 작업 시작.
+- 2026-03-01 (after): `mail_service.py`의 `_build_mail_record_from_row/_build_mail_context_payload/_build_upsert_*` 중복 정의를 제거하고 `mail_service_utils.py` 함수만 사용하도록 정리해 파일 길이를 431줄로 축소.
+- 2026-03-01 (after): 리팩터링 이후 메일 서비스 회귀 테스트(`tests.test_mail_search_service`, `tests.test_mail_context_service`, `tests.test_mail_post_action`, `tests.test_search_chat_selected_mail_context`, `tests.test_agent_tools_registry`, `tests.test_mail_text_utils`, `tests.test_mail_service_summary_column`) 20건과 `compileall app` 검증을 통과.
+- 2026-03-01 (before): 500줄 규칙 잔여 위반(`answer_postprocessor_rendering.py`, `answer_postprocessor_summary.py`) 해소를 위한 유틸 분리 리팩터링 작업 시작.
+- 2026-03-01 (after): `answer_postprocessor_rendering_utils.py`를 추가해 standard_summary 누락필드 수집/주요내용·조치 렌더를 분리하고, 렌더링 메인 파일을 467줄로 축소.
+- 2026-03-01 (after): `answer_postprocessor_summary_utils.py`를 추가해 근접중복/서명성 문장 유틸을 분리하고, summary 메인 파일을 451줄로 축소.
+- 2026-03-01 (after): 후처리+메일 경로 회귀 테스트 46건 및 `compileall app` 검증을 통과.
+- 2026-03-01 (before): 메일 조회 성능/품질 개선을 위해 `search_mails`를 body 중심에서 summary-first 랭킹으로 전환하고 통합요약 반환을 추가하는 작업 시작.
+- 2026-03-01 (after): `mail_search_service.py`에서 lexical/semantic 랭킹 입력을 `summary_text+subject+from` 우선으로 개편하고, 결과 payload에 `summary_text`, `aggregated_summary`, `metrics(candidate_count/elapsed_ms)`를 포함.
+- 2026-03-01 (after): 500줄 규칙 준수를 위해 랭킹/스니펫/통합요약 유틸을 `mail_search_utils.py`로 분리(`mail_search_service.py` 278줄).
+- 2026-03-01 (before): 조회 후 요약 질의가 `standard_summary` 템플릿으로 잘못 렌더되는 문제를 해결하기 위해 후처리 라우팅 제한 작업 시작.
+- 2026-03-01 (after): `should_render_standard_summary`를 현재메일 요약 질의에만 허용하도록 제한해 조회형 요약에서는 번호형 일반 요약 렌더를 유지하도록 보정.
+- 2026-03-01 (before): 메일 조회 0건에서 LLM이 N줄 요약으로 빈 내용 문장을 반복 생성하는 회귀를 방지하기 위해 후처리 no-result 가드 추가 작업 시작.
+- 2026-03-01 (after): `postprocess_final_answer`에 `mail_search` 0건 감지 가드를 추가해 요약 질의 시 단일 안내 문장("조건에 맞는 메일이 없습니다.")을 즉시 반환하도록 고정.
+- 2026-03-01 (before): `/search/chat` 실호출 결과를 OpenAI LLM-as-Judge로 채점하는 평가 서비스(케이스셋/실행기/리포트 저장)를 추가하는 작업 시작.
+
+- 2026-03-01 (after): `chat_eval_service.py`를 추가해 20개 케이스 실호출, OpenAI Judge(JSON) 채점, 리포트 집계/저장(`data/reports/chat_eval_latest.json` + timestamp 파일) 기능을 구현.
+
+- 2026-03-01 (before): chat eval service의 Judge 기본 모델 상수를 `gpt-5-mini`로 상향하는 설정 변경 작업 시작.
+
+- 2026-03-01 (after): `DEFAULT_JUDGE_MODEL`을 `gpt-5-mini`로 변경해 서비스 기본 Judge 모델을 상향하고 `/qa/chat-eval/run` fallback과 동일 기준을 사용하도록 정리.
+
+- 2026-03-01 (before): `gpt-5-mini` Judge 호출 400 오류 대응을 위해 `chat_eval_service`의 `temperature` 파라미터 제거 작업 시작.
+
+- 2026-03-01 (after): Judge 호출에서 `temperature`를 제거해 `gpt-5-mini`의 unsupported_value(400) 오류를 해소하고 기본 파라미터 호환성을 확보.
+
+- 2026-03-01 (before): 조회형 평가 안정화를 위해 후처리(최근순 요청 렌더/0건 템플릿) 보강과 Judge 0건 규칙 보정(rule-based override + context 주입) 작업 시작.
+
+- 2026-03-01 (after): `postprocess_final_answer`에 조회형 후처리 보강을 적용해 `최근순/최신순` 요청 시 mail_search 결과를 날짜 포함 고정 목록 포맷으로 렌더링하고, mail_search 0건은 표준 템플릿(`조회 결과 + 다음 제안`)으로 응답하도록 정리.
+- 2026-03-01 (after): `chat_eval_service`에 Judge context(`search_result_count/evidence_count`) 주입과 0건 부재응답 규칙 선판정(rule-based override)을 추가해 false fail을 완화.
+
+- 2026-03-01 (before): `mail-02` 오판 개선을 위해 조회형 최근순 렌더를 날짜 정렬+실제 결과건수 기준으로 고정하고 Judge context 근거 개수 정합성 보정 작업 시작.
+
+- 2026-03-01 (after): `answer_postprocessor` 최근순 렌더를 날짜(received_date) 내림차순 강제 + 실제 결과건수 기준 캡으로 보강하고, 응답 상단에 `조회 결과 기준 총 N건 중 M건` 문구를 추가해 과잉 생성/정렬 혼선을 줄임.
+- 2026-03-01 (after): chat-eval Judge context에서 `evidence_count`를 `search_result_count`와 정합되게 정렬(max)하고 special_rules에 UI 축약 근거 주석을 추가해 evidence_count=3 vs 결과 5건 오판 가능성을 완화.
+
+- 2026-03-01 (before): chat eval service에 선택 케이스(`case_ids`) 필터 실행 기능을 추가하는 작업 시작.
+
+- 2026-03-01 (after): `run_chat_eval_session`에 `case_ids` 필터를 추가해 케이스 부분 실행을 지원하고, `_select_cases`에서 ID 목록+max_cases 조합으로 실행 대상을 결정하도록 보강.
+
+- 2026-03-01 (before): current-13/14 FAIL 개선을 위해 현재메일 수신자 표 강제 렌더 및 핵심문제/해야할일 분리 템플릿 후처리 규칙 추가 작업 시작.
+
+- 2026-03-01 (after): `answer_postprocessor`에 현재메일 포맷 강제 규칙을 추가해 `수신자+표` 요청은 markdown table로 렌더링하고, `핵심 문제+해야 할 일+분리` 요청은 섹션 분리(`## 핵심 문제`, `## 해야 할 일`)로 고정 출력하도록 보강.
+
+- 2026-03-01 (before): current-17 형식 FAIL 개선을 위해 `현재메일 + 팀장 보고용 + 한 단락/문단 요약` 요청을 단일 문단으로 강제 렌더링하는 후처리 규칙 추가 작업 시작.
+
+- 2026-03-01 (after): `answer_postprocessor`에 current-17 대응 규칙을 추가해 `현재메일+팀장/보고용+한 단락/문단+요약` 요청은 표/섹션 렌더를 우회하고 단일 문단 보고문으로 강제 출력하도록 보강.
+- 2026-03-01 (before): 액션아이템 질의에서 답변이 빈 선언문인데도 LLM Judge가 PASS를 줄 수 있는 오판을 줄이기 위해 chat_eval_service에 규칙 기반 선검증 가드(리스트 항목 존재 검증) 추가 작업 시작.
+- 2026-03-01 (after): `chat_eval_service.py`에 `_rule_based_format_guard`/`_has_structured_action_items`를 추가해 `액션 아이템` 요청에서 번호/불릿 목록이 없으면 Judge 호출 전 규칙 기반 FAIL 처리하도록 보강.
+- 2026-03-01 (after): `mail_search_service.py`에 `_filter_low_relevance_rows`를 추가하고 `mail_search_utils`의 의미 토큰 추출/최소 매칭 규칙을 연동해 공통 토큰(메일/요청)만 일치하는 저연관 메일을 결과에서 제거하도록 보강.
+- 2026-03-01 (before): 복합 FAIL(본문조건 미충족 조회, 빈 템플릿 출력, 섹션 누락 보고서) 개선을 위해 mail_search/answer_postprocessor 규칙 보강 작업 시작.
+- 2026-03-01 (after): `mail_search_utils.py`/`mail_search_service.py`에 본문 strict 포함 필터를 추가해 `본문에 'X' 포함` 질의에서 인용구문이 본문에 없는 결과를 제거하고, strict 매칭 0건이면 fallback 없이 0건을 반환하도록 보강.
+- 2026-03-01 (after): `answer_postprocessor_guards.py`를 추가해 (a) 핵심/조치사항/결론 보고서 강제 섹션 렌더, (b) 일정/담당/조치 구분 강제 렌더, (c) 빈 JSON 계약 감지 및 report raw JSON fallback 차단 메시지를 적용.
+- 2026-03-01 (before): non-summary 질의에서 JSON 계약이 빈 렌더로 떨어져 raw JSON이 노출되는 문제와, 고특이도 질의에서 저연관 fallback 복원이 발생하는 문제를 보정하는 추가 작업 시작.
+- 2026-03-01 (after): `render_general_contract`가 `action_items/required_actions/major_points`를 answer 대체 소스로 렌더링하도록 보강해 non-summary 질의에서 JSON 계약이 빈 렌더로 떨어지는 경로를 제거.
+- 2026-03-01 (after): `postprocess_final_answer` 일반 fallback에 `json_template_guard`를 추가해 raw JSON 계약 문자열의 직접 노출을 차단.
+- 2026-03-01 (after): `mail_search_service` 고특이도 질의(의미 키워드 5개 이상)에서 필터 0건 시 저연관 fallback 복원을 하지 않고 0건을 유지하도록 보강.
+- 2026-03-01 (before): 액션아이템 질의에서 장문/중복 접두어(예: 확인 필요)로 가독성이 떨어지는 응답을 정제하기 위한 후처리 강제 렌더 규칙 추가 작업 시작.
+- 2026-03-01 (after): `answer_postprocessor_guards.py`에 액션아이템 강제 렌더(`## 액션 아이템` 번호 목록)와 접두어 정제(`확인 필요:`, `액션 아이템:` 제거) 규칙을 추가해 장문/중복 문구를 구조화된 출력으로 정리.
+- 2026-03-01 (before): search_mails가 저연관 1건을 반환하는 케이스를 줄이기 위해 고특이도 질의 relevance hard-gate 추가 작업 시작.
+- 2026-03-01 (after): `mail_search_service`에 고특이도 질의 relevance hard-gate를 추가해 상위 결과 키워드 일치가 낮은 경우(키워드 5개 이상) 0건 처리하도록 보강.
+- 2026-03-01 (before): `action_items` 비어있는 응답의 실사용 품질 저하를 막기 위해 후처리에서 액션아이템 fallback 보강 작업 시작.
+- 2026-03-01 (after): `answer_postprocessor_guards._render_action_items_list`에서 `action_items/required_actions`가 비어 있으면 `summary_lines`를 액션 후보로 보강하도록 수정해 `액션 아이템을 확인하지 못했습니다` 오탐을 완화.
+- 2026-03-02 (before): 표준 요약 템플릿의 `주요 내용`에서 headline/detail이 동일할 때 중복 문장이 연속 출력되는 문제를 제거하기 위한 렌더 유틸 보강 작업 시작.
+- 2026-03-02 (after): `answer_postprocessor_rendering_utils.render_major_points`에 headline/detail 동등성 판별(`_is_effectively_same_line`)을 추가해 동일 의미 문장은 detail 불릿을 생략하도록 수정.
+- 2026-03-02 (before): 후처리 의존을 줄이고 생성 단계 요약 품질을 보강하기 위해 현재메일 표준요약 전용 2-pass refiner 모듈 추가 작업 시작.
+- 2026-03-02 (after): `summary_refiner.py`를 추가해 품질 미달(`major_points<4`, 중복, 조치 누락+행동신호, core_issue 빈약)일 때만 OpenAI JSON 보강을 수행하고 실패 시 원본 계약을 유지하도록 구현.
+- 2026-03-02 (after): `answer_postprocessor._augment_contract_with_tool_payload`에서 refiner를 호출하도록 연결해 품질 점수 비교 후 개선된 계약만 적용되도록 보강.
+- 2026-03-02 (before): PoC 단순화 요구에 따라 2-pass refiner 경로를 제거하고 1-pass 프롬프트 중심으로 회귀하는 작업 시작.
+- 2026-03-02 (after): `summary_refiner.py`를 제거하고 `answer_postprocessor`의 refiner 호출을 삭제해 후처리 복잡도를 낮춤(1-pass 생성 + 최소 후처리 구조).
+- 2026-03-02 (before): 실사용 피드백(질문형 주요내용/중복 요약)을 반영해 표준 요약 렌더 품질 필터(major_points/one-line dedupe) 보강 작업 시작.
+- 2026-03-02 (after): `answer_postprocessor_rendering.py`에 주요내용 질문형/상투형 제거 및 유사중복 제거를 추가하고, `one_line_summary`가 주요내용과 중복되면 하단 요약 문구를 생략하도록 보강.
+- 2026-03-01 (before): chat-eval Judge의 근거 정합성 누락을 줄이기 위해 judge_context에 top-k evidence를 추가하고 retrieval 불일치 hard-fail 가드를 도입하는 작업 시작.
+- 2026-03-01 (after): `chat_eval_service`에 judge_context `evidence_top_k`(top3) 추출을 추가하고, retrieval 질의에서 답변-근거 토큰 겹침이 없으면 hard-fail하는 규칙 기반 가드를 도입.
+- 2026-03-01 (after): Judge 프롬프트 `special_rules`에 "문장별 evidence 정합성 확인"과 "retrieval 불일치 pass=false/score=1" 규칙을 명시.
+- 2026-03-02 (before): standard_summary `major_points/required_actions` 보강 시 본문 장문/표 조각 유입을 차단하는 품질 필터 강화 작업 시작.
+- 2026-03-02 (after): `answer_postprocessor_rendering._filter_major_points_quality`에 raw mail dump 감지 필터를 추가해 장문 원문/헤더 조각/표 조각(`From:/Sent:/...`, delimiter형 장문, 다중 메일주소, 시스템항목 텍스트)을 `major_points`에서 제외하도록 강화.
+- 2026-03-02 (after): standard_summary 보강 정책을 `min_points=5`에서 `min_points=3`으로 낮춰 불필요한 과보강(4~6번 원문 유입) 경로를 축소.
+- 2026-03-02 (after): `_fill_standard_summary_major_points`의 보강 소스를 `body_excerpt+summary_text` 혼합에서 `summary_text` 전용으로 변경(`_build_standard_summary_supplements`)해 장문 원문 덤프가 major_points에 주입되는 구조를 근본 차단.
+- 2026-03-02 (before): standard_summary 렌더에서 `조치 필요 사항` 항목 강조와 하단 `요약:` 블록 제거 요구사항 반영 작업 시작.
+- 2026-03-02 (after): `render_required_actions`를 `1. **항목**` 형식으로 변경해 번호와 본문 강조를 통일하고, `render_standard_summary_contract`에서 하단 `> **요약:**` 블록을 제거해 중복 요약 노출을 차단.
+- 2026-03-02 (before): standard_summary 기본 정보 표의 행 순서를 날짜 우선으로 조정하고 발신자/수신자/원본 문의 발신 값을 이름-only로 정규화하는 작업 시작.
+- 2026-03-02 (after): `_build_basic_info_rows` 행 순서를 `날짜 -> 최종 발신자 -> 수신자 -> 원본 문의 발신`으로 변경하고, `_extract_person_names`를 추가해 발신/수신/원본 문의 발신 값을 이름-only로 정규화(조직/이메일 제거)하도록 보강.
+- 2026-03-02 (before): 메일 `조회` 질의에서 상단 요약이 문단형으로 남는 이슈를 해결하기 위해 `mail_search` 후처리에 제목+불릿 렌더 강제 규칙을 추가하는 작업 시작.
+- 2026-03-02 (after): `answer_postprocessor`에 조회 전용 보정(`_render_mail_search_overview_summary`)을 추가해 `mail_search` 결과+조회 질의에서 상단을 `주요 내용:` + `-` 불릿으로 강제 렌더링하도록 수정.
+- 2026-03-02 (before): 조회 상단 요약을 `summary_text` 전용(메일당 1줄)으로 단순화하고 본문/snippet fallback을 제거하는 작업 시작.
+- 2026-03-02 (after): `build_aggregated_summary`를 `summary_text` 전용(메일당 1줄)으로 변경하고, `answer_postprocessor`의 조회 상단 보정은 `aggregated_summary`만 사용하도록 정리해 장문 본문 fallback을 제거.
+- 2026-03-02 (before): 조회 상단 불릿의 하위 설명이 추가 목록 불릿으로 보이지 않도록 서브라인 접두를 `ㄴ-`로 고정하는 렌더 보정 작업 시작.
+- 2026-03-02 (after): `render_mail_search_summary_lines`에서 항목 내 ` - ` 구분자 이후 내용을 `ㄴ-` 서브라인(최대 2개)으로 렌더하도록 보강해 추가 불릿 인식 없이 하위 설명을 표시.
+- 2026-03-02 (before): 조회 요약 서브라인의 특수기호(`ㄴ-`)를 제거하고 표준요약 템플릿 섹션 라벨(제목/핵심 문제/조치 필요 사항)을 공통 헤더 스타일 기준으로 정리하는 작업 시작.
+- 2026-03-02 (after): 조회 요약 서브라인 접두를 `-`로 변경해 특수기호(`ㄴ`)를 제거하고, 표준요약 템플릿에서 상단 `이메일 요약` 헤더를 제거한 뒤 `🧾 제목`/`🔎 핵심 문제 요약`/`✅ 조치 필요 사항` 라벨로 섹션을 정리.
+- 2026-03-02 (before): 표준요약 본문(제목/핵심문제/조치사항) bold 제거 및 주요내용 번호 라인을 heading이 아닌 일반 리스트로 완화하는 작업 시작.
+- 2026-03-02 (after): 표준요약 템플릿의 제목/핵심문제 본문 `**bold**`를 제거하고, `render_required_actions`를 일반 번호 목록(`1. 항목`)으로 조정해 본문 과강조를 완화.
+- 2026-03-02 (after): `render_major_points`를 `####` heading 기반에서 일반 번호 목록 기반으로 전환해 주요내용 본문이 과도하게 굵게 보이지 않도록 정리.
+- 2026-03-02 (before): 현재메일 요약 응답에 malformed JSON 조각이 섞일 때 raw 문자열 노출되는 회귀를 차단하기 위한 후처리 복구 가드 작업 시작.
+- 2026-03-02 (after): `postprocess_final_answer`에 `_recover_current_mail_summary_from_tool_payload`를 추가해 현재메일 요약 + `"format_type"` 조각 검출 시 `mail_context` 기반 `standard_summary` 렌더로 강제 복구하도록 보강.
+- 2026-03-02 (before): 조회 응답과 현재메일 요약 응답이 혼합되는 라우팅 충돌을 분리하기 위해 answer_postprocessor 분기 우선순위 점검 작업 시작.
+- 2026-03-02 (after): `postprocess_final_answer` summary fallback에 `summary_json_template_guard`를 추가해 현재메일 요약에서 `"format_type"` 조각이 남은 malformed 응답이 `요약 결과` 번호라인으로 섞여 노출되는 경로를 차단.
+- 2026-03-02 (before): 표준요약 주요내용 번호가 1로 고정되는 렌더 경로를 점검하고 번호 증가 형식으로 교정하는 작업 시작.
+- 2026-03-02 (before): 조회형 메일 목록 본문 포맷(보낸사람/수신일/요약 분리 + 메일링크 제거) 반영 작업 시작.
+- 2026-03-02 (after): 메일 목록 포맷 요구사항 반영은 백엔드 템플릿 변경 없이 Add-in 렌더 단계에서 인라인 메타 분해/링크 노이즈 제거 방식으로 적용.
+- 2026-03-02 (before): 메일 조회 상단 `주요 내용`이 DB summary 기반임에도 렌더 단계 분해(` - `)로 장황해지는 문제를 축약하는 작업 시작.
+- 2026-03-02 (after): `render_mail_search_summary_lines` 경로를 메일당 1불릿 고정(하위 하이픈 분해 제거)으로 변경해 장황한 다중 불릿 확장을 차단.
+- 2026-03-02 (after): `normalize_summary_candidate`를 summary 1줄형으로 강화(`\s+-\s+` 이후 제거, 110자 제한)해 aggregated summary가 짧고 일관되게 노출되도록 조정.
+- 2026-03-02 (before): 메일 조회 `주요 내용`을 결과 메일별 제목(링크)+DB summary 기반으로 고정하는 후처리 리팩터링 시작.
+- 2026-03-02 (after): `_render_mail_search_overview_summary`를 `mail_search.results` 직렬화 경로로 전환해 메일별 `제목(링크)+summary_text`만 렌더하도록 변경(오염된 통합요약 라인 사용 중단).
+- 2026-03-02 (after): 결과 항목은 `1. 제목(링크)` + `- summary` 형식으로 고정하고, summary 부재 시 `저장된 요약이 없습니다.`를 출력하도록 보강.
+- 2026-03-02 (after): E2E Judge 입력 답변을 `metadata.answer_format.blocks` 기반 화면 표시 텍스트(`_resolve_visible_answer`)로 변환해 채점/리포트 answer에 사용하도록 변경.
+- 2026-03-02 (after): 기존 rule-based 선판정(액션아이템 형식 가드, retrieval grounding hard-fail, mail_search 0건 override)은 유지하되 표시기준 answer를 입력으로 사용해 UI-평가 정합성을 개선.
+- 2026-03-02 (before): 주요내용 제목 링크를 OWA href에서 `open-evidence-mail` 액션 기반(Outlook 우선 열기)으로 전환하는 작업 시작.
+- 2026-03-02 (after): 메일 조회 주요내용 제목 링크에 `moldubot_mid` 파라미터를 추가하고 프론트가 이를 파싱해 `open-evidence-mail`(message_id 우선)로 여는 동작으로 변경.
+- 2026-03-02 (before): 보고서 HTML을 실제 DOCX 품질로 내보내기 위해 HTML->DOCX 변환 서비스 추가 작업 시작.
+- 2026-03-02 (after): `report_docx_service.py`를 추가해 A4 설정/헤더 셀 컬러/리스크 박스 음영/테이블 변환을 포함한 DOCX 변환과 파일 경로 해석 로직을 구현.
+- 2026-03-02 (before): E2E FAIL 개선을 위해 mail_search 답변을 LLM 요약이 아닌 결과 레코드 기반 고정 템플릿으로 전환하고 no-result 템플릿을 질의 문맥(todo/표) 대응으로 확장하는 작업 시작.
+- 2026-03-02 (after): `answer_postprocessor.py`에 `mail_search` deterministic 렌더(제목/발신자/수신일/요약, 표 요청 시 markdown table) 경로를 추가하고, 0건 템플릿을 질의 문맥 기반으로 보강.
+- 2026-03-02 (after): `chat_eval_service.py`의 Judge 근거 컨텍스트 상한을 `EVIDENCE_TOP_K=5`로 확장.
+- 2026-03-02 (before): 루트 회의실 마스터(`meetingroom.json`)를 표준 데이터 폴더로 이관하고 평탄/계층 JSON 공통 파싱 유틸 추가 작업 시작.
+- 2026-03-02 (after): `meeting_room_catalog.py`를 추가해 계층형(`buildings/floors/rooms`)과 평탄형 회의실 JSON을 단일 목록으로 정규화하도록 구현하고, `meeting_service.py`/`task_execution_service.py` 경로를 `data/meeting/meeting_rooms.json`으로 동기화.
+- 2026-03-04 (before): `이어서 할 수 있어요(next_actions)`를 실행 가능 도메인 액션 Top3 추천 구조로 재설계하고, 기존 추천 로직 정리 작업 시작.
+- 2026-03-04 (after): `next_action_recommender`를 도메인 카탈로그 기반 추천기로 전면 교체(실행 가능 게이트 + current-mail 컨텍스트 게이트 + 하이브리드 스코어링 + Top3 고정).
+- 2026-03-04 (after): 기존 OpenAI chat 자유생성 JSON 파싱 경로를 제거해 미구현 액션 hallucination 가능성을 차단.
+- 2026-03-05 (before): `조치 필요 사항`의 코드/보안 키워드를 기반으로 `이어서 할 수 있어요`에 `코드 스니펫 분석` 도메인 액션을 추천하도록 `next_action_recommender` 확장 작업 시작.
+- 2026-03-05 (after): `next_action_recommender.ACTION_DOMAINS`에 `코드 스니펫 분석` 도메인을 추가하고, 코드/보안 키워드 맥락에서 현재메일 기반 실행 쿼리를 추천하도록 확장.
+- 2026-03-05 (after): `draft_reply` 도메인 query 템플릿을 `추가 질문 없이 본문만 작성` 지시형으로 강화해 회신 초안 액션의 질의형 회귀 가능성을 완화.
+- 2026-03-05 (before): `코드 스니펫 분석` 도메인 query를 `코드 분석/코드 리뷰` 구조화 출력 지시형으로 강화하는 작업 시작.
+- 2026-03-05 (after): `코드 스니펫 분석` 도메인 query를 `## 코드 분석` + `## 코드 리뷰` + fenced code block 포함 구조화 지시형으로 강화.
+- 2026-03-05 (before): 코드 스니펫 액션에서 요약 리스트로 붕괴되는 이슈를 해결하기 위해 `코드 분석/코드 리뷰` 결정론 렌더 모듈 추가 및 postprocess 우선 분기 연결 작업 시작.
+- 2026-03-05 (after): `answer_postprocessor_code_review.py`를 추가해 코드 스니펫 요청을 결정론 템플릿(`## 코드 분석`, `## 코드 리뷰`, fenced code block)으로 강제 렌더하도록 구현.
+- 2026-03-05 (after): `answer_postprocessor.py`의 deterministic 경로 초반에 코드 리뷰 강제 렌더를 연결해 요약 리스트로 붕괴되는 경로를 우선 차단.
+- 2026-03-05 (before): 코드 리뷰 스니펫 추출에서 메일 헤더/전달문이 포함되는 문제를 해결하기 위해 `body_clean` 기반 전처리(헤더 제거)와 추출 휴리스틱 보강, 최대 길이 2200자 조정 작업 시작.
+- 2026-03-05 (after): 코드 리뷰 스니펫 최대 길이를 2200자로 상향(`MAX_CODE_CHARS=2200`)하고, 메일 헤더/전달문/서명 노이즈 제거 전처리(`_strip_mail_header_noise`)를 추가해 프로그램 코드 본문만 추출하도록 보강.
+- 2026-03-05 (before): 코드 언어 판별 정확도를 높이기 위해 Pygments 기반 추론(옵션) + 규칙 결합 방식으로 `answer_postprocessor_code_review` 개선 작업 시작.
+- 2026-03-05 (after): `answer_postprocessor_code_review`에 Pygments 기반 언어 추정(fallback) 경로를 추가하고, `...(truncated)` 단독 스니펫 제거/헤더 노이즈 제거 후 코드 추출 품질을 보강.
+
+- 2026-03-05 (before): 코드 본문이 `body_clean` 우선 경로에서 소실되어 코드 리뷰가 실패하는 이슈를 해결하기 위해 `mail_context`에 코드분석 전용 본문(`body_full` 우선) 추가 및 code-review extractor 우선순위 보정 작업 시작.
+- 2026-03-05 (after): `MailService` 조회 쿼리에 `code_body_text=COALESCE(body_full, body_clean, body_preview)`를 추가하고 `mail_context`에 `body_code_excerpt`를 포함시켜 코드 리뷰가 원문 코드(`body_full` 우선)를 사용하도록 보정.
+- 2026-03-05 (after): `MailContextService`에 `body_full` 누락 캐시 감지 시 Graph 재조회 보정(`_should_refresh_from_graph`)을 추가해 코드 리뷰 대상 메일의 원문 코드 확보율을 개선.
+- 2026-03-05 (before): 메일 헤더(`From:/Subject:`)와 코드가 동일 라인에 붙은 본문에서 헤더 제거가 코드까지 삭제하는 문제를 해결하기 위해 코드 꼬리 복구 로직 추가 작업 시작.
+- 2026-03-05 (after): `_strip_mail_header_noise`에 헤더+코드 동일 라인 꼬리 복구(`_salvage_code_tail_from_header_line`)를 추가해 `From/Subject ... <jsp/html code>` 패턴에서 코드가 누락되지 않도록 보강.
+- 2026-03-05 (before): 인라인(한 줄) JSP/HTML 본문에서 코드가 1줄로 축약되는 문제를 해결하기 위해 코드 블록 줄복원(normalize) 추출 로직 보강 작업 시작.
+- 2026-03-05 (after): `_extract_inline_markup_block`를 추가해 한 줄 인라인 JSP/HTML(`><`, `%><%`) 코드에 줄바꿈을 복원한 뒤 스니펫으로 추출하도록 개선.
+- 2026-03-05 (before): 코드 분석 섹션에 JSON 원문이 노출되는 문제와 JSP 하이라이트 미적용 문제를 해결하기 위해 후처리 필터/프론트 language alias 보정 작업 시작.
+- 2026-03-05 (after): `_build_analysis_lines`에서 JSON 계약 조각(`format_type/summary_lines/major_points`) 필터를 추가해 코드 분석 섹션에 JSON 원문이 노출되지 않도록 보강.

@@ -1,0 +1,72 @@
+.hitl-confirm-block {
+  width: min(100%, var(--chat-text-max-width));
+  margin-top: 8px;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, #d2b790 52%, var(--color-border));
+  border-radius: 12px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, #fff4df 84%, var(--color-surface)),
+    color-mix(in srgb, #f6eddc 90%, var(--color-surface))
+  );
+}
+
+.hitl-confirm-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 650;
+  color: #6b553f;
+  background: color-mix(in srgb, #f0dfc2 74%, var(--color-surface));
+  margin-bottom: 8px;
+}
+
+.hitl-confirm-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 5px;
+}
+
+.hitl-confirm-desc {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  line-height: 1.4;
+}
+
+.hitl-confirm-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.hitl-confirm-progress {
+  margin-top: 8px;
+  font-size: 12px;
+  font-weight: 620;
+  color: color-mix(in srgb, var(--color-primary) 66%, #7a5d45);
+}
+
+.hitl-action-btn {
+  border: 1px solid color-mix(in srgb, var(--color-border) 90%, #c9bea9);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--color-surface) 95%, #f7f1e8);
+  color: var(--color-text);
+  cursor: pointer;
+  padding: 7px 14px;
+  min-width: 72px;
+  font-size: 12px;
+  font-weight: 620;
+}
+
+.hitl-action-btn.approve {
+  border-color: color-mix(in srgb, var(--color-primary) 45%, var(--color-border));
+  background: color-mix(in srgb, var(--color-primary-light) 76%, var(--color-surface));
+}
+
+.hitl-action-btn.reject {
+  border-color: color-mix(in srgb, #b99595 58%, var(--color-border));
+  background: color-mix(in srgb, #f4e9e9 84%, var(--color-surface));
+}

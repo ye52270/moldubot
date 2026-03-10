@@ -1,0 +1,11 @@
+.scope-choice-label {
+  font-size: 12px;
+  font-weight: 620;
+  line-height: 1.35;
+}
+
+.scope-choice-desc {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  line-height: 1.3;
+}

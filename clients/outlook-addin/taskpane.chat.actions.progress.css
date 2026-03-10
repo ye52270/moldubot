@@ -1,0 +1,67 @@
+.progress-inline-message {
+  width: min(100%, var(--chat-thread-max-width));
+  max-width: min(100%, var(--chat-thread-max-width));
+}
+
+.progress-inline-message .msg-content {
+  gap: 6px;
+}
+
+.progress-inline-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: min(100%, var(--chat-text-max-width));
+  color: color-mix(in srgb, var(--color-text-secondary) 90%, #857a6f);
+  font-size: 12px;
+  line-height: 1.4;
+  letter-spacing: 0.01em;
+  margin-top: 0;
+}
+
+.progress-inline-label::before {
+  content: '';
+  display: none;
+}
+
+.progress-inline-title {
+  min-width: 0;
+  font-weight: 620;
+}
+
+.progress-inline-step {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 86%, #cdbdaa);
+  background: color-mix(in srgb, var(--color-surface) 96%, #f7f1e7);
+  padding: 2px 7px;
+  font-size: 11px;
+  font-weight: 640;
+  line-height: 1.2;
+  color: color-mix(in srgb, var(--color-text-secondary) 92%, #776b5f);
+}
+
+.progress-inline-detail {
+  width: min(100%, var(--chat-text-max-width));
+  font-size: 11px;
+  line-height: 1.4;
+  color: color-mix(in srgb, var(--color-text-secondary) 86%, #8c8379);
+}
+
+.progress-inline-track {
+  width: min(100%, var(--chat-text-max-width));
+  height: 4px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-border) 70%, #ded5c9);
+  overflow: hidden;
+}
+
+.progress-inline-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--color-primary) 76%, #b68466), color-mix(in srgb, var(--color-primary) 58%, #d1b198));
+  transition: width 260ms ease;
+}

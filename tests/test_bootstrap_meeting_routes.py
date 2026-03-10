@@ -59,7 +59,7 @@ class BootstrapMeetingRoutesTest(unittest.TestCase):
         self.assertEqual(200, response.status_code)
         payload = response.json()
         self.assertEqual("completed", payload.get("status"))
-        self.assertEqual("[회의실] 1801", payload.get("booking", {}).get("subject"))
+        self.assertEqual("[회의실] sku-tower 18층 1801", payload.get("booking", {}).get("subject"))
         self.assertEqual("event-123", payload.get("event", {}).get("id"))
         self.assertIn("회의 안건: M365 구축 일정 논의", str(mocked_create_event.call_args.kwargs.get("body_text")))
 

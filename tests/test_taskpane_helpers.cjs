@@ -120,20 +120,10 @@ test('quick prompt templates returns requested presets', () => {
   const helpers = loadHelpers();
   const prompts = helpers.getQuickPromptTemplates();
   assert.equal(Array.isArray(prompts), true);
-  assert.equal(prompts.length, 20);
+  assert.equal(prompts.length, 5);
   assert.equal(prompts[0], '현재메일 요약해줘');
-  assert.equal(prompts[1], '현재메일 3~5줄로 요약');
-  assert.equal(prompts[2], '현재메일 주요 키워드 2~3개 할일로 등록');
-  assert.equal(prompts[3], '현재메일의 주요 내용을 추출해서 할일로 등록');
-  assert.equal(prompts[4], '현재메일의 주요 내용중 이슈사항을 정리해서 회의실 예약해줘');
-  assert.equal(prompts[5], '현재메일에서 내가 해야할 일을 뽑아서 일정으로 등록해줘');
-  assert.equal(prompts[6], '조용득 관련 1월 메일 조회수 요약해줘');
-  assert.equal(
-    prompts[7],
-    'M365 프로젝트 진행, 일정 관련 메일을 찾아서 요약해줘. 기술적 이슈도 검색해서 같이 알려줘'
-  );
-  assert.equal(
-    prompts[8],
-    'M365 프로젝트 진행, 일정 관련 메일에서 수신자별 역할을 표 형식으로 정리해줘'
-  );
+  assert.equal(prompts[1], '현재메일 3~5줄로 요약해줘');
+  assert.equal(prompts[2], '현재메일의 이슈가 뭐야?');
+  assert.equal(prompts[3], '메일에서 언급한 LDAP 쿼리가 어떤것인지 보여줘');
+  assert.equal(prompts[4], '지금 메일의 LDAP쿼리가 어떤 내용인지 인터넷 검색을 통해 알려줘');
 });

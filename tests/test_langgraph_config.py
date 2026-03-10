@@ -23,7 +23,14 @@ class LangGraphConfigTest(unittest.TestCase):
 
     def test_langgraph_entry_exposes_graph_object(self) -> None:
         """LangGraph 진입 모듈이 `graph` 객체를 노출해야 한다."""
-        with patch.dict(os.environ, {"OPENAI_API_KEY": "dummy-key"}):
+        with patch.dict(
+            os.environ,
+            {
+                "AZURE_OPENAI_API_KEY": "dummy-key",
+                "AZURE_OPENAI_ENDPOINT": "https://example.openai.azure.com/",
+                "AZURE_OPENAI_API_VERSION": "2024-12-01-preview",
+            },
+        ):
             module = importlib.import_module("app.agents.langgraph_entry")
 
         self.assertTrue(hasattr(module, "graph"))

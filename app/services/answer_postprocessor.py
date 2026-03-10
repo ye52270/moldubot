@@ -5,7 +5,7 @@ from typing import Any
 
 from app.core.logging_config import get_logger
 from app.core.intent_rules import is_code_review_query
-from app.models.response_contracts import FinalAnswerContract, LLMResponseContract, SummaryResponseContract
+from app.models.response_contracts import FinalAnswerContract, LLMResponseContract
 from app.services.answer_postprocessor_contract_utils import (
     augment_contract_with_tool_payload,
     parse_llm_response_contract,
@@ -15,6 +15,7 @@ from app.services.answer_postprocessor_code_review_annotated import (
 )
 from app.services.answer_postprocessor_code_review import render_current_mail_code_review_response
 from app.services.answer_postprocessor_current_mail import (
+    render_current_mail_direct_value_from_tool_payload,
     render_current_mail_grounded_safe_response,
     render_current_mail_issue_action_split,
     render_current_mail_manager_single_paragraph,
@@ -31,12 +32,10 @@ from app.services.answer_postprocessor_guards import (
     is_effectively_empty_contract,
     looks_like_json_contract_text,
     render_forced_section_response,
-    render_report_fallback_message,
 )
 from app.services.answer_postprocessor_rendering import render_contract_answer
 from app.services.answer_postprocessor_summary import (
     extract_original_user_message,
-    is_current_mail_summary_request,
     is_summary_request,
     normalize_multiline_text,
 )
@@ -47,7 +46,6 @@ from app.services.answer_table_spec import (
 from app.services.answer_postprocessor_table import render_generic_table_from_contract
 from app.services.answer_postprocessor_reply_draft import (
     is_reply_draft_request,
-    recover_reply_draft_from_json_text,
     recover_reply_draft_from_plain_text,
     select_reply_body_from_contract,
 )
@@ -134,6 +132,15 @@ def postprocess_final_answer(
         if contract_rendered:
             return FinalAnswerContract(answer=contract_rendered).answer
 
+    grounded_safe_rendered = render_current_mail_grounded_safe_response(
+        user_message=normalized_user_message,
+        answer=normalized_answer,
+        tool_payload=normalized_tool_payload,
+    )
+    if grounded_safe_rendered:
+        logger.info("answer_postprocess.current_mail_grounded_safe: forced_render=true")
+        return FinalAnswerContract(answer=grounded_safe_rendered).answer
+
     fallback_route, fallback_rendered = render_fallback_answer(
         user_message=normalized_user_message,
         answer=normalized_answer,
@@ -180,15 +187,6 @@ def _try_render_deterministic_answer(
         logger.info("answer_postprocess.current_mail_code_review: preserve_llm=true")
         return ""
 
-    grounded_safe_rendered = render_current_mail_grounded_safe_response(
-        user_message=user_message,
-        answer=answer,
-        tool_payload=tool_payload,
-    )
-    if grounded_safe_rendered:
-        logger.info("answer_postprocess.current_mail_grounded_safe: forced_render=true")
-        return grounded_safe_rendered
-
     annotated_code_review = render_current_mail_code_review_annotated_response(
         user_message=user_message,
         answer=answer,
@@ -215,6 +213,14 @@ def _try_render_deterministic_answer(
     if forced_mail_search_role_summary:
         logger.info("answer_postprocess.mail_search_recipient_role_summary: forced_render=true")
         return forced_mail_search_role_summary
+
+    forced_direct_value_rendered = render_current_mail_direct_value_from_tool_payload(
+        user_message=user_message,
+        tool_payload=tool_payload,
+    )
+    if forced_direct_value_rendered:
+        logger.info("answer_postprocess.current_mail_direct_value: forced_render=true")
+        return forced_direct_value_rendered
 
     forced_recipient_rendered = render_current_mail_recipients_from_tool_payload(
         user_message=user_message,
@@ -467,6 +473,12 @@ def _log_fallback_route(route: str) -> None:
         return
     if route == "json_template_guard":
         logger.warning("answer_postprocess.fallback_route: route=json_template_guard")
+        return
+    if route == "generic_json_object_text":
+        logger.info("answer_postprocess.fallback_route: route=generic_json_object_text")
+        return
+    if route == "auto_code_snippet_text":
+        logger.info("answer_postprocess.fallback_route: route=auto_code_snippet_text")
         return
     logger.info("answer_postprocess.fallback_route: route=general_text")
 

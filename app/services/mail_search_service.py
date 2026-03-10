@@ -10,6 +10,7 @@ from app.core.logging_config import get_logger
 from app.services.mail_search_utils import (
     build_aggregated_summary,
     elapsed_ms,
+    extract_person_anchor_tokens,
     extract_meaningful_query_tokens,
     extract_required_body_phrases,
     has_required_body_phrases,
@@ -17,6 +18,7 @@ from app.services.mail_search_utils import (
     min_keyword_hits_for_query,
     normalize_limit,
     rerank_candidates,
+    row_matches_person_anchors,
     to_result_payload,
     tokenize_for_search,
 )
@@ -148,8 +150,20 @@ class MailSearchService:
         """
         if not rows:
             return []
+        person_anchors = extract_person_anchor_tokens(query=query)
+        person_filtered = [row for row in rows if row_matches_person_anchors(row=row, anchors=person_anchors)]
+        if person_anchors and not person_filtered:
+            logger.info(
+                "mail_search 인물 앵커 필터 0건 처리: query=%s anchors=%s",
+                query[:80],
+                ",".join(person_anchors),
+            )
+            return []
+        scoped_person_rows = person_filtered if person_anchors else rows
         required_body_phrases = extract_required_body_phrases(query=query)
-        strict_filtered = [row for row in rows if has_required_body_phrases(row=row, phrases=required_body_phrases)]
+        strict_filtered = [
+            row for row in scoped_person_rows if has_required_body_phrases(row=row, phrases=required_body_phrases)
+        ]
         if required_body_phrases and not strict_filtered:
             logger.info(
                 "mail_search strict body filter 적용: query=%s required_phrases=%s matched=0",

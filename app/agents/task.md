@@ -4,7 +4,21 @@
 - Describe this folder's responsibility.
 
 ## Change History
+- 2026-02-28 (before): 선택 메일 컨텍스트를 에이전트 메일 상태로 주입하기 위해 `tools.py`에 현재 메일 priming 헬퍼 추가 작업 시작.
+- 2026-02-28 (after): `prime_current_mail` 헬퍼를 추가해 API/컨텍스트 서비스에서 조회한 메일 레코드를 에이전트 메일 컨텍스트로 동기화 가능하게 구성.
+- 2026-02-28 (before): 4차 지연 최적화를 위해 에이전트 메일 tool 레지스트리를 `run_mail_post_action` 단일 경로로 축소하는 작업 시작.
+- 2026-02-28 (after): `get_agent_tools`에서 `read_current_mail` 노출을 제거해 메일 요청 tool을 `run_mail_post_action` 단일 경로로 축소(총 3개 tool)하고 프롬프트 매핑에 `current_mail` 액션을 추가.
 - 2026-02-28: Folder initialized as part of ideal project structure refactor.
+- 2026-02-28 (before): 3차 지연 최적화를 위해 에이전트 tool 레지스트리를 단일 post-action 경로 중심으로 재구성하는 작업 시작.
+- 2026-02-28 (after): `get_agent_tools`에서 메일 저수준 tool 노출(`summarize_mail`, `extract_key_facts`, `extract_recipients`)을 제거해 `run_mail_post_action` 중심 레지스트리(4개)로 축소.
+- 2026-02-28 (before): 지연 최적화를 위해 시스템 프롬프트를 단일 tool 우선 라우팅 정책으로 재조정하는 작업 시작.
+- 2026-02-28 (after): `prompts.py`에 latency-optimized 라우팅 규칙(`run_mail_post_action` 단일 호출 우선, action 매핑)을 반영해 메일 요청의 불필요한 tool 왕복 축소를 유도.
+- 2026-02-28 (before): intent 분해 지연 개선을 위해 `intent_parser`에 규칙 기반 fast-path(`auto/always/never`)를 도입하는 작업 시작.
+- 2026-02-28 (after): `intent_parser`에 fast-path 모드(`MOLDUBOT_INTENT_FAST_PATH=auto|always|never`)를 추가해 규칙으로 step 감지 가능 시 Ollama 구조분해 호출을 생략하도록 최적화.
+- 2026-02-28 (before): 예약 입력 정합성 추적을 위해 `book_meeting_room` 도구 입력 로깅(원본 인자/정규화 결과) 추가 작업 시작.
+- 2026-02-28 (after): `tools.py`의 `book_meeting_room`에 raw 입력/정규화 결과 INFO 로그를 추가해 도구 입력값 추적 포인트를 확보.
+- 2026-02-28 (before): 상대 날짜 입력값 안정화를 위해 `book_meeting_room`에서 공통 날짜 정규화 유틸을 적용하는 작업 시작.
+- 2026-02-28 (after): `book_meeting_room`에서 `resolve_booking_date_token`을 적용해 `오늘/내일/이번주` 입력을 절대 날짜로 변환하고 변환 로그를 추가.
 - 2026-02-28 (before): LangChain v1.0 `create_deep_agent` 단일 에이전트 생성/호출 모듈 추가 작업 시작.
 - 2026-02-28 (after): `deep_chat_agent.py` 추가, `create_deep_agent` 단일 인스턴스 캐시 생성/호출 및 응답 텍스트 추출 로직 구현.
 - 2026-02-28 (before): Ollama Exaone 기반 의도 구조분해 스키마/파서를 추가하고 deep agent 입력 결합 작업 시작.
@@ -38,6 +52,88 @@
 - 2026-02-28 (after): `intent_schema.py`에 `DateFilter`/`IntentDecomposition` 검증기를 추가해 mode별 날짜 필드 일관성, 상대 날짜 토큰 허용 범위, steps 중복 제거, missing_slots 허용값 정규화 및 예약 step 연동 보정을 적용.
 - 2026-02-28 (before): 3단계 표준화를 위해 `tools.py`에 메일 조회 후속작업(요약/보고서) 단일 실행 도구를 추가하는 작업 시작.
 - 2026-02-28 (after): `tools.py`에 `run_mail_post_action(action, summary_line_target)` tool을 추가하고 agent tool 목록에 연결해 메일 후속작업이 단일 서비스 경로를 사용하도록 통합.
+- 2026-02-28 (before): 실행 에이전트 품질 고도화를 위해 시스템 프롬프트 정책을 별도 모듈로 분리하고 도구 기반 응답 규칙을 강화하는 작업 시작.
+- 2026-02-28 (after): `prompts.py`를 추가하고 `deep_chat_agent.py` 기본 시스템 프롬프트를 정책 모듈에서 로드하도록 전환해 실행 에이전트 규칙(추측 금지/도구 근거)을 중앙화.
+- 2026-02-28 (before): 프롬프트 엔지니어링 2차로 도구 호출 우선순위/부작용 작업 규칙을 시스템 프롬프트에 명시하는 작업 시작.
+- 2026-02-28 (after): `prompts.py` 시스템 프롬프트를 2차 보강해 메일 후속작업 시 `run_mail_post_action` 우선 사용, 예약 완료 선언 조건(`status=completed`) 및 누락 정보 질의 규칙을 명시.
 
 ## Update Rule
 - Before and after any code change in this folder, append a detailed log entry.
+- 2026-03-02 (before): 스트리밍 응답에서 최종 assistant 답변을 agent 내부 상태로 보존해 라우터가 `@after_model` 결과를 우선 사용하도록 `deep_chat_agent` 출력 인터페이스 보강 작업 시작.
+- 2026-03-02 (after): `DeepChatAgent`에 `get_last_assistant_answer()`를 추가하고, `respond/stream_respond` 종료 시 최종 assistant 텍스트를 ContextVar에 저장하도록 확장.
+- 2026-03-02 (after): 스트리밍 이벤트에서 수집한 메시지 목록에서 마지막 assistant 텍스트를 추출하는 내부 헬퍼를 추가해 토큰 문자열 결합값 대신 후처리 완료 답변을 재사용할 수 있게 정리.
+- 2026-03-01 (before): 근거메일 메타가 후속 tool payload에 덮이는 회귀를 막기 위해 `deep_chat_agent`의 마지막 tool payload 선택 로직을 `mail_search` 우선으로 보정하는 작업 시작.
+- 2026-03-01 (after): `deep_chat_agent._extract_latest_tool_payload`를 보정해 복수 tool payload가 있을 때 최신 payload fallback을 유지하되 `action=mail_search` payload를 최우선 선택하도록 변경.
+- 2026-03-01 (before): 전역 `_last_tool_payload` 오염 및 payload 해석 규칙 분산을 줄이기 위해 공통 selector 모듈 도입과 context 기반 저장으로 전환하는 작업 시작.
+- 2026-03-01 (after): `tool_payload_selector.py`를 추가해 tool payload 파싱/우선선택 규칙을 공통화했고, `DeepChatAgent`는 `_last_tool_payload`를 `ContextVar`로 저장하도록 전환해 요청 간 오염 위험을 줄였다.
+- 2026-03-01 (before): 현재메일 기본 요약을 표준 템플릿(`## 이메일 요약` 섹션형)으로 고정하기 위해 프롬프트 JSON 계약에 `standard_summary`/기본정보 필드(`basic_info`, `core_issue`, `major_points`)를 확장하는 작업 시작.
+- 2026-03-01 (after): `prompts.py` JSON 출력 계약에 `standard_summary`와 `basic_info/core_issue/major_points/required_actions/one_line_summary` 필드를 반영하고, `현재메일 요약해줘`(줄수 미명시) 시 `standard_summary`를 사용하도록 규칙을 명시.
+- 2026-03-01 (before): 사용자 지정 템플릿 품질(`현재메일 3줄 요약`/`현재메일 요약`) 고정을 위해 요약 프로필별 JSON 작성 규칙(3줄 형식/표준 요약 섹션)과 금지 패턴(헤더 나열/본문 복붙)을 프롬프트에 강화하는 작업 시작.
+- 2026-03-01 (after): `prompts.py` JSON 계약을 보강해 `현재메일 N줄 요약`은 `핵심 주장 — 근거/영향`형 `summary_lines`를, `현재메일 요약해줘`는 `standard_summary` 필드 세트를 강제하도록 업데이트.
+- 2026-03-01 (before): 표준 요약 출력 일관성 향상을 위해 프롬프트에 JSON 예시(3줄 요약/표준 요약)를 추가하고 필드 누락 금지 규칙을 강화하는 작업 시작.
+- 2026-03-01 (after): 프롬프트 JSON 계약에 `현재메일 N줄 요약`/`현재메일 요약` 예시를 명시해 모델이 profile별 응답 구조를 안정적으로 따르도록 보강.
+- 2026-03-01 (before): 실출력 추상화 문제를 줄이기 위해 프롬프트에 “구체 명사/수치/고유명사 기반 서술” 규칙과 제목 필수 채움 규칙을 강화하는 작업 시작.
+- 2026-03-01 (after): `prompts.py` JSON 계약에 `현재메일 N줄 요약`/`현재메일 요약` 예시 객체를 추가해 모델이 profile별 필수 필드를 누락 없이 채우도록 유도.
+- 2026-03-01 (before): LLM 단일 경로 품질 개선을 위해 시스템 프롬프트에 JSON 출력 계약(요약/상세/보고서 공통 스키마, 상세 요약 최소 항목 수)을 강제하는 작업 시작.
+- 2026-03-01 (after): `prompts.py`에 JSON 출력 계약(`format_type/title/answer/summary_lines/key_points/action_items`)을 추가하고 모든 프롬프트 variant에서 동일 계약을 강제해 모델 출력 일관성을 강화.
+- 2026-02-28 (before): API에서 선택 메일 실패 시 에이전트 메일 컨텍스트를 비우기 위한 helper(`clear_current_mail`) 추가 작업 시작.
+- 2026-02-28 (after): `tools.py`에 `clear_current_mail()` helper를 추가해 API 계층에서 에이전트 current mail 컨텍스트를 안전하게 초기화할 수 있도록 확장.
+- 2026-03-01 (before): 프롬프트 품질 재실험을 위해 시스템 프롬프트를 후보별로 스위치 가능한 구조(환경변수 기반)로 정리하고 후보 프롬프트를 추가하는 작업 시작.
+- 2026-03-01 (after): `prompts.py`에 프롬프트 variant(`default`, `fast_compact`, `quality_structured`)와 조회 함수 `get_agent_system_prompt`를 추가하고, `deep_chat_agent.py`에서 `MOLDUBOT_AGENT_PROMPT_VARIANT` 기반 로딩/초기화 로깅을 연결.
+- 2026-03-01 (before): 지연 악화 후속 실험으로 `intent_parser` 단계 수를 제한하는 상한 정책(`MOLDUBOT_INTENT_MAX_STEPS`)과 단계 정규화 보강 작업 시작.
+- 2026-03-01 (after): `intent_parser.py`에 step 우선순위/상한 정책(`MOLDUBOT_INTENT_MAX_STEPS`, 기본 2)을 도입하고, 구조분해 결과를 상한 적용 후 `missing_slots` 재계산하도록 정규화해 과도한 multi-step 경로를 억제.
+- 2026-03-01 (before): 현재메일 요약 품질 개선을 위해 run_mail_post_action action 매핑을 `요약해줘(줄수 미명시)->report` 중심으로 재정의하는 프롬프트 보강 작업 시작.
+- 2026-03-01 (after): 프롬프트 action 매핑을 `현재메일 요약(줄수 미명시)->run_mail_post_action(report)` / `현재메일 N줄 요약->summary_with_key_facts`로 보강해 standard_summary 필드 충족률 개선 기반을 마련.
+- 2026-03-01 (after): `DeepChatAgent`/`ExaoneIntentParser`에 prompt trace 로그를 추가해 agent invoke payload, intent 모델 요청·응답, agent 최종 응답을 `PROMPT_TRACE_ENABLED=1`에서 출력하도록 반영.
+- 2026-03-01 (before): tool 책임 축소 설계에 맞춰 시스템 프롬프트의 mail action 매핑(`summary_with_key_facts`)을 context-only 중심으로 정리하는 작업 시작.
+- 2026-03-01 (after): 시스템 프롬프트의 현재메일 요약 action 매핑을 `summary_with_key_facts/report` 중심에서 `current_mail` 컨텍스트 조회 중심으로 정리.
+- 2026-03-01 (after): 사용되지 않는 저수준 메일 tool(`read_current_mail`, `summarize_mail`, `extract_key_facts`, `extract_recipients`)을 제거하고 에이전트 tool 표면을 단순화.
+- 2026-03-01 (after): 프롬프트 action 매핑을 “현재메일 관련 질의는 `run_mail_post_action(action=current_mail)` 단일 조회”로 단순화해 tool 역할을 retrieval로 고정.
+- 2026-03-01 (before): 조건 기반 메일 조회 질의 대응을 위해 `search_mails` tool 추가 및 프롬프트/의도 단계 확장 작업 시작.
+- 2026-03-01 (after): `tools.py`에 `search_mails(query, person, start_date, end_date, limit)`를 추가하고 tool 레지스트리를 4개로 확장.
+- 2026-03-01 (after): `prompts.py`에 조건 기반 조회 질의는 `search_mails` 우선 호출 규칙을 추가하고 `intent_schema/intent_parser/intent_rules`에 `search_mails` step을 반영.
+- 2026-03-01 (after): `deep_chat_agent.py`에 마지막 ToolMessage payload 추적(`get_last_tool_payload`)을 추가해 API 레벨 근거메일 메타 추출을 지원.
+- 2026-03-01 (before): 월만 있는 메일 조회 질의에서 연도 오해를 줄이기 위해 기준 시각 제공 툴(`current_date`) 추가 작업 시작.
+- 2026-03-01 (after): `tools.py`에 `current_date` 툴(Asia/Seoul 기준 datetime/date/year/month/day 반환)을 추가하고 tool registry에 등록.
+- 2026-03-01 (after): `prompts.py`에 월-only 조회 질의(`1월/1월달`)는 `current_date`로 연도 해석 후 `search_mails` 호출 규칙을 반영.
+- 2026-03-01 (before): 조회형 메일 요청에서 current mail tool 호출을 억제하기 위해 프롬프트 정책 보강 작업 시작.
+- 2026-03-01 (after): 프롬프트에 `조회/검색/관련/최근/지난` + `현재메일` 미포함 질의는 `run_mail_post_action` 호출 금지 규칙을 추가.
+- 2026-03-01 (before): v1.0 메모리 통일을 위해 `DeepChatAgent`에 checkpointer/thread_id configurable 호출을 연결하고 호출 인터페이스를 정리하는 리팩터링 작업 시작.
+- 2026-03-01 (after): `deep_chat_agent.py`에 LangGraph `InMemorySaver` checkpointer를 연결하고 `respond(user_message, thread_id)` 인터페이스로 확장해 `invoke(configurable.thread_id)` 기반 short-term memory 호출 경로를 적용.
+- 2026-03-01 (before): 의도 품질 개선을 위해 `intent_parser`를 Ollama-first(항상 모델 우선)로 전환하고 품질 게이트 실패 시 규칙 fallback, fast-path는 초단순 패턴 전용으로 축소하는 리팩터링 작업 시작.
+- 2026-03-01 (after): `intent_parser.py`를 Ollama-first 경로로 전환해 `auto` 모드에서 복합 질의는 모델 구조분해를 우선 사용하고, 실패/품질미달 시 규칙 기반 fallback으로 전환하도록 리팩터링.
+- 2026-03-01 (after): fast-path를 초단순 현재메일 패턴 전용으로 축소(`SIMPLE_FAST_PATH_PATTERNS`)하고, 기존 광범위 `infer_steps` fast-path 판정 함수를 제거해 복합 질의 우회 문제를 해소.
+- 2026-03-01 (after): step 정규화를 model-first 병합으로 변경하고 필수 step(현재메일/수신자/요약) 품질 게이트와 `max_steps` 보정(필수 step 보호)을 추가해 `extract_recipients` 누락 회귀를 완화.
+- 2026-03-01 (after): Ollama 문자열 응답의 코드블록(JSON fence) 파싱 보강 로직을 추가해 structured 결과 검증 경로를 강화.
+- 2026-03-01 (before): Ollama-first 전환 검증을 위해 복합문장 20개 평가셋을 추가하고 intent parser의 JSON 구조/step 충족률/지연을 측정하는 품질 테스트 실행 작업 시작.
+- 2026-03-01 (after): 복합질의 20개 평가를 실행해 Ollama-first 파서의 현 수준을 계측(파싱 성공률 100.0%, 필수 step 충족률 20.0%, 평균 1926.0ms)하고 결과를 `tests/intent_complex_eval_result.json`으로 남김.
+- 2026-03-01 (before): intent 품질게이트에서 검색형 질의의 필수 step(`search_mails`) 검증을 추가하는 보정 작업 시작.
+- 2026-03-01 (after): `intent_parser` 필수 step 게이트에 검색형 질의의 `SEARCH_MAILS`를 추가하고, `_normalize_steps`에서 검색형(현재메일 제외) 질의의 `READ_CURRENT_MAIL`를 제거해 모델/규칙 충돌을 해소.
+- 2026-03-01 (before): ExaOne 프롬프트에서 "1월분"을 수신일로 오해하는 문제를 줄이기 위해 규칙 6번에 청구기간 예외 문구를 추가하는 작업 시작.
+- 2026-03-01 (after): `intent_parser._build_prompt` 규칙 6번에 `N월분/N분기분/상반기분/하반기분`은 date_filter를 none으로 처리하도록 명시하고, 수신시점 표현("이번 주/어제/지난달에 받은/1월에 온")에만 date_filter 적용하도록 보강.
+- 2026-03-01 (before): 검색 질의에서 current-mail 기반 step이 섞여 tool 컨텍스트가 오염되는 문제를 줄이기 위해 step 정규화와 프롬프트 안전규칙 보강 작업 시작.
+- 2026-03-01 (after): 검색 질의(`현재메일` 미포함)에서 `READ_CURRENT_MAIL/EXTRACT_KEY_FACTS/EXTRACT_RECIPIENTS`를 정규화 단계에서 제거해 current-mail 기반 tool 호출 혼입을 줄였고, 시스템 프롬프트에 무관 검색결과 시 `조건에 맞는 메일을 찾지 못했습니다.` 응답 규칙을 추가.
+- 2026-03-01 (before): 액션아이템 질의에서 모델이 `action_items` 대신 `summary_lines`에만 내용을 넣는 문제를 줄이기 위해 시스템 프롬프트 출력 계약 보강 작업 시작.
+- 2026-03-01 (after): 시스템 프롬프트 출력 계약에 `액션 아이템/할 일/조치사항` 요청 시 `action_items` 필드에 반드시 채우도록 명시해 summary_lines-only 응답을 줄이도록 보강.
+- 2026-03-01 (before): `/search/chat/stream`의 실시간 토큰 직중계를 위해 `DeepChatAgent`에 LangGraph stream 기반 토큰 iterator를 추가하는 작업 시작.
+- 2026-03-01 (after): `deep_chat_agent.py`에 `stream_respond(user_message, thread_id)`를 추가해 `CompiledStateGraph.stream(stream_mode=(\"messages\",\"updates\"))`에서 AI 토큰을 순차 추출하고, 스트림 이벤트에서 tool payload를 수집해 기존 metadata 경로와 호환되도록 확장.
+- 2026-03-02 (before): 요약 품질 개선을 위해 생성 단계 계약을 강화하고 환경변수 미설정 시 품질형 프롬프트를 기본 적용하는 작업 시작.
+- 2026-03-02 (after): `prompts.py`의 JSON 계약에 `standard_summary` 품질 제약(4~6 고유 major_points, 중복 금지, action 추출 규칙)을 추가.
+- 2026-03-02 (after): `deep_chat_agent.py`의 `DEFAULT_PROMPT_VARIANT`를 `quality_structured`로 상향해 기본 경로에서 품질형 프롬프트를 사용하도록 변경.
+- 2026-03-02 (after): 요약 품질 요구를 반영해 프롬프트에 BLUF(한줄 결론), `사실 — 의미/영향` 라인 규칙, OAD(무엇/누가/언제) 액션 규칙, 근거 부족 시 `확인 필요` 명시 규칙을 추가.
+- 2026-03-02 (before): 백엔드 단일 응답 경로로 통일하기 위해 `DeepChatAgent`의 미사용 스트리밍 인터페이스(`stream_respond`) 및 관련 헬퍼 정리 작업 시작.
+- 2026-03-02 (after): `deep_chat_agent.py`에서 `stream_respond`와 스트림 전용 파싱 헬퍼들을 제거하고 `respond()` 단일 호출 경로로 정리.
+- 2026-03-02 (before): 보고서 전용 subagent 오케스트레이터와 Tavily 검색 도구를 도입하기 위한 agents 계층 확장 작업 시작.
+- 2026-03-02 (after): `report_agent.py`(email-analyzer/web-researcher/report-writer subagent)와 `report_tools.py`(Tavily `internet_search` tool)를 추가하고 모델을 `SUMMARIZATION_MODEL` 기반으로 설정.
+- 2026-03-02 (before): fast path 보고서의 날짜/제목 환각과 본문 밀도 부족을 줄이기 위해 report agent 프롬프트 강화 작업 시작.
+- 2026-03-02 (after): `generate_report_html_fast` 입력에 수신일/발신자 메타를 추가하고, 제목/날짜 고정·플레이스홀더 금지·근거부족 명시 규칙을 프롬프트에 반영.
+- [10:56] 작업 시작: 외부검색(report web research) 기능 삭제 및 미사용 코드 정리 착수
+
+- [11:03] 작업 시작: report agent 외부검색 코드 제거 및 단일 모델 경로 정리
+- [11:08] 완료: report_agent 단일 모델 호출 경로 유지, report_tools.py 삭제
+- [11:30] 작업 시작: 주간보고 생성용 fast-path 프롬프트/집계 함수 추가 착수
+- [11:43] 완료: 주간보고 fast-path 프롬프트/집계 로직(지난주 실적/이번주 계획 날짜 계산, 메일 근거 라인 생성) 구현 완료.
+- [12:02] 작업 시작: 주간보고 불릿 하위설명(`-`) 형식 강제를 위해 report_agent 프롬프트/출력 보강 작업 시작.
+- [12:04] 완료: `report_agent.py`에 주간보고 불릿 2줄 규칙(핵심 + `- 설명`)을 프롬프트에 추가하고, 모델 미준수 대비 `<li>` 자동 보강(`_ensure_weekly_bullet_sublines`)을 적용.
+- [12:29] 작업 시작: 회의실 마스터 데이터 이관에 맞춰 agent meeting tool 경로(`MEETING_ROOMS_PATH`) 동기화 작업 시작.
+- [12:35] 완료: `tools.py`의 회의실 데이터 경로를 `data/meeting/meeting_rooms.json`으로 변경해 API/서비스와 단일 소스를 공유하도록 정리.

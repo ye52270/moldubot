@@ -1,0 +1,171 @@
+.summary-section {
+  width: min(100%, var(--chat-text-max-width));
+  margin: 10px 0 14px;
+  padding: 11px 12px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 84%, #d8cdbd);
+  background: color-mix(in srgb, var(--color-surface) 98%, #fdfaf4);
+  box-shadow: 0 1px 2px rgba(44, 36, 22, 0.04);
+}
+
+.summary-section > .rich-heading:first-child {
+  margin-top: 0;
+}
+
+.summary-section > :last-child {
+  margin-bottom: 0;
+}
+
+.summary-section.section-executive {
+  border-color: color-mix(in srgb, var(--color-primary) 45%, var(--color-border));
+  background: linear-gradient(135deg, #fdf6ee 0%, #f7ecd8 100%);
+}
+
+.summary-section.section-major {
+  border-color: color-mix(in srgb, var(--color-border) 84%, #d8cdbd);
+}
+
+.summary-section.section-action {
+  border-color: color-mix(in srgb, var(--color-border) 84%, #d8cdbd);
+}
+
+.summary-section.section-basic {
+  border-color: color-mix(in srgb, var(--color-border) 84%, #d8cdbd);
+}
+
+.summary-section.section-code-analysis {
+  border-left: 3px solid color-mix(in srgb, #c29161 48%, #d7b89c);
+  background:
+    linear-gradient(
+      170deg,
+      color-mix(in srgb, #fff5ea 70%, var(--color-surface)),
+      color-mix(in srgb, var(--color-surface) 98%, #f8f3ec)
+    );
+}
+
+.summary-section.section-code-review {
+  border-left: 3px solid color-mix(in srgb, #6f86a9 45%, #9db0c8);
+  background: color-mix(in srgb, var(--color-surface) 97%, #f6f8fb);
+}
+
+.summary-section.section-title .rich-paragraph {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.42;
+  letter-spacing: -0.01em;
+  color: color-mix(in srgb, var(--color-text) 96%, #201c17);
+}
+
+.summary-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.summary-section-head .rich-heading {
+  margin: 0;
+}
+
+.summary-section .rich-heading {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 9px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 74%, #e0d7ca);
+  font-size: 11px;
+  font-weight: 760;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--color-text-secondary) 88%, #857863);
+}
+
+.summary-section.section-basic .rich-heading::before {
+  content: '📋';
+}
+
+.summary-section.section-executive .rich-heading::before {
+  content: '🔍';
+}
+
+.summary-section.section-major .rich-heading::before {
+  content: '📌';
+}
+
+.summary-section.section-action .rich-heading::before {
+  content: '💡';
+}
+
+.summary-section.section-recipient-role .rich-heading::before {
+  content: '👤';
+}
+
+.summary-section-body {
+  margin-top: 8px;
+}
+
+.section-toggle-btn {
+  border: 1px solid color-mix(in srgb, var(--color-border) 86%, #ccbca8);
+  background: color-mix(in srgb, var(--color-surface) 97%, #f8f2e8);
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  font-weight: 680;
+  line-height: 1;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.section-toggle-btn:hover {
+  color: var(--color-text);
+  border-color: color-mix(in srgb, var(--color-primary) 44%, var(--color-border));
+}
+
+.summary-section.section-major.is-collapsed .summary-section-body {
+  display: none;
+}
+
+.quality-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 2px 0 8px;
+}
+
+.quality-badge {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid color-mix(in srgb, var(--color-border) 86%, #c6b7a5);
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 680;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+  color: color-mix(in srgb, var(--color-text-secondary) 92%, #6c5f54);
+  background: color-mix(in srgb, var(--color-surface) 97%, #f7f2ea);
+}
+
+.quality-badge-critic {
+  border-color: color-mix(in srgb, #7e8fb7 46%, var(--color-border));
+  color: color-mix(in srgb, #566a92 72%, var(--color-text));
+  background: color-mix(in srgb, #e9eef8 78%, var(--color-surface));
+}
+
+.quality-badge-revise {
+  border-color: color-mix(in srgb, #4f9b6f 42%, var(--color-border));
+  color: color-mix(in srgb, #2f6f49 74%, var(--color-text));
+  background: color-mix(in srgb, #e7f4ec 78%, var(--color-surface));
+}
+
+.quality-badge-draft {
+  border-color: color-mix(in srgb, #b89056 40%, var(--color-border));
+  color: color-mix(in srgb, #7e5934 74%, var(--color-text));
+  background: color-mix(in srgb, #fbf0e2 80%, var(--color-surface));
+}
+
+.quality-badge-source {
+  border-color: color-mix(in srgb, #7292aa 46%, var(--color-border));
+  color: color-mix(in srgb, #446178 72%, var(--color-text));
+  background: color-mix(in srgb, #eaf2f8 80%, var(--color-surface));
+}

@@ -1,0 +1,70 @@
+.rich-inline-code {
+  background: color-mix(in srgb, var(--color-surface) 65%, #e7e2da);
+  border: 1px solid color-mix(in srgb, var(--color-border) 85%, #cabfb0);
+  border-radius: 6px;
+  padding: 1px 5px;
+  font-size: var(--text-base);
+  font-family: "SF Mono", ui-monospace, Menlo, Monaco, Consolas, monospace;
+}
+
+.rich-pre {
+  margin: 10px 0;
+  padding: 14px;
+  border-radius: 10px;
+  background: #1b1f2a;
+  color: #ecf2ff;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  tab-size: 2;
+  font-size: 13px;
+  line-height: 1.56;
+  border: 1px solid color-mix(in srgb, #1b1f2a 76%, #4f5c7a);
+}
+
+.rich-pre.fallback-highlighted .code-tok-tag {
+  color: #7dd3fc;
+}
+
+.rich-pre.fallback-highlighted .code-tok-attr {
+  color: #fbbf24;
+}
+
+.rich-pre.fallback-highlighted .code-tok-string {
+  color: #86efac;
+}
+
+.rich-pre.fallback-highlighted .code-tok-comment {
+  color: #94a3b8;
+  font-style: italic;
+}
+
+.rich-code-block {
+  margin: 10px 0 14px;
+  border-radius: 11px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, #2a3347 72%, #65708a);
+}
+
+.rich-code-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 7px 11px;
+  background: #242d3f;
+  color: #dce6fb;
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.rich-code-head-label {
+  color: #e2ebff;
+}
+
+.rich-code-head-lang {
+  color: #b9c9ea;
+  font-size: 11px;
+  font-weight: 620;
+}

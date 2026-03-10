@@ -1,0 +1,71 @@
+.scope-clarification-block {
+  width: min(100%, var(--chat-text-max-width));
+  margin-top: 6px;
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 18%, var(--color-border));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--color-surface) 84%, var(--color-primary-light));
+}
+
+.scope-clarification-title {
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--color-text);
+  margin-bottom: 8px;
+}
+
+.scope-choice-list {
+  display: grid;
+  gap: 6px;
+}
+
+.scope-choice-btn {
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  text-align: left;
+  cursor: pointer;
+  padding: 8px 10px;
+  display: grid;
+  gap: 2px;
+}
+
+.scope-choice-btn:hover {
+  border-color: color-mix(in srgb, var(--color-primary) 34%, var(--color-border));
+  background: color-mix(in srgb, var(--color-surface) 82%, var(--color-primary-light));
+}
+
+.scope-choice-btn:disabled {
+  cursor: wait;
+  opacity: 0.75;
+}
+
+.scope-status-block {
+  width: min(100%, var(--chat-text-max-width));
+  margin: 2px 0 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.scope-status-chip {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 34%, var(--color-border));
+  border-radius: 999px;
+  padding: 4px 10px;
+  background: color-mix(in srgb, var(--color-surface) 90%, var(--color-primary-light));
+  color: color-mix(in srgb, var(--color-text) 88%, #4f5f74);
+  font-size: 11px;
+  font-weight: 680;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+}
+
+.scope-status-reason {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.35;
+}

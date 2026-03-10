@@ -7,6 +7,7 @@ from logging.config import dictConfig
 DEFAULT_LOG_LEVEL = "INFO"
 DEFAULT_LOG_FORMAT = "%(asctime)s | %(levelname)s | %(name)s | %(message)s"
 DEFAULT_LOG_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
+PROMPT_TRACE_ENV_KEY = "PROMPT_TRACE_ENABLED"
 
 
 def _normalize_log_level(raw_level: str) -> str:
@@ -70,3 +71,14 @@ def get_logger(name: str) -> logging.Logger:
         설정된 logging.Logger 인스턴스
     """
     return logging.getLogger(name)
+
+
+def is_prompt_trace_enabled() -> bool:
+    """
+    프롬프트 트레이스 로깅 활성화 여부를 반환한다.
+
+    Returns:
+        `PROMPT_TRACE_ENABLED`가 1/true/yes/on 중 하나면 True
+    """
+    raw = str(os.getenv(PROMPT_TRACE_ENV_KEY, "0")).strip().lower()
+    return raw in {"1", "true", "yes", "on"}

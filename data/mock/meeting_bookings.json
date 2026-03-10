@@ -18,5 +18,135 @@
     "floor": 5,
     "room_name": "A-501",
     "subject": "자동 예약"
+  },
+  {
+    "date": "2026-02-27",
+    "start_time": "14:00",
+    "end_time": "15:00",
+    "attendee_count": 5,
+    "building": "봉사",
+    "floor": 5,
+    "room_name": "A-502",
+    "subject": "회의"
+  },
+  {
+    "date": "2026-03-05",
+    "start_time": "16:00",
+    "end_time": "17:00",
+    "attendee_count": 5,
+    "building": "본사",
+    "floor": 5,
+    "room_name": "A-502",
+    "subject": "정상 테스트"
+  },
+  {
+    "date": "2026-03-05",
+    "start_time": "10:00",
+    "end_time": "11:00",
+    "attendee_count": 8,
+    "building": "본사",
+    "floor": 5,
+    "room_name": "A-501",
+    "subject": "팀 주간 스탠드업"
+  },
+  {
+    "date": "2026-03-01",
+    "start_time": "17:00",
+    "end_time": "18:00",
+    "attendee_count": 5,
+    "building": "본사",
+    "floor": 5,
+    "room_name": "A-501",
+    "subject": "M365 프로젝트 추진 일정 팀 공유 회의"
+  },
+  {
+    "date": "2026-03-03",
+    "start_time": "10:00",
+    "end_time": "11:00",
+    "attendee_count": 5,
+    "building": "본사",
+    "floor": 5,
+    "room_name": "A-501",
+    "subject": "SSL 인증서 업데이트 관련 회의"
+  },
+  {
+    "date": "2026-03-02",
+    "start_time": "10:00",
+    "end_time": "11:00",
+    "attendee_count": 4,
+    "building": "skt-tower",
+    "floor": 18,
+    "room_name": "1806-C",
+    "subject": "[회의실] 1806-C"
+  },
+  {
+    "date": "2026-03-02",
+    "start_time": "10:00",
+    "end_time": "11:00",
+    "attendee_count": 4,
+    "building": "skax-A",
+    "floor": 8,
+    "room_name": "804",
+    "subject": "[회의실] 804"
+  },
+  {
+    "date": "2026-03-02",
+    "start_time": "10:00",
+    "end_time": "11:00",
+    "attendee_count": 4,
+    "building": "skax-A",
+    "floor": 8,
+    "room_name": "808",
+    "subject": "[회의실] 808"
+  },
+  {
+    "date": "2026-03-02",
+    "start_time": "10:00",
+    "end_time": "11:00",
+    "attendee_count": 4,
+    "building": "skax-A",
+    "floor": 6,
+    "room_name": "612",
+    "subject": "[회의실] 612"
+  },
+  {
+    "date": "2026-03-02",
+    "start_time": "10:00",
+    "end_time": "11:00",
+    "attendee_count": 4,
+    "building": "skt-tower",
+    "floor": 19,
+    "room_name": "1907-A",
+    "subject": "[회의실] 1907-A"
+  },
+  {
+    "date": "2026-03-03",
+    "start_time": "10:00",
+    "end_time": "11:00",
+    "attendee_count": 4,
+    "building": "sku-tower",
+    "floor": 21,
+    "room_name": "2109",
+    "subject": "[회의실] 2109"
+  },
+  {
+    "date": "2026-03-09",
+    "start_time": "10:00",
+    "end_time": "11:00",
+    "attendee_count": 2,
+    "building": "sku-tower",
+    "floor": 17,
+    "room_name": "1702-A",
+    "subject": "Tenant Restriction 방안 - Chrome 에서 특정"
+  },
+  {
+    "date": "2026-03-07",
+    "start_time": "10:00",
+    "end_time": "11:00",
+    "attendee_count": 4,
+    "building": "skax-A",
+    "floor": 8,
+    "room_name": "811-B",
+    "subject": "[회의실] skax-A 8층 811-B"
   }
 ]
