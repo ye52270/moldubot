@@ -8,6 +8,7 @@ from app.agents.prompts import (
     FAST_COMPACT_SYSTEM_PROMPT,
     MAIL_RETRIEVAL_SUMMARY_SUBAGENT_SYSTEM_PROMPT,
     MAIL_TECH_ISSUE_SUBAGENT_SYSTEM_PROMPT,
+    QUALITY_FREEFORM_GROUNDED_SYSTEM_PROMPT,
     QUALITY_STRUCTURED_SYSTEM_PROMPT,
     get_agent_system_prompt,
 )
@@ -44,6 +45,18 @@ class AgentPromptsTest(unittest.TestCase):
             get_agent_system_prompt("code_review_expert"),
             CODE_REVIEW_EXPERT_SYSTEM_PROMPT,
         )
+
+    def test_returns_quality_freeform_grounded_variant(self) -> None:
+        """quality_freeform_grounded variant 조회가 가능해야 한다."""
+        self.assertEqual(
+            get_agent_system_prompt("quality_freeform_grounded"),
+            QUALITY_FREEFORM_GROUNDED_SYSTEM_PROMPT,
+        )
+
+    def test_quality_freeform_prompt_does_not_force_json_contract(self) -> None:
+        """freeform variant는 JSON 강제 계약 문구를 포함하지 않아야 한다."""
+        self.assertNotIn("Return exactly one JSON object", QUALITY_FREEFORM_GROUNDED_SYSTEM_PROMPT)
+        self.assertIn("prefer rich freeform prose", QUALITY_FREEFORM_GROUNDED_SYSTEM_PROMPT)
 
     def test_code_review_prompt_requires_concise_snippet_policy(self) -> None:
         """코드리뷰 프롬프트는 짧은 스니펫 중심의 간결 정책을 포함해야 한다."""

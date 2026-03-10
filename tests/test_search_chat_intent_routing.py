@@ -130,6 +130,32 @@ class SearchChatIntentRoutingTest(unittest.TestCase):
         self.assertEqual("completed", response["status"])
         get_agent_mock.assert_called_with(prompt_variant="quality_structured_json_strict")
 
+    def test_current_mail_work_history_arrange_selects_freeform_prompt_variant(self) -> None:
+        """
+        현재메일 정리형 질의(요약 미명시)는 freeform grounded variant를 선택해야 한다.
+        """
+        decomposition = IntentDecomposition(
+            original_query="현재메일의 주요 작업 내역을 정리해줘",
+            steps=[ExecutionStep.SUMMARIZE_MAIL, ExecutionStep.READ_CURRENT_MAIL, ExecutionStep.EXTRACT_KEY_FACTS],
+            summary_line_target=5,
+            date_filter=DateFilter(mode=DateFilterMode.NONE),
+            missing_slots=[],
+            task_type=IntentTaskType.SUMMARY,
+            output_format=IntentOutputFormat.STRUCTURED_TEMPLATE,
+            confidence=0.9,
+        )
+        parser = type("StubParser", (), {"parse": lambda self, user_message: decomposition})()
+        with patch("app.api.search_chat_flow.get_intent_parser", return_value=parser):
+            with patch("app.api.routes.is_openai_key_configured", return_value=True):
+                fake_agent = MagicMock()
+                fake_agent.execute_turn.return_value = {"status": "completed", "answer": "정리 응답", "interrupts": []}
+                fake_agent.get_last_tool_payload.return_value = {}
+                fake_agent.get_last_assistant_answer.return_value = "정리 응답"
+                with patch("app.api.routes.get_deep_chat_agent", return_value=fake_agent) as get_agent_mock:
+                    response = search_chat(payload=ChatRequest(message="현재메일의 주요 작업 내역을 정리해줘"))
+        self.assertEqual("completed", response["status"])
+        get_agent_mock.assert_called_with(prompt_variant="quality_freeform_grounded")
+
     def test_todo_registration_query_skips_intent_clarification(self) -> None:
         """
         `할일 등록` 실행 요청은 low-confidence여도 intent clarification을 건너뛰어야 한다.
@@ -206,6 +232,7 @@ class SearchChatIntentRoutingTest(unittest.TestCase):
                                     message="이슈가 어떤거야?",
                                     email_id="m-current",
                                     mailbox_user="jaeyoung_dev@outlook.com",
+                                    runtime_options={"scope": "current_mail"},
                                 )
                             )
         self.assertEqual("completed", response["status"])

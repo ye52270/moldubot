@@ -133,3 +133,7 @@
   `clients/outlook-addin/taskpane.selection.events.js`, `clients/outlook-addin/taskpane.selection.observer.js`, `clients/outlook-addin/taskpane.selection.js` (SelectedItemsChanged code7000 재시도/폴백 상태 노출),
   `app/services/mail_service.py` (summary_sync_on_upsert pid 로깅),
   `tests/test_search_chat_flow_fast_lane.py` (신규), `tests/test_bootstrap_ops_routes.py` (신규), `tests/test_taskpane_selection_context.cjs`, `tests/test_agent_middlewares_intent_injection.py`, `tests/test_middleware_policies.py`, `tests/test_intent_parser_fast_path.py` (갱신).
+- 2026-03-10 freeform 라우팅 반영 파일:
+  `app/api/search_chat_intent_helpers.py` (`현재메일+정리` 질의를 `quality_freeform_grounded`로 분기, strict-json은 `현재메일+요약`으로 한정),
+  `app/agents/prompts.py` (freeform 전용 시스템 프롬프트 variant 추가),
+  `tests/test_search_chat_intent_routing.py`, `tests/test_agent_prompts.py` (variant 선택/프롬프트 계약 회귀 보강).

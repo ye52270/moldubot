@@ -56,9 +56,16 @@ def select_prompt_variant_from_intent(
     if (
         str(resolved_scope or "").strip().lower() == "current_mail"
         and "현재메일" in compact_query
-        and ("요약" in compact_query or "정리" in compact_query)
+        and ("요약" in compact_query)
     ):
         return "quality_structured_json_strict"
+    if (
+        str(resolved_scope or "").strip().lower() == "current_mail"
+        and "현재메일" in compact_query
+        and ("정리" in compact_query or "작업내역" in compact_query or "주요작업" in compact_query)
+        and "요약" not in compact_query
+    ):
+        return "quality_freeform_grounded"
     if is_code_review_query(user_message=query):
         return "code_review_expert"
     if decomposition is None:
