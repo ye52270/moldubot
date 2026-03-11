@@ -11,6 +11,7 @@ from app.core.intent_rules import (
     is_code_review_query,
     is_explicit_skill_query,
     is_mail_summary_skill_query,
+    resolve_chat_mode,
 )
 
 
@@ -161,6 +162,12 @@ class IntentRulesTest(unittest.TestCase):
         self.assertTrue(is_explicit_skill_query("/메일요약"))
         self.assertTrue(is_explicit_skill_query("/코드분석"))
         self.assertFalse(is_explicit_skill_query("현재메일 요약해줘"))
+
+    def test_resolve_chat_mode_maps_only_slash_commands_to_skill(self) -> None:
+        """`/` 스킬 명령만 `skill`, 일반 질의는 `freeform`으로 분류해야 한다."""
+        self.assertEqual("skill", resolve_chat_mode("/메일요약"))
+        self.assertEqual("skill", resolve_chat_mode("/코드분석 성능 위주"))
+        self.assertEqual("freeform", resolve_chat_mode("현재메일의 주요 이슈가 뭐야?"))
 
     def test_build_missing_slots_accepts_hhmm_and_attendee_count_keys(self) -> None:
         """HH:MM/attendee_count 키가 있으면 예약 슬롯 누락으로 오탐하면 안 된다."""

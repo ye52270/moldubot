@@ -8,6 +8,7 @@ from app.api.search_chat_stream_utils import (
     GENERAL_STREAM_PHASE_STEPS,
     _resolve_phase_steps,
     _resolve_progress_state,
+    stream_search_chat_events,
 )
 
 
@@ -50,6 +51,22 @@ class SearchChatStreamUtilsTest(unittest.TestCase):
         )
         self.assertNotEqual(phase, "finalizing")
         self.assertLess(step, len(CODE_REVIEW_STREAM_PHASE_STEPS))
+
+    def test_stream_emits_token_events_when_runner_pushes_tokens(self) -> None:
+        """runner가 토큰 콜백을 호출하면 SSE token 이벤트가 포함돼야 한다."""
+        payload = ChatRequest(message="테스트")
+
+        def _runner(_payload: ChatRequest, _prefix: str, on_token: object) -> dict[str, object]:
+            if callable(on_token):
+                on_token("안녕")
+                on_token(" 하세요")
+            return {"status": "completed", "thread_id": "thread-1", "answer": "완료", "metadata": {}}
+
+        events = list(stream_search_chat_events(payload=payload, runner=_runner))
+        token_events = [item for item in events if "event: token" in item]
+        self.assertGreaterEqual(len(token_events), 2)
+        self.assertTrue(any("안녕" in item for item in token_events))
+        self.assertTrue(any(" 하세요" in item for item in token_events))
 
 
 if __name__ == "__main__":

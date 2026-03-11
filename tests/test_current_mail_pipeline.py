@@ -211,6 +211,16 @@ class CurrentMailPipelineTest(unittest.TestCase):
         )
         self.assertTrue(result)
 
+    def test_selected_mail_defaults_to_current_mail_for_plain_followup(self) -> None:
+        """선택 메일이 있으면 명시 반대 신호가 없는 일반 후속 질의는 current_mail로 본다."""
+        result = resolve_current_mail_mode(
+            user_message="수신실패되는 메일 주소가 뭔지 알려줘",
+            thread_id="thread-13",
+            selected_mail_available=True,
+            requested_scope="",
+        )
+        self.assertTrue(result)
+
 
 if __name__ == "__main__":
     unittest.main()

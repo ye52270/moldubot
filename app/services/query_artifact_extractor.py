@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import html
 import re
 from typing import Any
 
@@ -23,6 +24,30 @@ GENERIC_OPERATOR_PATTERNS: tuple[str, ...] = (
     r"\b(select|where|from)\b",
     r"[()\\[\]{}]",
 )
+EMAIL_PATTERN = re.compile(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", flags=re.IGNORECASE)
+DOMAIN_PATTERN = re.compile(r"\b(?:[A-Z0-9-]+\.)+[A-Z]{2,}\b", flags=re.IGNORECASE)
+
+
+def extract_direct_fact_candidates(
+    mail_context: dict[str, Any],
+    target_type: str = "general",
+) -> list[str]:
+    """
+    direct fact target type에 맞는 값 후보를 추출한다.
+
+    Args:
+        mail_context: tool payload의 mail_context
+        target_type: 추출 대상 타입
+
+    Returns:
+        추출 후보 문자열 목록
+    """
+    normalized_target = str(target_type or "general").strip().lower()
+    if normalized_target == "email_address":
+        return _extract_email_candidates(mail_context=mail_context)
+    if normalized_target == "domain":
+        return _extract_domain_candidates(mail_context=mail_context)
+    return extract_query_artifact_candidates(mail_context=mail_context)
 
 
 def extract_query_artifact_candidates(mail_context: dict[str, Any]) -> list[str]:
@@ -54,6 +79,76 @@ def extract_query_artifact_candidates(mail_context: dict[str, Any]) -> list[str]
                 continue
             candidates.append(normalized)
     return candidates
+
+
+def _extract_email_candidates(mail_context: dict[str, Any]) -> list[str]:
+    """
+    mail_context 전체 텍스트에서 이메일 주소 값을 추출한다.
+
+    Args:
+        mail_context: tool payload의 mail_context
+
+    Returns:
+        이메일 주소 문자열 목록
+    """
+    source = _collect_source_text(mail_context=mail_context)
+    candidates: list[str] = []
+    for matched in EMAIL_PATTERN.findall(source):
+        normalized = str(matched or "").strip().lower()
+        if not normalized or normalized in candidates:
+            continue
+        candidates.append(normalized)
+    return candidates
+
+
+def _extract_domain_candidates(mail_context: dict[str, Any]) -> list[str]:
+    """
+    mail_context 전체 텍스트에서 도메인 값을 추출한다.
+
+    Args:
+        mail_context: tool payload의 mail_context
+
+    Returns:
+        도메인 문자열 목록
+    """
+    source = _collect_source_text(mail_context=mail_context)
+    candidates: list[str] = []
+    for email in EMAIL_PATTERN.findall(source):
+        parts = str(email or "").split("@")
+        if len(parts) != 2:
+            continue
+        domain = parts[1].strip().lower()
+        if domain and domain not in candidates:
+            candidates.append(domain)
+    for matched in DOMAIN_PATTERN.findall(source):
+        domain = str(matched or "").strip().lower()
+        if not domain or "@" in domain or domain in candidates:
+            continue
+        candidates.append(domain)
+    return candidates
+
+
+def _collect_source_text(mail_context: dict[str, Any]) -> str:
+    """
+    direct fact 추출에 사용할 텍스트 소스를 결합한다.
+
+    Args:
+        mail_context: tool payload의 mail_context
+
+    Returns:
+        결합된 원문 텍스트
+    """
+    chunks = (
+        str(mail_context.get("from_address") or ""),
+        str(mail_context.get("to_recipients") or ""),
+        str(mail_context.get("to") or ""),
+        str(mail_context.get("receiver") or ""),
+        str(mail_context.get("body_code_excerpt") or ""),
+        str(mail_context.get("body_excerpt") or ""),
+        str(mail_context.get("body_preview") or ""),
+    )
+    unescaped = [html.unescape(chunk) for chunk in chunks if str(chunk or "").strip()]
+    return "\n".join(unescaped)
 
 
 def normalize_artifact_candidate_line(line: str) -> str:

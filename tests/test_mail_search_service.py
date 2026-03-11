@@ -287,6 +287,52 @@ class MailSearchServiceTest(unittest.TestCase):
         message_ids = [str(item.get("message_id") or "") for item in payload["results"]]
         self.assertIn("m-5", message_ids)
 
+    def test_search_prefers_outlook_link_column_over_web_link_when_available(self) -> None:
+        """
+        DB에 Outlook 전용 링크 컬럼이 있으면 `web_link` 대신 해당 링크를 결과로 내려야 한다.
+        """
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            db_path = Path(tmp_dir) / "emails.db"
+            conn = sqlite3.connect(str(db_path))
+            try:
+                conn.execute(
+                    "CREATE TABLE emails ("
+                    "message_id TEXT, "
+                    "subject TEXT, "
+                    "from_address TEXT, "
+                    "received_date TEXT, "
+                    "body_preview TEXT, "
+                    "body_full TEXT, "
+                    "body_clean TEXT, "
+                    "summary TEXT, "
+                    "web_link TEXT, "
+                    "outlook_link TEXT)"
+                )
+                conn.execute(
+                    "INSERT INTO emails VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    (
+                        "m-100",
+                        "조영득 요청 회신",
+                        "조영득/AX팀/SK <youngdeuk@example.com>",
+                        "2026-02-14T00:00:00Z",
+                        "",
+                        "",
+                        "조영득 관련 요청사항 회신",
+                        "요약100",
+                        "https://outlook.live.com/owa/?ItemID=legacy",
+                        "outlook://message/m-100",
+                    ),
+                )
+                conn.commit()
+            finally:
+                conn.close()
+            service = MailSearchService(db_path=db_path)
+            payload = service.search(query="조영득 관련 메일 조회", limit=5)
+
+        self.assertEqual(1, payload["count"])
+        first = payload["results"][0]
+        self.assertEqual("outlook://message/m-100", first["web_link"])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -51,11 +51,15 @@
       return { phase: phase, text: '', detail: '', step: 0, total: 0 };
     }
 
-    function openEvidenceMail(messageId, webLink) {
+    function openEvidenceMail(messageId) {
       return new Promise(function (resolve, reject) {
         const mailbox = windowRef.Office && windowRef.Office.context && windowRef.Office.context.mailbox;
         const id = String(messageId || '').trim();
-        if (mailbox && id && typeof mailbox.displayMessageForm === 'function') {
+        if (!id) {
+          reject(new Error('evidence-mail-open-missing-message-id'));
+          return;
+        }
+        if (mailbox && typeof mailbox.displayMessageForm === 'function') {
           try {
             mailbox.displayMessageForm(id);
             logClientEvent('info', 'evidence_mail_opened_native', { message_id: shortId(id) });
@@ -67,13 +71,6 @@
               error: String(nativeError && nativeError.message ? nativeError.message : nativeError),
             });
           }
-        }
-        const link = String(webLink || '').trim();
-        if (link) {
-          windowRef.open(link, '_blank');
-          logClientEvent('info', 'evidence_mail_opened_weblink', { web_link_present: true });
-          resolve();
-          return;
         }
         reject(new Error('evidence-mail-open-failed'));
       });

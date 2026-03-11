@@ -95,6 +95,14 @@ _IMPLICIT_BLOCKING_TOKENS = (
     "추가",
     "전체",
 )
+_SELECTED_MAIL_DEFAULT_HINTS = (
+    "메일",
+    "주소",
+    "도메인",
+    "발신",
+    "수신",
+    "차단",
+)
 
 
 @dataclass
@@ -167,6 +175,11 @@ def resolve_current_mail_mode(
         return True
     if _is_explicit_global_mail_query(user_message=user_message):
         return False
+    if _should_default_to_selected_mail_context(
+        user_message=user_message,
+        selected_mail_available=selected_mail_available,
+    ):
+        return True
     if not selected_mail_available:
         return False
     if _is_implicit_followup_query(user_message=user_message):
@@ -300,6 +313,36 @@ def _is_implicit_followup_query(user_message: str) -> bool:
     if not has_followup_hint:
         return False
     return any(token in normalized for token in _IMPLICIT_REFERENCE_TOKENS)
+
+
+def _should_default_to_selected_mail_context(
+    user_message: str,
+    selected_mail_available: bool,
+) -> bool:
+    """
+    선택 메일이 있을 때 명시 반대 신호가 없으면 current_mail 기본값을 적용한다.
+
+    Args:
+        user_message: 사용자 입력
+        selected_mail_available: 선택 메일 ID 포함 여부
+
+    Returns:
+        기본 current_mail 모드 적용 대상이면 True
+    """
+    if not selected_mail_available:
+        return False
+    if _is_explicit_hub_query(user_message=user_message):
+        return False
+    if _is_multi_mail_analysis_query(user_message=user_message):
+        return False
+    if _is_explicit_global_mail_query(user_message=user_message):
+        return False
+    if is_mail_search_query(text=user_message):
+        return False
+    normalized = str(user_message or "").strip().lower()
+    if not normalized:
+        return False
+    return any(token in normalized for token in _SELECTED_MAIL_DEFAULT_HINTS)
 
 
 def _consume_sticky_followup_turn(thread_id: str) -> bool:

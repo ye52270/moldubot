@@ -3,6 +3,7 @@ from __future__ import annotations
 import unittest
 
 from app.services.query_artifact_extractor import (
+    extract_direct_fact_candidates,
     extract_query_artifact_candidates,
     looks_like_query_artifact_line,
     rank_query_artifact_candidates,
@@ -39,6 +40,20 @@ class QueryArtifactExtractorTest(unittest.TestCase):
             ],
         )
         self.assertEqual("SELECT id FROM users WHERE enabled = 1", ranked[0])
+
+    def test_extract_direct_fact_candidates_email_address_only(self) -> None:
+        """email_address target은 설명 문장 없이 이메일 값만 추출해야 한다."""
+        candidates = extract_direct_fact_candidates(
+            target_type="email_address",
+            mail_context={
+                "body_excerpt": (
+                    "Gmail이 보안상의 이유로 차단했습니다.\n"
+                    "From: 공재환 <jhkong72@skbroadband.com>\n"
+                    "To: 박제영 <izocuna@SKCC.COM>"
+                )
+            },
+        )
+        self.assertEqual(["jhkong72@skbroadband.com", "izocuna@skcc.com"], candidates)
 
 
 if __name__ == "__main__":

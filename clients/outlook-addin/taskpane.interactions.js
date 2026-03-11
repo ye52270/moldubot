@@ -178,13 +178,11 @@
           event.preventDefault();
         }
         const messageId = String(button.dataset.messageId || '').trim();
-        const webLink = String(button.dataset.webLink || '').trim();
-        if (!messageId && !webLink) return;
+        if (!messageId) return;
         if (typeof openEvidenceMail === 'function') {
-          openEvidenceMail(messageId, webLink).catch(function () {
+          openEvidenceMail(messageId).catch(function () {
             logClientEvent('warning', 'evidence_mail_open_failed', {
               message_id_present: Boolean(messageId),
-              web_link_present: Boolean(webLink),
             });
           });
         }

@@ -257,6 +257,30 @@ class MiddlewarePoliciesTest(unittest.TestCase):
         self.assertIn("해당 값을 먼저 1~3개로 직접 답한다", text)
         self.assertIn("근거 1줄만", text)
 
+    def test_compose_intent_augmented_text_for_failed_delivery_address_query_adds_scope_guard(self) -> None:
+        """
+        수신 실패 주소 질의는 실패 주소만 답하고 전체 수신자 나열을 금지하는 지시를 주입해야 한다.
+        """
+        decomposition = IntentDecomposition(
+            original_query="본문의 수신안되는 메일주소가 뭔지 알려줘",
+            steps=[ExecutionStep.READ_CURRENT_MAIL, ExecutionStep.EXTRACT_KEY_FACTS],
+            summary_line_target=5,
+            date_filter=DateFilter(mode=DateFilterMode.NONE),
+            missing_slots=[],
+            task_type=IntentTaskType.EXTRACTION,
+            output_format=IntentOutputFormat.GENERAL,
+            focus_topics=[IntentFocusTopic.RECIPIENTS],
+            confidence=0.9,
+        )
+        parser = type("StubParser", (), {"parse": lambda self, user_message: decomposition})()
+        with patch("app.middleware.policies.get_intent_parser", return_value=parser):
+            text = compose_intent_augmented_text(
+                "[질의 범위] 현재 선택 메일 1건만 기준으로 처리\n본문의 수신안되는 메일주소가 뭔지 알려줘"
+            )
+        self.assertIn("실패가 명시된 주소만 답한다", text)
+        self.assertIn("전체 수신자 목록 나열은 금지", text)
+        self.assertIn("본문에서 특정 주소를 확인할 수 없습니다", text)
+
     def test_compose_intent_augmented_text_for_direct_fact_ou_query(self) -> None:
         """
         OU/쿼리 직접 질의도 direct-answer 지시가 주입되어야 한다.

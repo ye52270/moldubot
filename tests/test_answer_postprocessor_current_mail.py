@@ -72,6 +72,30 @@ class AnswerPostprocessorCurrentMailTest(unittest.TestCase):
         )
         self.assertEqual("", rendered)
 
+    def test_render_current_mail_direct_value_email_query_returns_email_values_only(self) -> None:
+        """메일 주소 질의는 설명 문장이 아닌 이메일 값만 렌더링해야 한다."""
+        rendered = render_current_mail_direct_value_from_tool_payload(
+            user_message="현재메일에서 차단되는 메일 주소가 뭐야?",
+            tool_payload={
+                "action": "current_mail",
+                "mail_context": {
+                    "body_excerpt": (
+                        "Gmail이 보안상의 이유로 보낸 사람 도메인 주소가 RFC에 맞지 않아 차단했습니다.\n"
+                        "From: 공재환 <jhkong72@skbroadband.com>\n"
+                        "To: 박제영 <izocuna@skcc.com>"
+                    ),
+                    "body_code_excerpt": "",
+                },
+                "postprocess_policy": {
+                    "direct_fact_decision": True,
+                    "direct_fact_target_type": "email_address",
+                },
+            },
+        )
+        self.assertIn("jhkong72@skbroadband.com", rendered)
+        self.assertIn("izocuna@skcc.com", rendered)
+        self.assertNotIn("Gmail이 보안상의 이유", rendered)
+
     def test_render_current_mail_direct_value_respects_policy_metadata_decision(self) -> None:
         """후처리 정책 metadata에서 direct fact 비허용이면 direct-value 렌더를 생략해야 한다."""
         rendered = render_current_mail_direct_value_from_tool_payload(

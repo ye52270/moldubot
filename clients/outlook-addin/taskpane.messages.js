@@ -170,6 +170,66 @@
       scrollToBottom();
     }
 
+    var streamingAssistantNode = null;
+
+    function buildAssistantMessageNode(text, metadata, isStreaming) {
+      var wrapper = document.createElement('div');
+      wrapper.innerHTML = buildMessageHtml('assistant', text, metadata || {});
+      var node = wrapper.firstElementChild;
+      if (node && isStreaming) node.classList.add('is-streaming');
+      return node;
+    }
+
+    function beginStreamingAssistantMessage(initialText) {
+      var chatArea = byId('chatArea');
+      if (!chatArea) return;
+      if (streamingAssistantNode && streamingAssistantNode.isConnected) return;
+      removeWelcomeStateIfExists();
+      streamingAssistantNode = buildAssistantMessageNode(String(initialText || ''), {}, true);
+      if (!streamingAssistantNode) return;
+      chatArea.appendChild(streamingAssistantNode);
+      scrollToBottom();
+    }
+
+    function updateStreamingAssistantMessage(text) {
+      var chatArea = byId('chatArea');
+      if (!chatArea) return;
+      if (!streamingAssistantNode || !streamingAssistantNode.isConnected) {
+        beginStreamingAssistantMessage('');
+      }
+      if (!streamingAssistantNode || !streamingAssistantNode.isConnected) return;
+      var nextNode = buildAssistantMessageNode(String(text || ''), {}, true);
+      if (!nextNode) return;
+      streamingAssistantNode.replaceWith(nextNode);
+      streamingAssistantNode = nextNode;
+      highlightCodeBlocks(streamingAssistantNode);
+      scrollToBottom();
+    }
+
+    function finalizeStreamingAssistantMessage(text, metadata) {
+      var chatArea = byId('chatArea');
+      if (!chatArea) return;
+      if (!streamingAssistantNode || !streamingAssistantNode.isConnected) {
+        addMessage('assistant', text, metadata);
+        return;
+      }
+      var nextNode = buildAssistantMessageNode(String(text || ''), metadata || {}, false);
+      if (!nextNode) return;
+      streamingAssistantNode.replaceWith(nextNode);
+      streamingAssistantNode = null;
+      highlightCodeBlocks(nextNode);
+      scrollToBottom();
+    }
+
+    function cancelStreamingAssistantMessage() {
+      if (!streamingAssistantNode || !streamingAssistantNode.isConnected) {
+        streamingAssistantNode = null;
+        return;
+      }
+      streamingAssistantNode.remove();
+      streamingAssistantNode = null;
+    }
+
     function getClarificationToastHost() {
       return byId('clarificationToastHost');
     }
@@ -210,6 +270,7 @@
     }
 
     function resetSession() {
+      cancelStreamingAssistantMessage();
       if (statusRenderer && statusRenderer.resetSession) statusRenderer.resetSession();
     }
 
@@ -253,6 +314,10 @@
       removeWelcomeStateIfExists: removeWelcomeStateIfExists,
       buildMessageHtml: buildMessageHtml,
       addMessage: addMessage,
+      beginStreamingAssistantMessage: beginStreamingAssistantMessage,
+      updateStreamingAssistantMessage: updateStreamingAssistantMessage,
+      finalizeStreamingAssistantMessage: finalizeStreamingAssistantMessage,
+      cancelStreamingAssistantMessage: cancelStreamingAssistantMessage,
       showClarificationToast: showClarificationToast,
       clearClarificationToast: clearClarificationToast,
       addElapsedDivider: addElapsedDivider,

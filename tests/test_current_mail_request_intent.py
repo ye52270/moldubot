@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import unittest
+from unittest.mock import patch
 
 from app.agents.intent_schema import (
     DateFilter,
@@ -16,6 +17,8 @@ from app.services.current_mail_intent_policy import (
     is_current_mail_solution_request,
     is_current_mail_translation_request,
     render_current_mail_grounded_safe_message,
+    resolve_current_mail_direct_fact_decision,
+    resolve_current_mail_intent_contract,
     resolve_current_mail_issue_sections,
     should_apply_current_mail_grounded_safe_guard,
 )
@@ -162,6 +165,63 @@ class CurrentMailRequestIntentTest(unittest.TestCase):
                 decomposition=decomposition,
             )
         )
+
+    def test_rejects_direct_fact_when_decomposition_is_analysis(self) -> None:
+        """analysis decomposition은 direct fact 분기를 허용하지 않아야 한다."""
+        decomposition = IntentDecomposition(
+            original_query="현재메일에서 어떤 메일주소가 문제인거야?",
+            steps=[ExecutionStep.READ_CURRENT_MAIL, ExecutionStep.EXTRACT_KEY_FACTS],
+            summary_line_target=5,
+            date_filter=DateFilter(mode=DateFilterMode.NONE),
+            missing_slots=[],
+            task_type=IntentTaskType.ANALYSIS,
+            output_format=IntentOutputFormat.GENERAL,
+            confidence=0.7,
+        )
+        self.assertFalse(
+            is_current_mail_direct_fact_request(
+                user_message="현재메일에서 어떤 메일주소가 문제인거야?",
+                decomposition=decomposition,
+            )
+        )
+
+    def test_resolve_direct_fact_decision_target_type_email_address(self) -> None:
+        """메일 주소 질의는 direct_fact target_type=email_address로 판정되어야 한다."""
+        decision = resolve_current_mail_direct_fact_decision(
+            user_message="현재메일에서 차단되는 메일 주소가 뭐야?",
+            has_current_mail_context=True,
+        )
+        self.assertTrue(decision.enabled)
+        self.assertEqual("email_address", decision.target_type)
+
+    def test_resolve_direct_fact_decision_target_type_domain(self) -> None:
+        """도메인 질의는 direct_fact target_type=domain으로 판정되어야 한다."""
+        decision = resolve_current_mail_direct_fact_decision(
+            user_message="현재메일에서 차단 원인 도메인이 뭐야?",
+            has_current_mail_context=True,
+        )
+        self.assertTrue(decision.enabled)
+        self.assertEqual("domain", decision.target_type)
+
+    def test_resolve_contract_reuses_parse_result_for_identical_input(self) -> None:
+        """동일 입력 반복 판정 시 내부 parse 호출은 캐시로 재사용되어야 한다."""
+        mocked_decomposition = IntentDecomposition(
+            original_query="현재메일에서 원인 알려줘",
+            steps=[ExecutionStep.READ_CURRENT_MAIL, ExecutionStep.EXTRACT_KEY_FACTS],
+            summary_line_target=5,
+            date_filter=DateFilter(mode=DateFilterMode.NONE),
+            missing_slots=[],
+            task_type=IntentTaskType.ANALYSIS,
+            output_format=IntentOutputFormat.GENERAL,
+            confidence=0.8,
+        )
+        with patch(
+            "app.services.current_mail_intent_policy.parse_intent_decomposition_safely",
+            return_value=mocked_decomposition,
+        ) as mocked_parse:
+            resolve_current_mail_intent_contract(user_message="현재메일에서 원인 알려줘")
+            resolve_current_mail_intent_contract(user_message="현재메일에서 원인 알려줘")
+        self.assertEqual(1, mocked_parse.call_count)
 
     def test_grounded_safe_guard_is_disabled_for_summary_focused_query(self) -> None:
         """현재메일 요약 중심 질의는 안전가드 대상에서 제외되어야 한다."""

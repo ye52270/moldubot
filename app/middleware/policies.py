@@ -37,6 +37,21 @@ from app.middleware.intent_routing_policy import (
 INTENT_CONTEXT_PREFIX = "구조분해 결과:"
 INTENT_SYSTEM_CONTEXT_PREFIX = "의도 라우팅 컨텍스트:"
 logger = get_logger(__name__)
+FAILED_DELIVERY_TOKENS: tuple[str, ...] = (
+    "수신안",
+    "수신 안",
+    "수신실패",
+    "수신 실패",
+    "미수신",
+    "차단",
+    "반송",
+    "ndr",
+    "undeliverable",
+    "bounce",
+    "bounced",
+    "blocked",
+)
+ADDRESS_QUERY_TOKENS: tuple[str, ...] = ("메일주소", "메일 주소", "이메일", "주소", "도메인", "from")
 
 
 def find_last_human_message(messages: Sequence[BaseMessage]) -> tuple[int, HumanMessage] | None:
@@ -351,6 +366,9 @@ def _build_routing_instruction(
     if is_direct_fact_request:
         lines.append("- 특정 항목(메일주소/도메인/주체) 질문은 해당 값을 먼저 1~3개로 직접 답한다.")
         lines.append("- 불필요한 원인/영향/대응 섹션 확장은 금지하고, 필요 시 근거 1줄만 덧붙인다.")
+        if _is_failed_delivery_address_query(user_message=original_user_message):
+            lines.append("- `수신 실패/미수신/차단/반송` + 주소 질의는 실패가 명시된 주소만 답한다. 전체 수신자 목록 나열은 금지한다.")
+            lines.append("- 실패 주소를 특정할 수 없으면 `본문에서 특정 주소를 확인할 수 없습니다`라고 답한다.")
     if is_translation_request:
         lines.append("- 번역 요청은 요약 대신 원문 의미를 유지한 전체 번역문을 우선 제공한다.")
         lines.append("- 핵심 bullet/조치 섹션으로 재구성하지 말고 문단 단위 번역을 유지한다.")
@@ -392,6 +410,26 @@ def _build_routing_instruction(
         lines.append("- 기술 이슈 축은 `mail-tech-issue-agent`에 위임해 기술 이슈 후보를 별도로 수집한다.")
         lines.append("- 최종 응답은 `주요 내용`/`기술 이슈`/`근거 메일` 순서로 통합한다.")
     return "\n".join(lines)
+
+
+def _is_failed_delivery_address_query(user_message: str) -> bool:
+    """
+    수신 실패 주소를 특정하려는 직접값 질의인지 판별한다.
+
+    Args:
+        user_message: scope prefix 제거된 사용자 질의
+
+    Returns:
+        실패/차단 맥락 + 주소 엔터티 질의면 True
+    """
+    normalized = str(user_message or "").strip().lower()
+    if not normalized:
+        return False
+    has_failed_delivery_signal = any(token in normalized for token in FAILED_DELIVERY_TOKENS)
+    if not has_failed_delivery_signal:
+        return False
+    has_address_signal = any(token in normalized for token in ADDRESS_QUERY_TOKENS)
+    return has_address_signal
 
 
 def _split_scope_instruction(user_message: str) -> tuple[str, str]:

@@ -24,6 +24,14 @@ from app.services.mail_search_utils import (
 )
 
 logger = get_logger(__name__)
+PREFERRED_OUTLOOK_LINK_COLUMNS: tuple[str, ...] = (
+    "outlook_link",
+    "outlook_deep_link",
+    "outlook_uri",
+    "desktop_link",
+    "native_link",
+    "open_link",
+)
 
 
 @dataclass
@@ -65,6 +73,8 @@ class MailSearchService:
         self._db_path = db_path
         self._has_web_link_column_cache: bool | None = None
         self._has_summary_column_cache: bool | None = None
+        self._preferred_outlook_link_column_cache: str | None = None
+        self._table_columns_cache: set[str] | None = None
 
     def search(
         self,
@@ -289,7 +299,7 @@ class MailSearchService:
             conditions.append("received_date <= ?")
             params.append(str(end_date).strip())
         where_clause = f"WHERE {' AND '.join(conditions)}" if conditions else ""
-        web_link_clause = "COALESCE(web_link, '') AS web_link, " if self._has_web_link_column() else "'' AS web_link, "
+        web_link_clause = self._build_link_select_clause()
         summary_clause = "COALESCE(summary, '') AS summary_text " if self._has_summary_column() else "'' AS summary_text "
         sql = (
             "SELECT message_id, subject, from_address, received_date, "
@@ -362,14 +372,9 @@ class MailSearchService:
         cached = self._has_web_link_column_cache
         if cached is not None:
             return cached
-        conn = sqlite3.connect(str(self._db_path))
-        try:
-            rows = conn.execute("PRAGMA table_info(emails)").fetchall()
-            has_column = any(str(row[1]).lower() == "web_link" for row in rows)
-            self._has_web_link_column_cache = has_column
-            return has_column
-        finally:
-            conn.close()
+        has_column = "web_link" in self._get_table_columns()
+        self._has_web_link_column_cache = has_column
+        return has_column
 
     def _has_summary_column(self) -> bool:
         """
@@ -381,12 +386,55 @@ class MailSearchService:
         cached = self._has_summary_column_cache
         if cached is not None:
             return cached
+        has_column = "summary" in self._get_table_columns()
+        self._has_summary_column_cache = has_column
+        return has_column
+
+    def _build_link_select_clause(self) -> str:
+        """
+        링크 컬럼 우선순위 정책에 맞는 SELECT 절을 생성한다.
+
+        Returns:
+            `AS web_link`가 포함된 SELECT 절 문자열
+        """
+        preferred_column = self._resolve_preferred_outlook_link_column()
+        if preferred_column:
+            return f"COALESCE({preferred_column}, web_link, '') AS web_link, "
+        if self._has_web_link_column():
+            return "COALESCE(web_link, '') AS web_link, "
+        return "'' AS web_link, "
+
+    def _resolve_preferred_outlook_link_column(self) -> str:
+        """
+        Outlook 전용 링크 컬럼명을 우선순위에 따라 해석한다.
+
+        Returns:
+            선택된 컬럼명. 없으면 빈 문자열
+        """
+        cached = self._preferred_outlook_link_column_cache
+        if cached is not None:
+            return cached
+        columns = self._get_table_columns()
+        selected = next((column for column in PREFERRED_OUTLOOK_LINK_COLUMNS if column in columns), "")
+        self._preferred_outlook_link_column_cache = selected
+        return selected
+
+    def _get_table_columns(self) -> set[str]:
+        """
+        `emails` 테이블 컬럼 집합을 캐시 기반으로 반환한다.
+
+        Returns:
+            소문자 컬럼명 집합
+        """
+        cached = self._table_columns_cache
+        if cached is not None:
+            return cached
         conn = sqlite3.connect(str(self._db_path))
         try:
             rows = conn.execute("PRAGMA table_info(emails)").fetchall()
-            has_column = any(str(row[1]).lower() == "summary" for row in rows)
-            self._has_summary_column_cache = has_column
-            return has_column
+            columns = {str(row[1]).strip().lower() for row in rows if len(row) > 1}
+            self._table_columns_cache = columns
+            return columns
         finally:
             conn.close()
 

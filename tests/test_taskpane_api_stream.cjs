@@ -66,6 +66,7 @@ test('taskpane api parses CRLF and multi-line data payload', () => {
 test('taskpane api uses stream response and emits progress callback', async () => {
   const api = loadApiModule();
   const events = [];
+  const tokenEvents = [];
   const selectionController = {
     getSelectionContext: async () => ({
       emailId: 'message-1',
@@ -105,12 +106,16 @@ test('taskpane api uses stream response and emits progress callback', async () =
     (eventPayload) => {
       events.push(eventPayload.phase);
     },
-    null
+    null,
+    (tokenPayload) => {
+      tokenEvents.push(String(tokenPayload && tokenPayload.text ? tokenPayload.text : ''));
+    }
   );
 
   assert.equal(fallbackCalled, false);
   assert.equal(result.answer, '완료');
   assert.deepEqual(events, ['processing']);
+  assert.deepEqual(tokenEvents, ['완', '료']);
 });
 
 test('taskpane api keeps thread_id and forwards runtime scope option', async () => {

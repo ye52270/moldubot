@@ -138,11 +138,10 @@
         var subject = String(item && item.subject ? item.subject : '제목 없음').trim();
         var receivedDate = String(item && item.received_date ? item.received_date : '-').trim();
         var senderNames = String(item && item.sender_names ? item.sender_names : '-').trim();
-        var webLink = String(item && item.web_link ? item.web_link : '').trim();
-        if (!messageId && !webLink) return '';
+        if (!messageId) return '';
         return (
           '<li class="evidence-item">' +
-          '<button type="button" class="evidence-open-btn" data-action="open-evidence-mail" data-message-id="' + escapeAttr(messageId) + '" data-web-link="' + escapeAttr(webLink) + '" title="메일 열기">' +
+          '<button type="button" class="evidence-open-btn" data-action="open-evidence-mail" data-message-id="' + escapeAttr(messageId) + '" title="메일 열기">' +
           '<span class="evidence-subject">' + escapeHtml(subject) + '</span>' +
           '<span class="evidence-meta">' + escapeHtml(receivedDate) + ' · ' + escapeHtml(senderNames) + '</span>' +
           '</button>' +

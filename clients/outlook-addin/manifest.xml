@@ -5,7 +5,7 @@
            xmlns:mailappor="http://schemas.microsoft.com/office/mailappversionoverrides/1.0"
            xsi:type="MailApp">
   <Id>78e30e22-180f-4d27-9a8d-7a133155a88b</Id>
-  <Version>1.0.2.7</Version>
+  <Version>1.0.2.8</Version>
   <ProviderName>MolduBot</ProviderName>
   <DefaultLocale>ko-KR</DefaultLocale>
   <DisplayName DefaultValue="몰두봇" />
@@ -32,7 +32,7 @@
   <FormSettings>
     <Form xsi:type="ItemRead">
       <DesktopSettings>
-        <SourceLocation DefaultValue="https://brendon-unboding-maliciously.ngrok-free.dev/addin/taskpane.html?v=20260305-22" />
+        <SourceLocation DefaultValue="https://brendon-unboding-maliciously.ngrok-free.dev/addin/taskpane.html?v=20260311-03" />
         <RequestedHeight>450</RequestedHeight>
       </DesktopSettings>
     </Form>
@@ -89,7 +89,7 @@
         </bt:Images>
         <bt:Urls>
           <bt:Url id="FunctionFile" DefaultValue="https://brendon-unboding-maliciously.ngrok-free.dev/addin/commands.html" />
-          <bt:Url id="TaskpaneUrl" DefaultValue="https://brendon-unboding-maliciously.ngrok-free.dev/addin/taskpane.html?v=20260305-22" />
+          <bt:Url id="TaskpaneUrl" DefaultValue="https://brendon-unboding-maliciously.ngrok-free.dev/addin/taskpane.html?v=20260311-03" />
         </bt:Urls>
         <bt:ShortStrings>
           <bt:String id="GroupLabel" DefaultValue="몰두봇" />

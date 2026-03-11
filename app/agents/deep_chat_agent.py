@@ -194,7 +194,7 @@ class DeepChatAgent:
         for stream_item in self._graph.stream(
             payload,
             config=stream_config,
-            stream_mode=("messages", "updates"),
+            stream_mode="messages",
         ):
             token_text = extract_stream_token_text(stream_item=stream_item)
             if token_text and callable(on_token):

@@ -47,6 +47,40 @@
   border-color: color-mix(in srgb, var(--color-primary) 24%, var(--color-border));
 }
 
+.composer-shortcut-chips {
+  width: 100%;
+  max-width: var(--chat-thread-max-width);
+  margin: 0 auto 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.composer-shortcut-chip {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0;
+  border: 1px solid transparent;
+}
+
+.composer-shortcut-chip.is-skill {
+  color: #5a3ca4;
+  background: color-mix(in srgb, #7d49db 14%, #ffffff);
+  border-color: color-mix(in srgb, #7d49db 34%, #ffffff);
+}
+
+.composer-shortcut-chip.is-app {
+  color: #2f5f8f;
+  background: color-mix(in srgb, #3d7fcc 14%, #ffffff);
+  border-color: color-mix(in srgb, #3d7fcc 36%, #ffffff);
+}
+
 .input-wrapper:focus-within {
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 24%, transparent);
 }

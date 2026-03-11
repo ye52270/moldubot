@@ -3,6 +3,21 @@
    ======================================== */
 
 (function initTaskpaneSend(global) {
+  function stripLeadingShortcutTokensForDisplay(text) {
+    const raw = String(text || '').trim();
+    if (!raw) return '';
+    let remaining = raw;
+    let consumed = false;
+    while (remaining) {
+      const matched = /^([/@])([^\s]+)/.exec(remaining);
+      if (!matched) break;
+      consumed = true;
+      remaining = String(remaining.slice(matched[0].length) || '').trimStart();
+    }
+    if (!consumed) return raw;
+    return remaining || raw;
+  }
+
   function create(options) {
     const byId = options.byId;
     const chatApi = options.chatApi;
@@ -103,11 +118,15 @@
       if (!text) return;
       const requestStartedAt = Date.now();
 
-      messageUi.addMessage('user', text);
+      const userDisplayText = stripLeadingShortcutTokensForDisplay(text);
+      messageUi.addMessage('user', userDisplayText);
       if (messageUi && typeof messageUi.clearClarificationToast === 'function') {
         messageUi.clearClarificationToast();
       }
       input.value = '';
+      if (typeof input.dispatchEvent === 'function' && typeof Event === 'function') {
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      }
 
       setSendingState(true);
       state.setProgressShownAtMs(Date.now());
@@ -166,12 +185,32 @@
           }
           return;
         }
-        const assistantPayload = await chatApi.requestAssistantReply(text, handleProgress, null);
+        let streamedText = '';
+        if (messageUi && typeof messageUi.beginStreamingAssistantMessage === 'function') {
+          messageUi.beginStreamingAssistantMessage('');
+        }
+        const assistantPayload = await chatApi.requestAssistantReply(
+          text,
+          handleProgress,
+          null,
+          function handleToken(tokenEvent) {
+            const tokenText = String(tokenEvent && tokenEvent.text ? tokenEvent.text : '');
+            if (!tokenText) return;
+            streamedText += tokenText;
+            if (messageUi && typeof messageUi.updateStreamingAssistantMessage === 'function') {
+              messageUi.updateStreamingAssistantMessage(streamedText);
+            }
+          }
+        );
         const assistantReply = assistantPayload && assistantPayload.answer ? assistantPayload.answer : '응답을 생성하지 못했습니다.';
         const assistantMetadata = filterNextActionsMetadata(
           assistantPayload && assistantPayload.metadata ? assistantPayload.metadata : {}
         );
-        messageUi.addMessage('assistant', assistantReply, assistantMetadata);
+        if (messageUi && typeof messageUi.finalizeStreamingAssistantMessage === 'function') {
+          messageUi.finalizeStreamingAssistantMessage(assistantReply, assistantMetadata);
+        } else {
+          messageUi.addMessage('assistant', assistantReply, assistantMetadata);
+        }
         if (messageUi && typeof messageUi.showClarificationToast === 'function') {
           messageUi.showClarificationToast(assistantMetadata);
         }
@@ -184,6 +223,9 @@
         }
         clearProgressWithMinimumVisibility();
       } catch (error) {
+        if (messageUi && typeof messageUi.cancelStreamingAssistantMessage === 'function') {
+          messageUi.cancelStreamingAssistantMessage();
+        }
         logClientEvent('error', 'send_message_failed', {
           message: text,
           error: String(error && error.message ? error.message : error),

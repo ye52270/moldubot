@@ -7,9 +7,11 @@ from app.middleware.agent_middlewares import (
     TRACE_TRUNCATION_SUFFIX,
     _extract_original_user_message_from_injected_text,
     _extract_text_from_model_content,
+    _normalize_search_tool_call_args,
     _normalize_raw_model_content,
     _normalize_trace_content,
 )
+from langchain_core.messages import HumanMessage
 
 
 class AgentMiddlewaresTextExtractionTest(unittest.TestCase):
@@ -56,6 +58,31 @@ class AgentMiddlewaresTextExtractionTest(unittest.TestCase):
         message = "[질의 범위] 전체 메일함 기준으로 처리\n/메일요약"
         extracted = _extract_original_user_message_from_injected_text(message_text=message)
         self.assertEqual("/메일요약", extracted)
+
+    def test_normalize_search_tool_call_args_overrides_month_date_slots(self) -> None:
+        """search_mails 도구 호출은 사용자 원문의 월 슬롯으로 날짜를 보정해야 한다."""
+        request = type(
+            "DummyRequest",
+            (),
+            {
+                "tool_call": {
+                    "name": "search_mails",
+                    "args": {
+                        "query": "조영득",
+                        "start_date": "2023-01-01",
+                        "end_date": "2023-01-31",
+                    },
+                },
+                "state": {"messages": [HumanMessage(content="1월 조영득 관련 메일 조회해줘")]},
+            },
+        )()
+
+        _normalize_search_tool_call_args(request=request)
+
+        args = request.tool_call["args"]
+        self.assertEqual("조영득", args.get("person"))
+        self.assertNotEqual("2023-01-01", args.get("start_date"))
+        self.assertNotEqual("2023-01-31", args.get("end_date"))
 
 
 if __name__ == "__main__":

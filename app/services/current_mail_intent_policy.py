@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from functools import lru_cache
+from typing import Literal
 
 from app.agents.intent_schema import (
     DateFilter,
@@ -38,6 +40,31 @@ class CurrentMailIntentContract:
     allows_solution: bool
     allows_direct_fact: bool
     allows_translation: bool
+
+
+DirectFactTargetType = Literal[
+    "general",
+    "email_address",
+    "domain",
+    "sender",
+    "recipient",
+    "contact",
+    "query",
+]
+
+
+@dataclass(frozen=True)
+class DirectFactDecision:
+    """
+    현재메일 direct fact 분기 결정 결과.
+
+    Attributes:
+        enabled: direct fact 분기 허용 여부
+        target_type: 추출 대상 타입
+    """
+
+    enabled: bool
+    target_type: DirectFactTargetType = "general"
 
 
 def is_current_mail_cause_analysis_request(user_message: str) -> bool:
@@ -121,28 +148,52 @@ def is_current_mail_direct_fact_request(
     Returns:
         직접 사실질의면 True
     """
+    return resolve_current_mail_direct_fact_decision(
+        user_message=user_message,
+        has_current_mail_context=has_current_mail_context,
+        decomposition=decomposition,
+    ).enabled
+
+
+def resolve_current_mail_direct_fact_decision(
+    user_message: str,
+    has_current_mail_context: bool = False,
+    decomposition: IntentDecomposition | None = None,
+) -> DirectFactDecision:
+    """
+    현재메일 direct fact 분기 허용/타깃 타입을 계산한다.
+
+    Args:
+        user_message: 사용자 입력 원문
+        has_current_mail_context: 외부 scope에서 current_mail이 확정된 경우 True
+        decomposition: 구조화 의도 결과(있으면 우선 활용)
+
+    Returns:
+        direct fact 결정 결과
+    """
+    target_type = _resolve_direct_fact_target_type(user_message=user_message)
     contract = resolve_current_mail_intent_contract(
         user_message=user_message,
         has_current_mail_context=has_current_mail_context,
         decomposition=decomposition,
     )
     if not contract.has_anchor or not contract.allows_direct_fact:
-        return False
+        return DirectFactDecision(enabled=False, target_type="general")
     if is_translation_like_request_text(user_message=user_message):
-        return False
+        return DirectFactDecision(enabled=False, target_type=target_type)
     if not _has_direct_fact_entity_signal(user_message=user_message):
-        return False
+        return DirectFactDecision(enabled=False, target_type="general")
 
     resolved = contract.decomposition
     if resolved is None:
-        return True
+        return DirectFactDecision(enabled=True, target_type=target_type)
     if resolved.task_type in (IntentTaskType.SUMMARY, IntentTaskType.SOLUTION, IntentTaskType.ACTION):
-        return False
+        return DirectFactDecision(enabled=False, target_type="general")
     if resolved.task_type == IntentTaskType.RETRIEVAL and IntentFocusTopic.RECIPIENTS in resolved.focus_topics:
-        return True
+        return DirectFactDecision(enabled=True, target_type=target_type)
     if IntentFocusTopic.RECIPIENTS in resolved.focus_topics:
-        return True
-    return True
+        return DirectFactDecision(enabled=True, target_type=target_type)
+    return DirectFactDecision(enabled=True, target_type=target_type)
 
 
 def _has_direct_fact_entity_signal(user_message: str) -> bool:
@@ -180,6 +231,38 @@ def _has_direct_fact_entity_signal(user_message: str) -> bool:
     if "어디로" in compact and ("연락" in compact or "문의" in compact):
         return True
     return False
+
+
+def _resolve_direct_fact_target_type(user_message: str) -> DirectFactTargetType:
+    """
+    사용자 질의의 direct fact 타깃 타입을 텍스트 신호로 분류한다.
+
+    Args:
+        user_message: 사용자 입력 원문
+
+    Returns:
+        direct fact 타깃 타입
+    """
+    compact = str(user_message or "").replace(" ", "").lower()
+    if not compact:
+        return "general"
+    if "도메인" in compact:
+        return "domain"
+    if any(token in compact for token in ("메일주소", "이메일주소")):
+        return "email_address"
+    if "주소" in compact and "메일" in compact:
+        return "email_address"
+    if any(token in compact for token in ("발신자", "from")):
+        return "sender"
+    if any(token in compact for token in ("수신자", "to")):
+        return "recipient"
+    if any(token in compact for token in ("문의처", "연락처")):
+        return "contact"
+    if "어디로" in compact and ("연락" in compact or "문의" in compact):
+        return "contact"
+    if any(token in compact for token in ("ou", "쿼리", "query", "명령")):
+        return "query"
+    return "general"
 
 
 def is_current_mail_artifact_analysis_request(
@@ -329,15 +412,36 @@ def _resolve_decomposition(
     normalized = str(user_message or "").strip()
     if not normalized:
         return None
-    parsed = parse_intent_decomposition_safely(
+    return _parse_intent_decomposition_cached(
         user_message=normalized,
+        has_current_mail_context=bool(has_current_mail_context),
+    )
+
+
+@lru_cache(maxsize=512)
+def _parse_intent_decomposition_cached(
+    user_message: str,
+    has_current_mail_context: bool,
+) -> IntentDecomposition | None:
+    """
+    동일 입력의 intent decomposition을 캐시해 반복 정책 판정의 중복 parse를 줄인다.
+
+    Args:
+        user_message: 정규화된 사용자 질의
+        has_current_mail_context: scope current_mail 확정 여부
+
+    Returns:
+        파싱/휴리스틱으로 확보한 decomposition 또는 None
+    """
+    parsed = parse_intent_decomposition_safely(
+        user_message=user_message,
         has_selected_mail=bool(has_current_mail_context),
         selected_message_id_exists=bool(has_current_mail_context),
     )
     if parsed is not None:
         return parsed
     return _build_text_fallback_decomposition(
-        user_message=normalized,
+        user_message=user_message,
         has_current_mail_context=has_current_mail_context,
     )
 
@@ -363,17 +467,18 @@ def _build_text_fallback_decomposition(
     has_cause_token = any(token in compact for token in ("원인", "이유", "왜", "문제", "이슈"))
     has_solution_token = any(token in compact for token in ("해결", "대응", "조치", "방안", "방법"))
     has_summary_token = any(token in compact for token in ("요약", "정리", "핵심", "주요"))
+    has_direct_fact_signal = _has_direct_fact_entity_signal(user_message=user_message)
     if is_translation:
         task_type = IntentTaskType.GENERAL
         output_format = IntentOutputFormat.TRANSLATION
+    elif has_direct_fact_signal:
+        task_type = IntentTaskType.EXTRACTION
+        output_format = IntentOutputFormat.GENERAL
     elif has_solution_token:
         task_type = IntentTaskType.SOLUTION
         output_format = IntentOutputFormat.ISSUE_ACTION if has_cause_token else IntentOutputFormat.GENERAL
     elif has_cause_token:
         task_type = IntentTaskType.ANALYSIS
-        output_format = IntentOutputFormat.GENERAL
-    elif _has_direct_fact_entity_signal(user_message=user_message):
-        task_type = IntentTaskType.EXTRACTION
         output_format = IntentOutputFormat.GENERAL
     elif has_summary_token:
         task_type = IntentTaskType.SUMMARY
@@ -482,7 +587,6 @@ def _allows_direct_fact(decomposition: IntentDecomposition | None) -> bool:
     if decomposition is None:
         return True
     return decomposition.task_type in (
-        IntentTaskType.ANALYSIS,
         IntentTaskType.EXTRACTION,
         IntentTaskType.RETRIEVAL,
         IntentTaskType.GENERAL,

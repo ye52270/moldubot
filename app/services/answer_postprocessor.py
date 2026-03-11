@@ -4,7 +4,7 @@ import json
 from typing import Any
 
 from app.core.logging_config import get_logger
-from app.core.intent_rules import is_code_review_query
+from app.core.intent_rules import CHAT_MODE_FREEFORM, is_code_review_query
 from app.models.response_contracts import FinalAnswerContract, LLMResponseContract
 from app.services.answer_postprocessor_contract_utils import (
     augment_contract_with_tool_payload,
@@ -39,6 +39,7 @@ from app.services.answer_postprocessor_summary import (
     extract_original_user_message,
     is_summary_request,
     normalize_multiline_text,
+    sanitize_summary_lines,
 )
 from app.services.answer_table_spec import (
     render_current_mail_people_roles_from_contract,
@@ -61,6 +62,7 @@ def postprocess_final_answer(
     answer: str,
     tool_payload: dict[str, Any] | None = None,
     raw_model_content: Any | None = None,
+    chat_mode: str = "skill",
 ) -> str:
     """
     사용자 질의 문맥을 반영해 최종 응답 텍스트를 후처리한다.
@@ -70,6 +72,7 @@ def postprocess_final_answer(
         answer: 모델이 생성한 최종 응답 텍스트
         tool_payload: 직전 도구 호출 결과 payload
         raw_model_content: 모델 content 원문 블록(list/dict/string)
+        chat_mode: 후처리 모드(`skill`/`freeform`)
 
     Returns:
         정규화된 최종 응답 텍스트
@@ -77,6 +80,14 @@ def postprocess_final_answer(
     normalized_user_message = extract_original_user_message(user_message=user_message)
     normalized_answer = normalize_multiline_text(text=answer)
     normalized_tool_payload = tool_payload or {}
+    if str(chat_mode or "").strip().lower() == CHAT_MODE_FREEFORM:
+        freeform_answer = _postprocess_freeform_answer(
+            user_message=normalized_user_message,
+            answer=normalized_answer,
+            tool_payload=normalized_tool_payload,
+            raw_model_content=raw_model_content,
+        )
+        return FinalAnswerContract(answer=freeform_answer).answer
     template_selection = select_format_template(
         user_message=normalized_user_message,
         tool_payload=normalized_tool_payload,
@@ -149,6 +160,85 @@ def postprocess_final_answer(
     )
     _log_fallback_route(route=fallback_route)
     return FinalAnswerContract(answer=fallback_rendered).answer
+
+
+def _postprocess_freeform_answer(
+    user_message: str,
+    answer: str,
+    tool_payload: dict[str, Any],
+    raw_model_content: Any | None,
+) -> str:
+    """
+    자유질문 모드에서 의미 보존 위주의 최소 후처리를 수행한다.
+
+    Args:
+        user_message: 정규화 사용자 입력
+        answer: 정규화 모델 응답
+        tool_payload: 직전 도구 payload
+        raw_model_content: 모델 content 원문 블록
+
+    Returns:
+        자연어 우선 최종 응답 문자열
+    """
+    if answer and not looks_like_json_contract_text(text=answer):
+        return answer
+
+    parse_source: Any = raw_model_content if raw_model_content is not None else answer
+    parsed_contract = parse_llm_response_contract(raw_answer=parse_source, log_failures=False)
+    if parsed_contract is not None:
+        parsed_contract = augment_contract_with_tool_payload(
+            user_message=user_message,
+            contract=parsed_contract,
+            tool_payload=tool_payload,
+        )
+        rendered = _render_freeform_text_from_contract(contract=parsed_contract)
+        if rendered:
+            logger.info("answer_postprocess.freeform_contract_render: enabled=true")
+            return rendered
+
+    fallback_route, fallback_rendered = render_fallback_answer(
+        user_message=user_message,
+        answer=answer,
+        tool_payload=tool_payload,
+    )
+    _log_fallback_route(route=fallback_route)
+    return fallback_rendered
+
+
+def _render_freeform_text_from_contract(contract: LLMResponseContract) -> str:
+    """
+    JSON 계약 객체를 자유형 문장 응답으로 축약 복원한다.
+
+    Args:
+        contract: 파싱된 LLM 응답 계약
+
+    Returns:
+        복원된 자유형 텍스트. 복원 실패 시 빈 문자열
+    """
+    direct_candidates = (
+        str(contract.answer or "").strip(),
+        str(contract.one_line_summary or "").strip(),
+        str(contract.core_issue or "").strip(),
+    )
+    for candidate in direct_candidates:
+        if candidate:
+            return normalize_multiline_text(text=candidate)
+
+    line_candidates: list[str] = []
+    line_candidates.extend(sanitize_summary_lines(lines=list(contract.summary_lines)))
+    line_candidates.extend(sanitize_summary_lines(lines=list(contract.major_points)))
+    line_candidates.extend(sanitize_summary_lines(lines=list(contract.key_points)))
+    line_candidates.extend(sanitize_summary_lines(lines=list(contract.action_items)))
+    line_candidates.extend(sanitize_summary_lines(lines=list(contract.required_actions)))
+    if line_candidates:
+        unique_lines: list[str] = []
+        for line in line_candidates:
+            if line not in unique_lines:
+                unique_lines.append(line)
+            if len(unique_lines) >= 4:
+                break
+        return " ".join(unique_lines).strip()
+    return ""
 
 
 def _should_try_contract_parse(user_message: str, answer: str) -> bool:

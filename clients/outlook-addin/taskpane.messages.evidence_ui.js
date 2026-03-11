@@ -49,15 +49,14 @@
       var items = sources.slice(0, 3).map(function (item) {
         var source = item && typeof item === 'object' ? item : {};
         var messageId = String(source.message_id || '').trim();
-        var webLink = String(source.web_link || '').trim();
         var title = String(source.subject || '').trim() || '제목 없음';
         var receivedDate = String(source.received_date || '').trim();
         var senderNames = String(source.sender_names || '').trim();
         var snippet = String(source.snippet || source.summary_text || '').trim();
-        if (!messageId && !webLink) return '';
+        if (!messageId) return '';
         return (
           '<li class="inline-evidence-item">' +
-            '<button type="button" class="inline-evidence-open-btn" data-action="open-evidence-mail" data-message-id="' + escapeAttr(messageId) + '" data-web-link="' + escapeAttr(webLink) + '">' +
+            '<button type="button" class="inline-evidence-open-btn" data-action="open-evidence-mail" data-message-id="' + escapeAttr(messageId) + '">' +
               '<span class="inline-evidence-subject">' + escapeHtml(title) + '</span>' +
               '<span class="inline-evidence-meta">' + escapeHtml((receivedDate || '-') + (senderNames ? ' · ' + senderNames : '')) + '</span>' +
               (snippet ? '<span class="inline-evidence-related-snippet">' + escapeHtml(snippet) + '</span>' : '') +
@@ -79,11 +78,10 @@
         var receivedDate = String(source.received_date || '').trim() || '-';
         var snippet = String(source.snippet || '').trim();
         var messageId = String(source.message_id || '').trim();
-        var webLink = String(source.web_link || '').trim();
-        if (!messageId && !webLink) return '';
+        if (!messageId) return '';
         return (
           '<li class="inline-evidence-related-item">' +
-            '<button type="button" class="inline-evidence-open-btn evidence-open-btn" data-action="open-evidence-mail" data-message-id="' + escapeAttr(messageId) + '" data-web-link="' + escapeAttr(webLink) + '">' +
+            '<button type="button" class="inline-evidence-open-btn evidence-open-btn" data-action="open-evidence-mail" data-message-id="' + escapeAttr(messageId) + '">' +
               '<span class="inline-evidence-subject">' + escapeHtml(title) + '</span>' +
               '<span class="inline-evidence-meta">' + escapeHtml(receivedDate + ' · ' + senderNames) + '</span>' +
               (snippet ? '<span class="inline-evidence-related-snippet">' + escapeHtml(snippet) + '</span>' : '') +

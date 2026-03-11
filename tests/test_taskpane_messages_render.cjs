@@ -108,16 +108,17 @@ test('taskpane messages does not render scope status chip for assistant metadata
   assert.equal(html.includes('범위: 전체 사서함'), false);
 });
 
-test('taskpane messages does not expose legacy streaming methods', () => {
+test('taskpane messages exposes assistant streaming lifecycle methods', () => {
   const moduleRef = loadMessagesModule();
   const instance = moduleRef.create({
     byId: () => null,
     escapeHtml: (value) => String(value || ''),
   });
 
-  assert.equal(typeof instance.beginStreamingAssistantMessage, 'undefined');
-  assert.equal(typeof instance.appendStreamingToken, 'undefined');
-  assert.equal(typeof instance.finalizeStreamingAssistantMessage, 'undefined');
+  assert.equal(typeof instance.beginStreamingAssistantMessage, 'function');
+  assert.equal(typeof instance.updateStreamingAssistantMessage, 'function');
+  assert.equal(typeof instance.finalizeStreamingAssistantMessage, 'function');
+  assert.equal(typeof instance.cancelStreamingAssistantMessage, 'function');
 });
 
 test('taskpane messages renders markdown table and divider', () => {

@@ -53,7 +53,7 @@
       return payload;
     }
 
-    async function requestAssistantReply(message, onProgress, runtimeOptions) {
+    async function requestAssistantReply(message, onProgress, runtimeOptions, onToken) {
       let selectionContext = await selectionController.getSelectionContext({
         allowCacheFallback: !isCurrentMailQuery(message),
       });
@@ -111,7 +111,7 @@
         body: JSON.stringify(requestBody),
       });
       if (streamResponse.ok && streamApi && typeof streamApi.readCompletionPayload === 'function') {
-        payload = await streamApi.readCompletionPayload(streamResponse, onProgress);
+        payload = await streamApi.readCompletionPayload(streamResponse, onProgress, onToken);
         usedStream = Boolean(payload);
       }
       if (!usedStream) {

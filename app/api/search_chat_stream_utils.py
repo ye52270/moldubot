@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import threading
+import time
 from datetime import datetime, timezone
 from queue import Empty, Queue
 from typing import Any, Callable
@@ -10,6 +11,7 @@ from app.api.contracts import ChatRequest
 from app.core.intent_rules import is_code_review_query
 
 STREAM_PROGRESS_HEARTBEAT_SEC = 1.0
+STREAM_TOKEN_POLL_SEC = 0.05
 GENERAL_STREAM_PHASE_STEPS: tuple[tuple[str, str], ...] = (
     ("received", "요청을 확인했어요."),
     ("retrieving_context", "메일 컨텍스트를 불러오는 중입니다."),
@@ -67,18 +69,14 @@ def stream_search_chat_events(
         payload={"phase": "received", "message": "요청을 확인했어요.", "step": 1, "total_steps": len(phase_steps)},
     )
     heartbeat_count = 0
+    last_progress_at = time.monotonic()
     while worker.is_alive() or not token_queue.empty():
-        emitted_token = False
-        while not token_queue.empty():
-            token_text = str(token_queue.get_nowait() or "")
-            if not token_text.strip():
+        try:
+            token_text = str(token_queue.get(timeout=STREAM_TOKEN_POLL_SEC) or "")
+        except Empty:
+            now = time.monotonic()
+            if now - last_progress_at < STREAM_PROGRESS_HEARTBEAT_SEC:
                 continue
-            emitted_token = True
-            yield encode_stream_event(
-                event="token",
-                payload={"phase": "token", "text": token_text},
-            )
-        if not emitted_token:
             heartbeat_count += 1
             progress_phase, progress_message, progress_step = _resolve_progress_state(
                 heartbeat_count=heartbeat_count,
@@ -93,7 +91,23 @@ def stream_search_chat_events(
                     "total_steps": len(phase_steps),
                 },
             )
-        worker.join(timeout=STREAM_PROGRESS_HEARTBEAT_SEC)
+            last_progress_at = now
+            continue
+
+        if not token_text.strip():
+            continue
+        yield encode_stream_event(
+            event="token",
+            payload={"phase": "token", "text": token_text},
+        )
+        while not token_queue.empty():
+            buffered_text = str(token_queue.get_nowait() or "")
+            if not buffered_text.strip():
+                continue
+            yield encode_stream_event(
+                event="token",
+                payload={"phase": "token", "text": buffered_text},
+            )
 
     try:
         response_payload = result_queue.get_nowait()

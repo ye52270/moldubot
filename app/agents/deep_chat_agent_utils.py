@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import re
 from typing import Any, Mapping
 
 from langchain_core.messages import BaseMessage
@@ -106,12 +107,75 @@ def extract_stream_token_text(stream_item: object) -> str:
             type_name = str(getattr(candidate, "type", "")).strip().lower()
             class_name = str(candidate.__class__.__name__ or "").strip().lower()
             if type_name == "ai" or "aimessagechunk" in class_name:
-                return extract_text_from_content(getattr(candidate, "content", ""))
+                token_text = _extract_stream_text_from_content(getattr(candidate, "content", ""))
+                if _is_stream_noise_token(token_text):
+                    continue
+                return token_text
         if isinstance(candidate, Mapping):
             role = str(candidate.get("role", "")).strip().lower()
             if role in {"assistant", "ai"}:
-                return extract_text_from_content(candidate.get("content", ""))
+                tool_calls = candidate.get("tool_calls")
+                if isinstance(tool_calls, list) and tool_calls:
+                    continue
+                token_text = _extract_stream_text_from_content(candidate.get("content", ""))
+                if _is_stream_noise_token(token_text):
+                    continue
+                return token_text
     return ""
+
+
+def _extract_stream_text_from_content(content: object) -> str:
+    """
+    스트리밍 토큰용 텍스트를 추출한다(선/후행 공백 보존).
+
+    Args:
+        content: 문자열 또는 블록 배열 형태의 메시지 콘텐츠
+
+    Returns:
+        토큰 텍스트(없으면 빈 문자열)
+    """
+    if isinstance(content, str):
+        return content
+    if not isinstance(content, list):
+        return ""
+
+    chunks: list[str] = []
+    for block in content:
+        if not isinstance(block, Mapping):
+            continue
+        if str(block.get("type", "")) != "text":
+            continue
+        text = str(block.get("text", ""))
+        if text:
+            chunks.append(text)
+    return "".join(chunks)
+
+
+def _is_stream_noise_token(text: str) -> bool:
+    """
+    UI에 중간 노이즈로 보이는 JSON 구조 토큰인지 판별한다.
+
+    Args:
+        text: 스트리밍 토큰 텍스트
+
+    Returns:
+        노이즈 토큰이면 True
+    """
+    normalized = str(text or "")
+    if not normalized:
+        return True
+    stripped = normalized.strip()
+    if not stripped:
+        return True
+    if stripped in {"{", "}", "[", "]", ",", ":"}:
+        return True
+    if re.fullmatch(r'"[^"\n]{1,120}"\s*:?', stripped):
+        return True
+    if stripped.startswith("{") and stripped.endswith("}") and '":' in stripped:
+        return True
+    if stripped.startswith("[") and stripped.endswith("]") and '":' in stripped:
+        return True
+    return False
 
 
 def extract_interrupt_requests(result: Mapping[str, Any]) -> list[dict[str, Any]]:

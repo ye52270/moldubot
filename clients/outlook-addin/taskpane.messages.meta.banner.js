@@ -131,8 +131,7 @@
       var dateLabel = formatReceivedDateLabel(item.receivedDate || '');
       var meta = sender + ' → ' + recipientLabel + (dateLabel ? ' · ' + dateLabel : '');
       var messageId = String(item.messageId || '').trim();
-      var webLink = String(item.webLink || '').trim();
-      var disabledAttr = messageId || webLink ? '' : ' disabled';
+      var disabledAttr = messageId ? '' : ' disabled';
       var badgeHtml = buildImportanceBadgesHtml(item);
       banner.hidden = false;
       banner.innerHTML = ''
@@ -144,7 +143,6 @@
         + '</div>'
         + '<button type="button" class="selected-mail-open-btn" data-action="selected-mail-open" '
         +   'data-message-id="' + escapeAttr(messageId) + '" '
-        +   'data-web-link="' + escapeAttr(webLink) + '"'
         +   disabledAttr + ' aria-label="선택 메일 열기" title="선택 메일 열기">'
         +   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
         +     '<path d="M7 17L17 7"/><path d="M8 7h9v9"/>'

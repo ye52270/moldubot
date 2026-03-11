@@ -148,9 +148,9 @@ test('section toggle action collapses and expands major summary section', () => 
   assert.equal(button['aria-expanded'], 'true');
 });
 
-test('selected mail open action calls openEvidenceMail with message id and web link', async () => {
+test('selected mail open action calls openEvidenceMail with message id only', async () => {
   let clickHandler = null;
-  let opened = null;
+  let openedMessageId = '';
   const chatArea = {
     addEventListener(eventName, handler) {
       if (eventName === 'click') clickHandler = handler;
@@ -174,8 +174,8 @@ test('selected mail open action calls openEvidenceMail with message id and web l
     addMessage: () => {},
     setSendingState: () => {},
     requestAssistantReply: async () => ({ answer: 'ok', metadata: {} }),
-    openEvidenceMail: async (messageId, webLink) => {
-      opened = { messageId: messageId, webLink: webLink };
+    openEvidenceMail: async (messageId) => {
+      openedMessageId = messageId;
     },
   });
   interactions.bindMessageActions();
@@ -186,10 +186,48 @@ test('selected mail open action calls openEvidenceMail with message id and web l
   });
   await Promise.resolve();
 
-  assert.deepEqual(opened, {
-    messageId: 'mail-123',
-    webLink: 'https://outlook.live.com/owa/?ItemID=123',
+  assert.equal(openedMessageId, 'mail-123');
+});
+
+test('selected mail open action ignores button without message id', async () => {
+  let clickHandler = null;
+  let called = false;
+  const chatArea = {
+    addEventListener(eventName, handler) {
+      if (eventName === 'click') clickHandler = handler;
+    },
+  };
+  const button = {
+    dataset: {
+      action: 'selected-mail-open',
+      messageId: '',
+      webLink: 'https://outlook.live.com/owa/?ItemID=123',
+    },
+    classList: { contains: () => false },
+    closest: () => null,
+  };
+  global.window = {};
+  const moduleRef = loadModule();
+  const interactions = moduleRef.create({
+    byId: (id) => (id === 'chatArea' ? chatArea : null),
+    logClientEvent: () => {},
+    copiedResetMs: 10,
+    addMessage: () => {},
+    setSendingState: () => {},
+    requestAssistantReply: async () => ({ answer: 'ok', metadata: {} }),
+    openEvidenceMail: async () => {
+      called = true;
+    },
   });
+  interactions.bindMessageActions();
+
+  clickHandler({
+    target: { closest: () => button },
+    preventDefault: () => {},
+  });
+  await Promise.resolve();
+
+  assert.equal(called, false);
 });
 
 test('outside click and escape close evidence popovers', () => {

@@ -34,6 +34,31 @@ class DeepChatAgentUtilsTest(unittest.TestCase):
         stream_item = {"role": "ai", "content": [{"type": "text", "text": "토큰"}]}
         self.assertEqual("토큰", extract_stream_token_text(stream_item=stream_item))
 
+    def test_extract_stream_token_text_preserves_surrounding_spaces(self) -> None:
+        """
+        스트리밍 토큰은 선/후행 공백을 보존해야 단어 붙음이 발생하지 않는다.
+        """
+        stream_item = {"role": "ai", "content": [{"type": "text", "text": " 토큰 "}]}
+        self.assertEqual(" 토큰 ", extract_stream_token_text(stream_item=stream_item))
+
+    def test_extract_stream_token_text_drops_tool_call_mapping_payload(self) -> None:
+        """
+        tool_calls가 포함된 assistant 매핑은 UI 토큰으로 노출하면 안 된다.
+        """
+        stream_item = {
+            "role": "ai",
+            "tool_calls": [{"id": "call-1", "name": "search_mails"}],
+            "content": [{"type": "text", "text": "{\"action\":\"mail_search\"}"}],
+        }
+        self.assertEqual("", extract_stream_token_text(stream_item=stream_item))
+
+    def test_extract_stream_token_text_drops_json_structural_chunk(self) -> None:
+        """
+        JSON 구조 토큰 조각은 중간 스트림 노이즈이므로 제거해야 한다.
+        """
+        stream_item = {"role": "ai", "content": [{"type": "text", "text": "\"query\":"}]}
+        self.assertEqual("", extract_stream_token_text(stream_item=stream_item))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,23 +1,51 @@
 .rich-body {
   font-size: var(--text-base);
-  line-height: 1.48;
+  line-height: 1.68;
   color: var(--color-text);
+  max-width: 72ch;
 }
 
 .rich-paragraph {
-  margin: 0 0 8px 0;
+  margin: 0 0 12px 0;
 }
 
 .rich-paragraph:last-child {
   margin-bottom: 0;
 }
 
+.rich-list li + li {
+  margin-top: 2px;
+}
+
 .rich-body strong {
-  font-weight: 500;
+  font-weight: 700;
   font-size: 1em;
-  color: var(--color-text);
+  color: color-mix(in srgb, var(--color-text) 82%, #1e4f8f);
   -webkit-text-stroke: 0;
   text-shadow: none;
+  background: color-mix(in srgb, #f6d58a 26%, transparent);
+  border-radius: 4px;
+  padding: 0 2px;
+}
+
+.message.assistant.is-streaming .msg-body::after {
+  content: '';
+  display: inline-block;
+  width: 0.45em;
+  height: 1em;
+  margin-left: 2px;
+  border-right: 2px solid color-mix(in srgb, var(--color-primary) 75%, #6d3f22);
+  vertical-align: -1px;
+  animation: assistantTypingCursor 0.95s steps(1, end) infinite;
+}
+
+@keyframes assistantTypingCursor {
+  0%, 48% {
+    opacity: 1;
+  }
+  49%, 100% {
+    opacity: 0;
+  }
 }
 
 .rich-link {

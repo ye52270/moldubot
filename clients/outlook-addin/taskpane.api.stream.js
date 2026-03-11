@@ -50,11 +50,15 @@
       }
     }
 
-    async function readCompletionPayload(response, onProgress) {
+    async function readCompletionPayload(response, onProgress, onToken) {
       let completedPayload = null;
       await forEachSseEvent(response, function (parsed) {
         if (parsed.event === 'progress' && typeof onProgress === 'function') {
           onProgress(parsed.data || {});
+          return;
+        }
+        if (parsed.event === 'token' && typeof onToken === 'function') {
+          onToken(parsed.data || {});
           return;
         }
         if (parsed.event === 'completed') {

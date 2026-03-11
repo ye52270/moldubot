@@ -79,9 +79,9 @@ class SearchChatIntentRoutingTest(unittest.TestCase):
         self.assertEqual("deep-agent", response["metadata"]["source"])
         self.assertEqual("정상 응답", response["answer"])
 
-    def test_retrieval_task_selects_fast_compact_prompt_variant(self) -> None:
+    def test_retrieval_task_selects_freeform_prompt_variant_for_plain_query(self) -> None:
         """
-        retrieval task_type은 fast_compact variant agent를 선택해야 한다.
+        일반 채팅 retrieval 질의는 `/스킬`이 아니므로 freeform variant를 선택해야 한다.
         """
         decomposition = IntentDecomposition(
             original_query="지난주 메일 조회해줘",
@@ -103,7 +103,7 @@ class SearchChatIntentRoutingTest(unittest.TestCase):
                 with patch("app.api.routes.get_deep_chat_agent", return_value=fake_agent) as get_agent_mock:
                     response = search_chat(payload=ChatRequest(message="지난주 메일 조회해줘"))
         self.assertEqual("completed", response["status"])
-        get_agent_mock.assert_called_with(prompt_variant="fast_compact")
+        get_agent_mock.assert_called_with(prompt_variant="quality_freeform_grounded")
 
     def test_mail_summary_skill_selects_json_strict_prompt_variant(self) -> None:
         """
@@ -330,9 +330,9 @@ class SearchChatIntentRoutingTest(unittest.TestCase):
         self.assertEqual("deep-agent", response["metadata"]["source"])
         self.assertNotIn("needs_clarification", response["status"])
 
-    def test_code_review_query_selects_code_review_expert_prompt_variant(self) -> None:
+    def test_plain_code_review_query_selects_freeform_prompt_variant(self) -> None:
         """
-        코드 리뷰 요청은 code_review_expert variant agent를 선택해야 한다.
+        일반 채팅 코드 리뷰 요청은 `/코드분석`이 아니므로 freeform variant를 선택해야 한다.
         """
         decomposition = IntentDecomposition(
             original_query="현재메일 코드 리뷰해줘",
@@ -353,6 +353,32 @@ class SearchChatIntentRoutingTest(unittest.TestCase):
                 fake_agent.get_last_assistant_answer.return_value = "리뷰 응답"
                 with patch("app.api.routes.get_deep_chat_agent", return_value=fake_agent) as get_agent_mock:
                     response = search_chat(payload=ChatRequest(message="현재메일 코드 리뷰해줘"))
+        self.assertEqual("completed", response["status"])
+        get_agent_mock.assert_called_with(prompt_variant="quality_freeform_grounded")
+
+    def test_code_review_skill_selects_code_review_expert_prompt_variant(self) -> None:
+        """
+        `/코드분석` 스킬 명령은 code_review_expert variant를 선택해야 한다.
+        """
+        decomposition = IntentDecomposition(
+            original_query="/코드분석 현재메일",
+            steps=[ExecutionStep.READ_CURRENT_MAIL],
+            summary_line_target=5,
+            date_filter=DateFilter(mode=DateFilterMode.NONE),
+            missing_slots=[],
+            task_type=IntentTaskType.ANALYSIS,
+            output_format=IntentOutputFormat.GENERAL,
+            confidence=0.9,
+        )
+        parser = type("StubParser", (), {"parse": lambda self, user_message: decomposition})()
+        with patch("app.api.search_chat_flow.get_intent_parser", return_value=parser):
+            with patch("app.api.routes.is_openai_key_configured", return_value=True):
+                fake_agent = MagicMock()
+                fake_agent.execute_turn.return_value = {"status": "completed", "answer": "리뷰 응답", "interrupts": []}
+                fake_agent.get_last_tool_payload.return_value = {}
+                fake_agent.get_last_assistant_answer.return_value = "리뷰 응답"
+                with patch("app.api.routes.get_deep_chat_agent", return_value=fake_agent) as get_agent_mock:
+                    response = search_chat(payload=ChatRequest(message="/코드분석 현재메일"))
         self.assertEqual("completed", response["status"])
         get_agent_mock.assert_called_with(prompt_variant="code_review_expert")
 

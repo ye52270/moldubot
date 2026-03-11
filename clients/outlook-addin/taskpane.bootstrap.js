@@ -27,6 +27,68 @@
     let isBootstrapped = false;
     let selectedMailSyncTimer = null;
     let lastSyncedSelectionMailId = '';
+    let shortcutChipHost = null;
+
+    function parseLeadingShortcutTokens(text) {
+      const raw = String(text || '').trim();
+      const tokens = [];
+      let remaining = raw;
+      while (remaining) {
+        const matched = /^([/@])([^\s]+)/.exec(remaining);
+        if (!matched) break;
+        const prefix = String(matched[1] || '');
+        const value = String(matched[2] || '').trim();
+        if (value) {
+          tokens.push({
+            prefix: prefix,
+            value: value,
+            kind: prefix === '@' ? 'app' : 'skill',
+          });
+        }
+        remaining = String(remaining.slice(matched[0].length) || '').trimStart();
+      }
+      return tokens;
+    }
+
+    function ensureShortcutChipHost() {
+      if (shortcutChipHost) return shortcutChipHost;
+      if (!documentRef || typeof documentRef.querySelector !== 'function') return null;
+      const inputArea = documentRef.querySelector('.input-area');
+      const inputWrapper = documentRef.querySelector('.input-wrapper');
+      if (!inputArea || !inputWrapper || typeof documentRef.createElement !== 'function') return null;
+      const host = documentRef.createElement('div');
+      host.className = 'composer-shortcut-chips';
+      host.setAttribute('hidden', 'hidden');
+      host.setAttribute('aria-hidden', 'true');
+      inputArea.insertBefore(host, inputWrapper);
+      shortcutChipHost = host;
+      return shortcutChipHost;
+    }
+
+    function renderShortcutChips(inputValue) {
+      const host = ensureShortcutChipHost();
+      if (!host) return;
+      const tokens = parseLeadingShortcutTokens(inputValue);
+      if (!tokens.length) {
+        host.innerHTML = '';
+        host.setAttribute('hidden', 'hidden');
+        host.setAttribute('aria-hidden', 'true');
+        return;
+      }
+      const chips = tokens.map(function (token) {
+        const label = token.prefix + token.value;
+        return (
+          '<span class="composer-shortcut-chip ' +
+          (token.kind === 'app' ? 'is-app' : 'is-skill') +
+          '">' +
+          escapeHtml(label) +
+          '</span>'
+        );
+      }).join('');
+      host.innerHTML = chips;
+      host.removeAttribute('hidden');
+      host.setAttribute('aria-hidden', 'false');
+    }
 
     async function fetchSelectedMailContext(selectionContext) {
       const emailId = String(selectionContext && selectionContext.emailId ? selectionContext.emailId : '').trim();
@@ -97,14 +159,29 @@
       const marketPlusBtn = byId('marketPlusBtn');
       if (sendBtn) sendBtn.addEventListener('click', sender.sendMessage);
       if (input) {
+        const currentPlaceholder = String(input.getAttribute('placeholder') || '').trim();
+        if (!currentPlaceholder) {
+          input.setAttribute('placeholder', '메시지를 입력하세요. /로 스킬, @로 앱을 선택할 수 있습니다.');
+        }
         input.addEventListener('keydown', function (event) {
           if (quickPrompts && quickPrompts.handleKeydown(event)) {
+            if (windowRef && typeof windowRef.setTimeout === 'function') {
+              windowRef.setTimeout(function () {
+                renderShortcutChips(input.value);
+              }, 0);
+            }
             return;
           }
           if (event.key === 'Enter' && !event.shiftKey) {
             event.preventDefault();
             sender.sendMessage();
           }
+        });
+        input.addEventListener('input', function () {
+          renderShortcutChips(input.value);
+        });
+        input.addEventListener('focus', function () {
+          renderShortcutChips(input.value);
         });
         if (quickPrompts && typeof quickPrompts.bindInput === 'function') {
           quickPrompts.bindInput(input);
@@ -138,12 +215,10 @@
           event.preventDefault();
         }
         const messageId = String(button.dataset.messageId || '').trim();
-        const webLink = String(button.dataset.webLink || '').trim();
-        if (!messageId && !webLink) return;
-        runtimeHelpers.openEvidenceMail(messageId, webLink).catch(function () {
+        if (!messageId) return;
+        runtimeHelpers.openEvidenceMail(messageId).catch(function () {
           logClientEvent('warning', 'selected_mail_open_failed', {
             message_id_present: Boolean(messageId),
-            web_link_present: Boolean(webLink),
           });
         });
       }
@@ -154,6 +229,15 @@
       }
       if (documentRef && typeof documentRef.addEventListener === 'function') {
         documentRef.addEventListener('click', handleSelectedMailOpen);
+        documentRef.addEventListener('click', function (event) {
+          const target = event && event.target && event.target.closest
+            ? event.target.closest('[data-role="hub-shortcut-item"]')
+            : null;
+          if (!target || !input || !windowRef || typeof windowRef.setTimeout !== 'function') return;
+          windowRef.setTimeout(function () {
+            renderShortcutChips(input.value);
+          }, 0);
+        });
       }
 
       chatActions.bindChatAreaActions();

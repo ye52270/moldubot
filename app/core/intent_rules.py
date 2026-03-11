@@ -19,6 +19,8 @@ ALLOWED_MISSING_SLOTS = REQUIRED_BOOKING_SLOTS
 MAIL_SUMMARY_SKILL_COMMANDS: tuple[str, ...] = ("/메일요약", "/mailsummary")
 CODE_REVIEW_SKILL_COMMANDS: tuple[str, ...] = ("/코드분석", "/codeanalysis")
 EXPLICIT_SKILL_COMMANDS: tuple[str, ...] = MAIL_SUMMARY_SKILL_COMMANDS + CODE_REVIEW_SKILL_COMMANDS
+CHAT_MODE_SKILL = "skill"
+CHAT_MODE_FREEFORM = "freeform"
 
 
 def is_code_review_query(user_message: str) -> bool:
@@ -92,6 +94,21 @@ def is_explicit_skill_query(user_message: str) -> bool:
         normalized == command or normalized.startswith(f"{command} ")
         for command in EXPLICIT_SKILL_COMMANDS
     )
+
+
+def resolve_chat_mode(user_message: str) -> str:
+    """
+    사용자 입력을 freeform/skill 2모드로 분류한다.
+
+    Args:
+        user_message: 원본 사용자 입력
+
+    Returns:
+        `/` 명시 스킬 명령이면 `skill`, 그 외는 `freeform`
+    """
+    if is_explicit_skill_query(user_message=user_message):
+        return CHAT_MODE_SKILL
+    return CHAT_MODE_FREEFORM
 
 
 def extract_summary_line_target(user_message: str) -> int:

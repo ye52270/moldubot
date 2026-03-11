@@ -16,7 +16,7 @@ from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, System
 from langgraph.types import Command
 
 from app.agents.tool_payload_selector import extract_preferred_tool_payload_from_messages
-from app.core.intent_rules import is_mail_search_query
+from app.core.intent_rules import is_mail_search_query, resolve_chat_mode
 from app.core.logging_config import get_logger, is_prompt_trace_enabled
 from app.middleware.policies import (
     INTENT_SYSTEM_CONTEXT_PREFIX,
@@ -26,8 +26,9 @@ from app.middleware.policies import (
     normalize_message_text,
     should_inject_intent_context,
 )
-from app.services.current_mail_intent_policy import is_current_mail_direct_fact_request
+from app.services.current_mail_intent_policy import resolve_current_mail_direct_fact_decision
 from app.services.answer_postprocessor import postprocess_final_answer
+from app.middleware.search_tool_args import normalize_search_tool_args
 
 EMPTY_MODEL_RESPONSE_FALLBACK = "응답을 생성하지 못했습니다. 다시 시도해 주세요."
 TOOL_CALLS_KEY = "tool_calls"
@@ -270,6 +271,7 @@ def guard_tool_error(
     Returns:
         원본 도구 결과 또는 오류 ToolMessage
     """
+    _normalize_search_tool_call_args(request=request)
     try:
         return handler(request)
     except Exception as exc:
@@ -283,6 +285,62 @@ def guard_tool_error(
             tool_call_id=tool_call_id,
             status="error",
         )
+
+
+def _normalize_search_tool_call_args(request: Any) -> None:
+    """
+    검색 도구 호출 인자를 사용자 질의 슬롯으로 사전 보정한다.
+
+    Args:
+        request: LangChain 도구 호출 요청 객체
+    """
+    tool_call = getattr(request, "tool_call", None)
+    if not isinstance(tool_call, dict):
+        return
+    name = str(tool_call.get("name") or "").strip()
+    args = tool_call.get("args")
+    if not isinstance(args, dict):
+        return
+    user_message = _extract_request_user_message(request=request)
+    if not user_message:
+        return
+    normalized_args = normalize_search_tool_args(
+        tool_name=name,
+        tool_args=args,
+        user_message=user_message,
+    )
+    if normalized_args != args:
+        tool_call["args"] = normalized_args
+        logger.info(
+            "middleware.wrap_tool_call: search args normalized name=%s user_message=%s",
+            name,
+            user_message[:80],
+        )
+
+
+def _extract_request_user_message(request: Any) -> str:
+    """
+    도구 요청 state에서 마지막 사용자 입력 원문을 추출한다.
+
+    Args:
+        request: LangChain 도구 호출 요청 객체
+
+    Returns:
+        사용자 원문 질의
+    """
+    state = getattr(request, "state", None)
+    if not isinstance(state, dict):
+        return ""
+    messages = state.get("messages")
+    if not isinstance(messages, list):
+        return ""
+    found_human = _find_last_message(messages=messages, message_type=HumanMessage)
+    if found_human is None:
+        return ""
+    _, human_message = found_human
+    return _extract_original_user_message_from_injected_text(
+        message_text=normalize_message_text(getattr(human_message, "content", "")),
+    )
 
 
 @after_model
@@ -335,6 +393,7 @@ def postprocess_model_answer(state: dict[str, Any], runtime: Any) -> dict[str, A
             user_message=original_user_message,
         ),
         raw_model_content=state.get(RAW_MODEL_MESSAGE_CONTENT_KEY),
+        chat_mode=resolve_chat_mode(user_message=original_user_message),
     )
     if not processed_answer or processed_answer == original_answer:
         return update_payload
@@ -472,14 +531,15 @@ def _attach_postprocess_policy(tool_payload: dict[str, Any], user_message: str) 
     action = str(tool_payload.get("action") or "").strip().lower()
     if action != "current_mail":
         return dict(tool_payload)
-    decision = is_current_mail_direct_fact_request(
+    decision = resolve_current_mail_direct_fact_decision(
         user_message=user_message,
         has_current_mail_context=True,
     )
     updated_payload = dict(tool_payload)
     policy = updated_payload.get("postprocess_policy")
     normalized_policy = dict(policy) if isinstance(policy, dict) else {}
-    normalized_policy["direct_fact_decision"] = bool(decision)
+    normalized_policy["direct_fact_decision"] = bool(decision.enabled)
+    normalized_policy["direct_fact_target_type"] = str(decision.target_type)
     updated_payload["postprocess_policy"] = normalized_policy
     return updated_payload
 

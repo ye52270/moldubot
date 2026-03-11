@@ -9,7 +9,12 @@ from app.agents.intent_schema import (
     IntentOutputFormat,
     IntentTaskType,
 )
-from app.core.intent_rules import is_code_review_query, is_mail_summary_skill_query
+from app.core.intent_rules import (
+    CHAT_MODE_SKILL,
+    is_code_review_query,
+    is_mail_summary_skill_query,
+    resolve_chat_mode,
+)
 from app.services.intent_decomposition_service import (
     is_current_mail_scope_value,
     parse_intent_decomposition_safely as _parse_intent_decomposition_safely,
@@ -58,11 +63,21 @@ def select_prompt_variant_from_intent(
     query = str(user_message or "").strip()
     if not query and decomposition is not None:
         query = str(decomposition.original_query or "").strip()
-    if is_mail_summary_skill_query(user_message=query):
-        return "quality_structured_json_strict"
+    chat_mode = resolve_chat_mode(user_message=query)
+    if chat_mode == CHAT_MODE_SKILL:
+        if is_mail_summary_skill_query(user_message=query):
+            return "quality_structured_json_strict"
+        if is_code_review_query(user_message=query):
+            return "code_review_expert"
+        if decomposition is None:
+            return "quality_structured"
+        task_type = decomposition.task_type
+        if task_type in (IntentTaskType.ANALYSIS, IntentTaskType.SOLUTION):
+            return "quality_structured"
+        if task_type == IntentTaskType.RETRIEVAL:
+            return "fast_compact"
+        return "quality_structured"
     is_current_mail_scope = is_current_mail_scope_value(scope_value=resolved_scope)
-    if is_current_mail_scope and decomposition is not None and decomposition.task_type == IntentTaskType.SUMMARY:
-        return "quality_freeform_grounded"
     if is_current_mail_translation_request(
         user_message=query,
         has_current_mail_context=is_current_mail_scope,
@@ -75,16 +90,7 @@ def select_prompt_variant_from_intent(
         decomposition=decomposition,
     ):
         return "quality_freeform_grounded"
-    if is_code_review_query(user_message=query):
-        return "code_review_expert"
-    if decomposition is None:
-        return "quality_structured"
-    task_type = decomposition.task_type
-    if task_type in (IntentTaskType.ANALYSIS, IntentTaskType.SOLUTION):
-        return "quality_structured"
-    if task_type == IntentTaskType.RETRIEVAL:
-        return "fast_compact"
-    return "quality_structured"
+    return "quality_freeform_grounded"
 
 
 def build_intent_clarification(

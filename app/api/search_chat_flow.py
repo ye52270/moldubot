@@ -72,7 +72,7 @@ from app.api.search_chat_next_actions_runtime import (
 )
 from app.api.search_chat_stream_utils import resolve_thread_id
 from app.core.logging_config import get_logger
-from app.core.intent_rules import is_mail_summary_skill_query
+from app.core.intent_rules import is_mail_summary_skill_query, resolve_chat_mode
 from app.core.metrics import get_chat_metrics_tracker
 from app.core.llm_runtime import invoke_text_messages, resolve_env_model
 from app.services.answer_postprocessor import postprocess_final_answer
@@ -665,6 +665,7 @@ def run_search_chat(
                     answer=raw_model_content,
                     tool_payload=fast_tool_payload if isinstance(fast_tool_payload, dict) else {},
                     raw_model_content=raw_model_content,
+                    chat_mode=resolve_chat_mode(user_message=text),
                 )
                 answer = str(answer or "").strip() or raw_model_content
                 tool_payload = fast_tool_payload if isinstance(fast_tool_payload, dict) else {}

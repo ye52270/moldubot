@@ -5,13 +5,13 @@ from typing import Any
 
 from app.models.response_contracts import LLMResponseContract
 from app.services.query_artifact_extractor import (
-    extract_query_artifact_candidates,
+    extract_direct_fact_candidates,
     rank_query_artifact_candidates,
 )
 from app.services.answer_postprocessor_summary import sanitize_summary_lines
 from app.services.current_mail_intent_policy import (
-    is_current_mail_direct_fact_request,
     is_translation_like_request_text,
+    resolve_current_mail_direct_fact_decision,
     render_current_mail_grounded_safe_message,
     should_apply_current_mail_grounded_safe_guard,
 )
@@ -150,15 +150,20 @@ def render_current_mail_direct_value_from_tool_payload(
     action = str(tool_payload.get("action") or "").strip().lower()
     if action != "current_mail":
         return ""
-    if not _resolve_direct_fact_render_decision(
+    direct_fact_decision = _resolve_direct_fact_render_decision(
         user_message=user_message,
         tool_payload=tool_payload,
-    ):
+    )
+    if not direct_fact_decision[0]:
         return ""
+    target_type = direct_fact_decision[1]
     mail_context = tool_payload.get("mail_context")
     if not isinstance(mail_context, dict):
         return "현재메일 본문에서 요청한 직접값을 확인하지 못했습니다."
-    candidates = extract_query_artifact_candidates(mail_context=mail_context)
+    candidates = extract_direct_fact_candidates(
+        mail_context=mail_context,
+        target_type=target_type,
+    )
     ranked = rank_query_artifact_candidates(user_message=user_message, candidates=candidates)
     if not ranked:
         return "현재메일 본문에서 요청한 직접값을 확인하지 못했습니다."
@@ -172,7 +177,7 @@ def render_current_mail_direct_value_from_tool_payload(
 def _resolve_direct_fact_render_decision(
     user_message: str,
     tool_payload: dict[str, Any],
-) -> bool:
+) -> tuple[bool, str]:
     """
     direct-value 강제 렌더링 허용 여부를 정책 메타 우선으로 결정한다.
 
@@ -181,17 +186,19 @@ def _resolve_direct_fact_render_decision(
         tool_payload: 직전 tool payload
 
     Returns:
-        direct-value 렌더링 허용 여부
+        (direct-value 렌더링 허용 여부, target_type)
     """
     postprocess_policy = tool_payload.get("postprocess_policy")
     if isinstance(postprocess_policy, dict):
         decision = postprocess_policy.get("direct_fact_decision")
+        target_type = str(postprocess_policy.get("direct_fact_target_type") or "general").strip().lower()
         if isinstance(decision, bool):
-            return decision
-    return is_current_mail_direct_fact_request(
+            return (decision, target_type or "general")
+    fallback_decision = resolve_current_mail_direct_fact_decision(
         user_message=user_message,
         has_current_mail_context=True,
     )
+    return (fallback_decision.enabled, str(fallback_decision.target_type))
 
 
 def render_current_mail_manager_single_paragraph(

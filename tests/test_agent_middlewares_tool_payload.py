@@ -72,6 +72,7 @@ class AgentMiddlewaresToolPayloadTest(unittest.TestCase):
         policy = payload.get("postprocess_policy")
         self.assertIsInstance(policy, dict)
         self.assertTrue(policy.get("direct_fact_decision"))
+        self.assertEqual("email_address", policy.get("direct_fact_target_type"))
 
     def test_attaches_direct_fact_policy_false_for_summary_like_current_mail_query(self) -> None:
         """요약/이슈 질의 current_mail payload에는 direct_fact=false가 주입되어야 한다."""
@@ -94,6 +95,7 @@ class AgentMiddlewaresToolPayloadTest(unittest.TestCase):
         policy = payload.get("postprocess_policy")
         self.assertIsInstance(policy, dict)
         self.assertFalse(policy.get("direct_fact_decision"))
+        self.assertEqual("general", policy.get("direct_fact_target_type"))
 
 
 if __name__ == "__main__":
