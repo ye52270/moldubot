@@ -17,6 +17,7 @@ from app.agents.intent_schema import (
 )
 from app.core.logging_config import get_logger
 from app.services.current_mail_request_intent import (
+    has_current_mail_anchor,
     is_current_mail_direct_fact_request,
     is_current_mail_translation_request,
     resolve_current_mail_issue_sections,
@@ -26,25 +27,6 @@ from app.services.intent_taxonomy_config import get_intent_taxonomy
 INTENT_CONTEXT_PREFIX = "구조분해 결과:"
 INTENT_SYSTEM_CONTEXT_PREFIX = "의도 라우팅 컨텍스트:"
 SCOPE_PREFIX = "[질의 범위]"
-CURRENT_MAIL_ANCHOR_TOKENS: tuple[str, ...] = (
-    "현재메일",
-    "현재선택메일",
-    "현재선택된메일",
-    "선택메일",
-    "이메일",
-    "이메일에서",
-    "이메일의",
-    "이메일기반",
-    "해당메일",
-    "이메일본문",
-    "이메일내용",
-    "이메일요약",
-    "이메일원문",
-    "이견적",
-    "해당견적",
-    "이프로젝트",
-    "해당프로젝트",
-)
 CURRENT_MAIL_SEARCH_INTENT_TOKENS: tuple[str, ...] = (
     "전체메일",
     "전체사서함",
@@ -195,12 +177,12 @@ def _sanitize_current_mail_steps(
     Returns:
         step 정규화가 반영된 의도 구조분해 결과
     """
-    compact = str(user_message or "").replace(" ", "").lower()
     normalized_scope_label = str(scope_label or "").strip()
     has_scope_current_mail = normalized_scope_label.startswith(SCOPE_PREFIX) and ("현재 선택 메일" in normalized_scope_label)
-    has_current_mail_anchor = has_scope_current_mail or any(token in compact for token in CURRENT_MAIL_ANCHOR_TOKENS)
+    has_anchor_signal = has_scope_current_mail or has_current_mail_anchor(user_message=user_message)
+    compact = str(user_message or "").replace(" ", "").lower()
     has_search_intent = any(token in compact for token in CURRENT_MAIL_SEARCH_INTENT_TOKENS)
-    if not has_current_mail_anchor or has_search_intent:
+    if not has_anchor_signal or has_search_intent:
         return decomposition
 
     if ExecutionStep.SEARCH_MAILS not in decomposition.steps:
@@ -238,6 +220,7 @@ def _apply_output_format_policy_override(
     is_direct_fact_request = is_current_mail_direct_fact_request(
         user_message=user_message,
         has_current_mail_context=has_current_mail_scope,
+        decomposition=decomposition,
     )
     if is_direct_fact_request and original_format == IntentOutputFormat.STRUCTURED_TEMPLATE:
         overridden_format = IntentOutputFormat.GENERAL
@@ -287,10 +270,12 @@ def _build_routing_instruction(
     is_direct_fact_request = is_current_mail_direct_fact_request(
         user_message=original_user_message,
         has_current_mail_context=has_current_mail_scope,
+        decomposition=decomposition,
     )
     is_translation_request = is_current_mail_translation_request(
         user_message=original_user_message,
         has_current_mail_context=has_current_mail_scope,
+        decomposition=decomposition,
     )
     if is_direct_fact_request:
         lines.append("- 특정 항목(메일주소/도메인/주체) 질문은 해당 값을 먼저 1~3개로 직접 답한다.")

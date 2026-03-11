@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from app.agents.intent_schema import ExecutionStep, IntentDecomposition, IntentTaskType
+
 CURRENT_MAIL_ANCHOR_TOKENS: tuple[str, ...] = (
     "현재메일",
     "현재선택메일",
@@ -90,12 +92,22 @@ DIRECT_FACT_ENTITY_TOKENS: tuple[str, ...] = (
     "필터",
     "filter",
     "dn",
+    "연락",
+    "연락처",
+    "문의",
+    "문의처",
+    "지원",
+    "지원팀",
+    "support",
+    "contact",
 )
 DIRECT_FACT_ASK_TOKENS: tuple[str, ...] = (
     "어떤",
     "무슨",
     "누구",
     "뭐",
+    "어디",
+    "어디로",
     "알려",
 )
 TRANSLATION_REQUEST_TOKENS: tuple[str, ...] = (
@@ -126,6 +138,28 @@ class CurrentMailIntentSignals:
     explicit_cause_only: bool
 
 
+@dataclass(frozen=True)
+class CurrentMailIntentContract:
+    """
+    현재메일 의도 판별에 사용하는 공통 계약 구조체.
+
+    Attributes:
+        has_anchor: 현재메일 문맥(anchor/scope/decomposition) 여부
+        signals: 토큰/문맥 기반 세부 신호
+        allows_cause_analysis: 원인 분석 분기 허용 여부
+        allows_solution: 해결 분기 허용 여부
+        allows_direct_fact: direct fact 분기 허용 여부
+        allows_translation: 번역 분기 허용 여부
+    """
+
+    has_anchor: bool
+    signals: CurrentMailIntentSignals
+    allows_cause_analysis: bool
+    allows_solution: bool
+    allows_direct_fact: bool
+    allows_translation: bool
+
+
 SECTION_POLICY_ORDER: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("cause_only", ("cause",)),
     ("cause_response", ("cause", "response")),
@@ -146,8 +180,8 @@ def is_current_mail_cause_analysis_request(user_message: str) -> bool:
     Returns:
         원인 분석 요청이면 True
     """
-    signals = _extract_signals(user_message=user_message)
-    return signals.has_anchor and signals.has_cause and signals.has_problem
+    contract = resolve_current_mail_intent_contract(user_message=user_message)
+    return contract.has_anchor and contract.allows_cause_analysis and contract.signals.has_cause and contract.signals.has_problem
 
 
 def is_current_mail_solution_request(user_message: str) -> bool:
@@ -160,8 +194,8 @@ def is_current_mail_solution_request(user_message: str) -> bool:
     Returns:
         해결 요청이면 True
     """
-    signals = _extract_signals(user_message=user_message)
-    return signals.has_anchor and signals.has_response
+    contract = resolve_current_mail_intent_contract(user_message=user_message)
+    return contract.has_anchor and contract.allows_solution and contract.signals.has_response
 
 
 def resolve_current_mail_issue_sections(user_message: str) -> tuple[str, ...]:
@@ -174,8 +208,11 @@ def resolve_current_mail_issue_sections(user_message: str) -> tuple[str, ...]:
     Returns:
         섹션 ID 튜플(`cause`, `impact`, `response`)
     """
-    signals = _extract_signals(user_message=user_message)
-    if not signals.has_anchor or not signals.has_problem:
+    contract = resolve_current_mail_intent_contract(user_message=user_message)
+    signals = contract.signals
+    if not contract.has_anchor or not signals.has_problem:
+        return ()
+    if not contract.allows_cause_analysis and not contract.allows_solution:
         return ()
     policy_key = _resolve_section_policy_key(signals=signals)
     return _sections_for_policy(policy_key=policy_key)
@@ -184,6 +221,7 @@ def resolve_current_mail_issue_sections(user_message: str) -> tuple[str, ...]:
 def is_current_mail_direct_fact_request(
     user_message: str,
     has_current_mail_context: bool = False,
+    decomposition: IntentDecomposition | None = None,
 ) -> bool:
     """
     현재메일 맥락에서 특정 항목(주소/도메인/주체)을 직접 묻는 사실질의인지 판별한다.
@@ -194,9 +232,12 @@ def is_current_mail_direct_fact_request(
     Returns:
         직접 사실질의면 True
     """
-    signals = _extract_signals(user_message=user_message)
-    has_anchor = signals.has_anchor or bool(has_current_mail_context)
-    if not has_anchor:
+    contract = resolve_current_mail_intent_contract(
+        user_message=user_message,
+        has_current_mail_context=has_current_mail_context,
+        decomposition=decomposition,
+    )
+    if not contract.has_anchor or not contract.allows_direct_fact:
         return False
     compact = _to_compact(user_message=user_message)
     has_entity_token = any(token in compact for token in DIRECT_FACT_ENTITY_TOKENS)
@@ -232,6 +273,7 @@ def is_current_mail_artifact_analysis_request(
 def is_current_mail_translation_request(
     user_message: str,
     has_current_mail_context: bool = False,
+    decomposition: IntentDecomposition | None = None,
 ) -> bool:
     """
     현재메일 맥락에서 번역 요청인지 판별한다.
@@ -243,12 +285,57 @@ def is_current_mail_translation_request(
     Returns:
         현재메일 번역 요청이면 True
     """
-    signals = _extract_signals(user_message=user_message)
-    has_anchor = signals.has_anchor or bool(has_current_mail_context)
-    if not has_anchor:
+    contract = resolve_current_mail_intent_contract(
+        user_message=user_message,
+        has_current_mail_context=has_current_mail_context,
+        decomposition=decomposition,
+    )
+    if not contract.has_anchor or not contract.allows_translation:
         return False
     compact = _to_compact(user_message=user_message)
     return any(token in compact for token in TRANSLATION_REQUEST_TOKENS)
+
+
+def has_current_mail_anchor(user_message: str) -> bool:
+    """
+    입력 문장 자체에 현재메일 앵커가 포함되는지 반환한다.
+
+    Args:
+        user_message: 사용자 입력 원문
+
+    Returns:
+        현재메일 앵커 포함 여부
+    """
+    compact = _to_compact(user_message=user_message)
+    return _has_current_mail_anchor(compact=compact)
+
+
+def resolve_current_mail_intent_contract(
+    user_message: str,
+    has_current_mail_context: bool = False,
+    decomposition: IntentDecomposition | None = None,
+) -> CurrentMailIntentContract:
+    """
+    현재메일 의도 판별 공통 계약을 계산한다.
+
+    Args:
+        user_message: 사용자 입력 원문
+        has_current_mail_context: scope로 current_mail이 확정된 경우 True
+        decomposition: 구조화 의도 결과(있으면 우선 활용)
+
+    Returns:
+        현재메일 의도 공통 계약
+    """
+    signals = _extract_signals(user_message=user_message)
+    has_anchor = bool(has_current_mail_context) or signals.has_anchor or _is_current_mail_decomposition(decomposition=decomposition)
+    return CurrentMailIntentContract(
+        has_anchor=has_anchor,
+        signals=signals,
+        allows_cause_analysis=_allows_cause_analysis(decomposition=decomposition),
+        allows_solution=_allows_solution(decomposition=decomposition),
+        allows_direct_fact=_allows_direct_fact(decomposition=decomposition),
+        allows_translation=_allows_translation(decomposition=decomposition),
+    )
 
 
 def _has_current_mail_anchor(compact: str) -> bool:
@@ -262,6 +349,91 @@ def _has_current_mail_anchor(compact: str) -> bool:
         앵커 포함 시 True
     """
     return any(token in compact for token in CURRENT_MAIL_ANCHOR_TOKENS)
+
+
+def _is_current_mail_decomposition(decomposition: IntentDecomposition | None) -> bool:
+    """
+    구조화 의도 결과가 현재메일 문맥을 가리키는지 판별한다.
+
+    Args:
+        decomposition: 구조화 의도 결과
+
+    Returns:
+        현재메일 문맥이면 True
+    """
+    if decomposition is None:
+        return False
+    return ExecutionStep.READ_CURRENT_MAIL in decomposition.steps
+
+
+def _allows_cause_analysis(decomposition: IntentDecomposition | None) -> bool:
+    """
+    decomposition 기반으로 원인 분석 분기를 허용할지 판단한다.
+
+    Args:
+        decomposition: 구조화 의도 결과
+
+    Returns:
+        원인 분석 허용 여부
+    """
+    if decomposition is None:
+        return True
+    return decomposition.task_type in (IntentTaskType.ANALYSIS, IntentTaskType.SOLUTION, IntentTaskType.GENERAL)
+
+
+def _allows_solution(decomposition: IntentDecomposition | None) -> bool:
+    """
+    decomposition 기반으로 해결 분기를 허용할지 판단한다.
+
+    Args:
+        decomposition: 구조화 의도 결과
+
+    Returns:
+        해결 분기 허용 여부
+    """
+    if decomposition is None:
+        return True
+    return decomposition.task_type in (IntentTaskType.SOLUTION, IntentTaskType.ANALYSIS, IntentTaskType.GENERAL)
+
+
+def _allows_direct_fact(decomposition: IntentDecomposition | None) -> bool:
+    """
+    decomposition 기반으로 direct fact 분기를 허용할지 판단한다.
+
+    Args:
+        decomposition: 구조화 의도 결과
+
+    Returns:
+        direct fact 분기 허용 여부
+    """
+    if decomposition is None:
+        return True
+    return decomposition.task_type in (
+        IntentTaskType.ANALYSIS,
+        IntentTaskType.EXTRACTION,
+        IntentTaskType.RETRIEVAL,
+        IntentTaskType.GENERAL,
+    )
+
+
+def _allows_translation(decomposition: IntentDecomposition | None) -> bool:
+    """
+    decomposition 기반으로 번역 분기를 허용할지 판단한다.
+
+    Args:
+        decomposition: 구조화 의도 결과
+
+    Returns:
+        번역 분기 허용 여부
+    """
+    if decomposition is None:
+        return True
+    return decomposition.task_type in (
+        IntentTaskType.GENERAL,
+        IntentTaskType.SUMMARY,
+        IntentTaskType.RETRIEVAL,
+        IntentTaskType.EXTRACTION,
+    )
 
 
 def _to_compact(user_message: str) -> str:

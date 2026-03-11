@@ -7,7 +7,10 @@ from app.agents.intent_parser import get_intent_parser
 from app.agents.intent_schema import ExecutionStep, IntentDecomposition, IntentTaskType
 from app.core.intent_rules import is_code_review_query
 from app.core.logging_config import get_logger
-from app.services.current_mail_request_intent import is_current_mail_translation_request
+from app.services.current_mail_request_intent import (
+    is_current_mail_direct_fact_request,
+    is_current_mail_translation_request,
+)
 from app.services.intent_taxonomy_config import get_intent_taxonomy
 
 logger = get_logger(__name__)
@@ -79,6 +82,13 @@ def select_prompt_variant_from_intent(
     if is_current_mail_translation_request(
         user_message=query,
         has_current_mail_context=(str(resolved_scope or "").strip().lower() == "current_mail"),
+        decomposition=decomposition,
+    ):
+        return "quality_translation_grounded"
+    if is_current_mail_direct_fact_request(
+        user_message=query,
+        has_current_mail_context=(str(resolved_scope or "").strip().lower() == "current_mail"),
+        decomposition=decomposition,
     ):
         return "quality_freeform_grounded"
     if is_code_review_query(user_message=query):

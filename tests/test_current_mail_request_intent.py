@@ -2,6 +2,14 @@ from __future__ import annotations
 
 import unittest
 
+from app.agents.intent_schema import (
+    DateFilter,
+    DateFilterMode,
+    ExecutionStep,
+    IntentDecomposition,
+    IntentOutputFormat,
+    IntentTaskType,
+)
 from app.services.current_mail_request_intent import (
     is_current_mail_direct_fact_request,
     is_current_mail_cause_analysis_request,
@@ -119,6 +127,34 @@ class CurrentMailRequestIntentTest(unittest.TestCase):
             )
         )
 
+    def test_detects_current_mail_contact_followup_as_direct_fact(self) -> None:
+        """현재메일 문맥 후속질의의 문의처 질문은 direct fact 요청으로 판별되어야 한다."""
+        self.assertTrue(
+            is_current_mail_direct_fact_request(
+                user_message="어디로 연락하면 돼?",
+                has_current_mail_context=True,
+            )
+        )
+
+    def test_rejects_direct_fact_when_decomposition_is_summary(self) -> None:
+        """summary decomposition에서는 direct fact 토큰이 있어도 direct fact 분기를 허용하지 않아야 한다."""
+        decomposition = IntentDecomposition(
+            original_query="현재메일에서 어떤 메일주소가 문제인거야?",
+            steps=[ExecutionStep.READ_CURRENT_MAIL, ExecutionStep.SUMMARIZE_MAIL],
+            summary_line_target=5,
+            date_filter=DateFilter(mode=DateFilterMode.NONE),
+            missing_slots=[],
+            task_type=IntentTaskType.SUMMARY,
+            output_format=IntentOutputFormat.STRUCTURED_TEMPLATE,
+            confidence=0.7,
+        )
+        self.assertFalse(
+            is_current_mail_direct_fact_request(
+                user_message="현재메일에서 어떤 메일주소가 문제인거야?",
+                decomposition=decomposition,
+            )
+        )
+
     def test_grounded_safe_guard_is_disabled_for_summary_focused_query(self) -> None:
         """현재메일 요약 중심 질의는 안전가드 대상에서 제외되어야 한다."""
         self.assertFalse(should_apply_current_mail_grounded_safe_guard("현재메일 요약해줘"))
@@ -148,6 +184,26 @@ class CurrentMailRequestIntentTest(unittest.TestCase):
         self.assertTrue(is_current_mail_translation_request("현재메일 번역해줘"))
         self.assertTrue(is_current_mail_translation_request("translate current mail", has_current_mail_context=True))
         self.assertFalse(is_current_mail_translation_request("메일 요약해줘"))
+
+    def test_rejects_translation_when_decomposition_is_action(self) -> None:
+        """action decomposition에서는 번역 분기를 허용하지 않아야 한다."""
+        decomposition = IntentDecomposition(
+            original_query="현재메일 번역해줘",
+            steps=[ExecutionStep.BOOK_CALENDAR_EVENT],
+            summary_line_target=5,
+            date_filter=DateFilter(mode=DateFilterMode.NONE),
+            missing_slots=[],
+            task_type=IntentTaskType.ACTION,
+            output_format=IntentOutputFormat.GENERAL,
+            confidence=0.7,
+        )
+        self.assertFalse(
+            is_current_mail_translation_request(
+                user_message="현재메일 번역해줘",
+                has_current_mail_context=True,
+                decomposition=decomposition,
+            )
+        )
 
 
 if __name__ == "__main__":

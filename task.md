@@ -1,6 +1,79 @@
 # Task
 
 ## 현재 작업
+current_mail 의도 판별을 구조화 계약 기반으로 리팩터링하고 중복 토큰 의존 제거
+
+## Plan (2026-03-11 current_mail 의도 구조 리팩터링)
+- [x] 1단계: `current_mail_request_intent`에 공통 계약(Contract) 도입 및 decomposition-aware 판별 추가
+- [x] 2단계: 미들웨어의 중복 anchor 토큰 제거 및 공통 계약 함수 재사용
+- [x] 3단계: prompt variant 라우팅에 decomposition 전달해 정책 일관성 강화
+- [x] 4단계: 회귀 테스트 추가(TDD) 및 타깃 테스트 실행
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-11 current_mail 의도 구조 리팩터링)
+- [09:35] 작업 시작: AGENTS.MD 원칙(단건 토큰 예외 누적 금지/계약 기반 정책) 기준으로 current_mail 의도 판별 리팩터링 착수
+- [09:39] 이슈 발생: 테스트 실행 시 `pytest` 명령 미설치 환경 확인 → `.venv/bin/pytest` + `PYTHONPATH=.`로 전환해 테스트 수행
+- [09:40] 완료: current_mail 의도 공통 계약 도입, 미들웨어 중복 토큰 제거, decomposition-aware 라우팅 반영 및 타깃 테스트 59건 통과
+
+## 현재 작업
+current_mail_request_intent 토큰 의존성 검토 및 정책/스키마 기반 대체 설계안 도출
+
+## Plan (2026-03-11 current_mail 토큰 의존성 검토)
+- [x] 1단계: `current_mail_request_intent.py` 토큰 상수 사용처/회귀 테스트 영향 범위 분석
+- [x] 2단계: `openai-docs`, `langchain-fundamentals`, `deep-agents-orchestration` 기준으로 토큰 비의존 베스트 프랙티스 수집
+- [x] 3단계: 구조화 계약 기반 대체 구현안(단계별 마이그레이션 + 테스트 전략) 정리
+- [x] 4단계: Action Log 완료 기록
+
+## Action Log (2026-03-11 current_mail 토큰 의존성 검토)
+- [09:31] 작업 시작: current_mail intent 토큰 상수 필요성 및 토큰 비의존 구현 베스트 프랙티스 검토 착수
+- [09:33] 완료: 토큰 상수 영향 범위/회귀 리스크를 정리하고 Structured Output + 정책 게이팅 기반 대체 설계안(마이그레이션 단계, 테스트 계약) 도출
+
+## 현재 작업
+번역 직후 후속질문(`어디로 연락하면 돼?`)이 요약형으로 이탈하는 라우팅/미들웨어 검토 및 보정
+
+## Plan (2026-03-11 후속질문 이탈 검토)
+- [x] 1단계: 지정 스킬 기준(deep-agents-core/memory/orchestration, langchain middleware/fundamentals)으로 현재 플로우 점검
+- [x] 2단계: 로그 재현 경로와 코드 분기(의도 파서/프롬프트 variant/미들웨어 컨텍스트 주입) 원인 특정
+- [x] 3단계: 단건 예외 없이 정책 기반 보정 적용
+- [x] 4단계: 회귀 테스트 추가(TDD) 및 실행
+- [x] 5단계: Action Log/검토 결과 정리
+
+## Action Log (2026-03-11 후속질문 이탈 검토)
+- [09:20] 작업 시작: 번역 직후 후속질문이 요약형으로 이탈하는 현상에 대해 스킬 기준 아키텍처/미들웨어 리뷰 착수
+- [09:24] 이슈 발생: 후속질문 `어디로 연락하면 돼?`가 direct-fact로 판별되지 않아 `quality_structured` variant로 유입되어 요약 JSON 계약으로 응답 → direct-fact 정책(문의/연락처형 질의)을 현재메일 문맥에서 일반화하도록 판별 규칙/variant 선택 보정
+- [09:27] 완료: `current_mail` 후속 문의처 질의를 `quality_freeform_grounded`로 라우팅하도록 수정, 회귀 테스트 추가 및 통과(pytest 타깃 13 passed)
+
+## 현재 작업
+현재메일 번역 요청이 요약형으로 이탈하는 회귀 보정 + Add-in 캐시 버전 갱신
+
+## Plan (2026-03-11 번역 회귀 보정)
+- [x] 1단계: 번역 질의가 요약형으로 출력되는 경로를 프롬프트/answer_format 기준으로 재현
+- [x] 2단계: 번역 전용 prompt variant 추가 및 라우팅 강제
+- [x] 3단계: 번역 질의의 answer_format을 summary-card 경로에서 제외
+- [x] 4단계: Add-in 정적 리소스 버전 갱신(캐시 강제 무효화)
+- [x] 5단계: 테스트 실행 및 Action Log 업데이트
+
+## Action Log (2026-03-11 번역 회귀 보정)
+- [09:10] 작업 시작: `현재메일 번역해줘`가 요약형 문장/카드로 회귀되는 이슈 재현 로그 기반 수정 착수
+- [09:12] 이슈 발생: 범위 배지 제거 코드 반영 후에도 Add-in이 구버전 정적 리소스(`v=20260309-01`)를 참조해 UI가 갱신되지 않음 → `taskpane.html/css` 관련 버전 태그를 `20260311-01`로 상향해 캐시 무효화
+- [09:14] 완료: 번역 전용 prompt variant(`quality_translation_grounded`) 라우팅 + current-mail 번역 질의 format_type(`current_mail_translation`) 분기 적용
+- [09:15] 완료: 타깃 회귀 테스트 통과(pytest 4 passed, node --test 102 passed)
+
+## 현재 작업
+UI 범위 배지(`범위: 현재 선택 메일/전체 사서함`) 제거 및 관련 렌더 코드 정리
+
+## Plan (2026-03-11 범위 배지 제거)
+- [x] 1단계: scope status 렌더 경로/테스트 식별
+- [x] 2단계: UI에서 scope status 블록 제거 및 사용되지 않는 연결 코드 정리
+- [x] 3단계: 관련 테스트 업데이트 및 실행
+- [x] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-11 범위 배지 제거)
+- [07:00] 작업 시작: 사용자 요청에 따라 `범위: 현재 선택 메일` UI 배지 제거 및 연관 코드 정리 착수
+- [07:04] 완료: `scope status` 렌더 경로(`meta.blocks -> meta -> composer`) 제거, scope-select 중간 안내문(`선택 범위:`) 제거, scope-status 전용 CSS 삭제
+- [07:05] 완료: 회귀 테스트 통과(`node --test tests/test_taskpane_messages_render.cjs tests/test_taskpane_chat_actions.cjs`, 102 passed)
+
+## 현재 작업
 현재메일 번역 응답 UI 본문 누락(`제목:` 헤딩 오인식) 렌더 버그 수정
 
 ## Plan (2026-03-11 번역 UI 렌더 누락 수정)
