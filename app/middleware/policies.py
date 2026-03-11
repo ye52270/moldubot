@@ -5,8 +5,8 @@ from typing import Sequence
 
 from langchain_core.messages import BaseMessage, HumanMessage
 
-from app.core.intent_rules import infer_steps_from_query, is_code_review_query
 from app.agents.intent_parser import get_intent_parser
+from app.core.intent_rules import infer_steps_from_query, is_code_review_query
 from app.agents.intent_schema import (
     ExecutionStep,
     IntentDecomposition,
@@ -16,17 +16,21 @@ from app.agents.intent_schema import (
     decomposition_to_context_text,
 )
 from app.core.logging_config import get_logger
-from app.services.current_mail_request_intent import (
+from app.services.current_mail_intent_policy import (
     has_current_mail_anchor,
     is_current_mail_direct_fact_request,
     is_current_mail_translation_request,
     resolve_current_mail_issue_sections,
 )
+from app.services.intent_decomposition_service import (
+    build_intent_namespace_kwargs,
+    is_current_mail_scope_label,
+    parse_intent_decomposition_safely,
+)
 from app.services.intent_taxonomy_config import get_intent_taxonomy
 
 INTENT_CONTEXT_PREFIX = "구조분해 결과:"
 INTENT_SYSTEM_CONTEXT_PREFIX = "의도 라우팅 컨텍스트:"
-SCOPE_PREFIX = "[질의 범위]"
 CURRENT_MAIL_SEARCH_INTENT_TOKENS: tuple[str, ...] = (
     "전체메일",
     "전체사서함",
@@ -177,8 +181,7 @@ def _sanitize_current_mail_steps(
     Returns:
         step 정규화가 반영된 의도 구조분해 결과
     """
-    normalized_scope_label = str(scope_label or "").strip()
-    has_scope_current_mail = normalized_scope_label.startswith(SCOPE_PREFIX) and ("현재 선택 메일" in normalized_scope_label)
+    has_scope_current_mail = is_current_mail_scope_label(scope_label=scope_label)
     has_anchor_signal = has_scope_current_mail or has_current_mail_anchor(user_message=user_message)
     compact = str(user_message or "").replace(" ", "").lower()
     has_search_intent = any(token in compact for token in CURRENT_MAIL_SEARCH_INTENT_TOKENS)
@@ -216,7 +219,7 @@ def _apply_output_format_policy_override(
     original_format = decomposition.output_format
     overridden_format = original_format
     reason = ""
-    has_current_mail_scope = str(scope_label or "").startswith(SCOPE_PREFIX) and ("현재 선택 메일" in str(scope_label or ""))
+    has_current_mail_scope = is_current_mail_scope_label(scope_label=scope_label)
     is_direct_fact_request = is_current_mail_direct_fact_request(
         user_message=user_message,
         has_current_mail_context=has_current_mail_scope,
@@ -266,7 +269,7 @@ def _build_routing_instruction(
         lines.append(f"- summary_line_target={decomposition.summary_line_target} 줄을 정확히 맞춘다.")
     if scope_label:
         lines.append(f"- 범위 지시: {scope_label}")
-    has_current_mail_scope = str(scope_label or "").startswith(SCOPE_PREFIX) and ("현재 선택 메일" in str(scope_label or ""))
+    has_current_mail_scope = is_current_mail_scope_label(scope_label=scope_label)
     is_direct_fact_request = is_current_mail_direct_fact_request(
         user_message=original_user_message,
         has_current_mail_context=has_current_mail_scope,
@@ -334,7 +337,7 @@ def _split_scope_instruction(user_message: str) -> tuple[str, str]:
         (범위 라벨, 원본 질의)
     """
     text = str(user_message or "").strip()
-    if not text.startswith(SCOPE_PREFIX):
+    if not text.startswith("[질의 범위]"):
         return ("", text)
     lines = text.splitlines()
     if not lines:
@@ -355,30 +358,29 @@ def _parse_intent_with_namespace(user_message: str, scope_label: str) -> IntentD
     Returns:
         intent 구조분해 결과
     """
-    parser = get_intent_parser()
-    parse_kwargs = _build_intent_namespace_kwargs(scope_label=scope_label)
-    try:
-        return parser.parse(user_message=user_message, **parse_kwargs)
-    except TypeError:
-        return parser.parse(user_message=user_message)
-
-
-def _build_intent_namespace_kwargs(scope_label: str) -> dict[str, bool]:
-    """
-    scope 라벨에서 intent cache namespace 인자를 계산한다.
-
-    Args:
-        scope_label: scope 라벨 문자열
-
-    Returns:
-        parser.parse 호출에 사용할 namespace 인자 사전
-    """
-    normalized_scope = str(scope_label or "").strip()
-    has_selected_mail_scope = normalized_scope.startswith(SCOPE_PREFIX) and ("현재 선택 메일" in normalized_scope)
-    return {
-        "has_selected_mail": has_selected_mail_scope,
-        "selected_message_id_exists": has_selected_mail_scope,
-    }
+    parse_kwargs = build_intent_namespace_kwargs(scope_label=scope_label)
+    parsed = parse_intent_decomposition_safely(
+        user_message=user_message,
+        parser_factory=get_intent_parser,
+        has_selected_mail=bool(parse_kwargs["has_selected_mail"]),
+        selected_message_id_exists=bool(parse_kwargs["selected_message_id_exists"]),
+    )
+    if parsed is not None:
+        return parsed
+    return parse_intent_decomposition_safely(
+        user_message=user_message,
+        parser_factory=get_intent_parser,
+    ) or IntentDecomposition(
+        original_query=user_message,
+        steps=[ExecutionStep.READ_CURRENT_MAIL],
+        summary_line_target=5,
+        date_filter={"mode": "none", "relative": "", "start": "", "end": ""},
+        missing_slots=[],
+        task_type=IntentTaskType.GENERAL,
+        output_format=IntentOutputFormat.GENERAL,
+        focus_topics=[IntentFocusTopic.MAIL_GENERAL],
+        confidence=0.5,
+    )
 
 
 def _is_recipient_todo_summary_request(decomposition: IntentDecomposition) -> bool:

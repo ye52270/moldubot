@@ -1,6 +1,48 @@
 # Task
 
 ## 현재 작업
+app 하위 Python 중복/불필요 코드 정리(1차: current_mail 의도·scope·파서 경로 공통화)
+
+## Plan (2026-03-11 app Python 중복 리팩터링 1차)
+- [x] 1단계: app 하위 중복 패턴 스캔 및 current_mail 핵심 경로 우선순위 확정
+- [x] 2단계: 중복 로직 공통 유틸/정책 함수로 이관(의도 파서 호출/scope 판별/정규화)
+- [x] 3단계: 호출부 치환 및 불필요 코드 제거
+- [x] 4단계: 타깃 테스트 실행 및 회귀 보정
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-11 app Python 중복 리팩터링 1차)
+- [09:48] 작업 시작: 사용자 요청에 따라 app 하위 Python 중복/불필요 코드 스캔 및 1차 공통화 리팩터링 착수
+- [10:06] 이슈 발생: decomposition 기반 정책 전환 후 direct-fact/translation 관련 스텁 테스트가 구조화 신호 없는 fixture로 실패 → 테스트 fixture를 extraction/translation 계약 중심으로 갱신
+- [10:10] 완료: current_mail intent 정책을 decomposition 우선으로 단순화하고 intent parser 규칙(문의처/직접값/번역) 보강, 타깃 테스트 98건 통과
+
+## 현재 작업
+`current_mail_request_intent.py` 모듈 제거를 위한 정책 모듈 이관 리팩터링
+
+## Plan (2026-03-11 current_mail_request_intent 모듈 제거)
+- [x] 1단계: 현재 모듈 API를 새 정책 모듈로 이관
+- [x] 2단계: 모든 import 경로 치환 및 기존 파일 삭제
+- [x] 3단계: 관련 테스트 실행
+- [x] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-11 current_mail_request_intent 모듈 제거)
+- [09:46] 작업 시작: `current_mail_request_intent.py` 삭제를 목표로 호출부 이관 리팩터링 착수
+- [09:47] 완료: `current_mail_request_intent.py`를 `current_mail_intent_policy.py`로 이관하고 호출부 import를 전부 치환, 타깃 테스트 74건 통과
+
+## 현재 작업
+current_mail_request_intent 토큰 상수 제거 리팩터링(의도 계약/파서 우선 구조)
+
+## Plan (2026-03-11 current_mail 토큰 상수 제거)
+- [x] 1단계: `current_mail_request_intent.py` 토큰 상수 제거 및 decomposition 기반 계약 리팩터링
+- [x] 2단계: direct-fact/translation/issue-section 정책 회귀 보정
+- [x] 3단계: 타깃 테스트 실행 및 실패 케이스 수정
+- [x] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-11 current_mail 토큰 상수 제거)
+- [09:41] 작업 시작: 사용자 요청에 따라 `current_mail_request_intent.py`의 토큰 상수 제거 리팩터링 착수
+- [09:43] 이슈 발생: `test_direct_fact_request_overrides_output_format_and_marks_origin` 실패(`structured_template` 분기에서 direct-fact override 미적용) → decomposition 게이팅 조건을 보정해 분석 질의 direct-fact 경로를 복원
+- [09:44] 완료: `current_mail_request_intent.py` 토큰 상수 제거/계약 기반 리팩터링 완료, 타깃 테스트 80건 통과(`test_current_mail_request_intent`, `test_middleware_policies`, `test_search_chat_intent_routing`)
+
+## 현재 작업
 current_mail 의도 판별을 구조화 계약 기반으로 리팩터링하고 중복 토큰 의존 제거
 
 ## Plan (2026-03-11 current_mail 의도 구조 리팩터링)

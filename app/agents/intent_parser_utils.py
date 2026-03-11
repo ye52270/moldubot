@@ -116,16 +116,24 @@ def infer_intent_dimensions(
     """사용자 문장에서 확장 의도 차원(task/output/focus/confidence)을 추론한다."""
     text = str(user_message or "")
     compact = text.replace(" ", "").lower()
+    is_translation = any(token in compact for token in ("번역", "translate", "translation"))
+    has_contact_entity = any(token in compact for token in ("연락처", "문의처", "연락", "support", "contact"))
+    has_direct_entity = any(
+        token in compact
+        for token in ("메일주소", "이메일주소", "주소", "도메인", "ou", "ldap", "쿼리", "query", "명령어", "filter", "dn")
+    )
     is_solution = any(token in compact for token in ("해결", "해결방법", "대응방안", "개선안", "어떻게해결"))
     is_analysis = any(token in compact for token in ("왜", "원인", "이유", "문제", "분석", "해석", "검토"))
-    is_extraction = ("수신자" in compact) or ("받는사람" in compact)
+    is_extraction = ("수신자" in compact) or ("받는사람" in compact) or has_contact_entity or has_direct_entity
     is_summary = ("요약" in compact) or ("정리" in compact)
-    if is_solution:
+    if is_translation:
+        task_type = IntentTaskType.GENERAL
+    elif is_solution:
         task_type = IntentTaskType.SOLUTION
-    elif is_analysis:
-        task_type = IntentTaskType.ANALYSIS
     elif is_extraction:
         task_type = IntentTaskType.EXTRACTION
+    elif is_analysis:
+        task_type = IntentTaskType.ANALYSIS
     elif ExecutionStep.SEARCH_MAILS in steps:
         task_type = IntentTaskType.RETRIEVAL
     elif is_summary:
@@ -133,7 +141,9 @@ def infer_intent_dimensions(
     else:
         task_type = IntentTaskType.GENERAL
 
-    if re.search(r"\d+\s*줄", text):
+    if is_translation:
+        output_format = IntentOutputFormat.TRANSLATION
+    elif re.search(r"\d+\s*줄", text):
         output_format = IntentOutputFormat.LINE_SUMMARY
     elif re.search(r"(자세히|상세)", text):
         output_format = IntentOutputFormat.DETAILED_SUMMARY
@@ -149,7 +159,7 @@ def infer_intent_dimensions(
         output_format = IntentOutputFormat.GENERAL
 
     focus_topics: list[IntentFocusTopic] = []
-    if any(token in compact for token in ("수신자", "받는사람", "recipient", "to")):
+    if any(token in compact for token in ("수신자", "받는사람", "recipient", "to")) or has_contact_entity:
         focus_topics.append(IntentFocusTopic.RECIPIENTS)
     if any(token in compact for token in ("비용", "예산", "정산")):
         focus_topics.append(IntentFocusTopic.COST)

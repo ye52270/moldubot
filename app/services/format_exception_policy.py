@@ -9,7 +9,7 @@ from app.services.answer_postprocessor_current_mail import (
     is_current_mail_recipients_table_request,
 )
 from app.services.answer_postprocessor_summary import is_report_request
-from app.services.current_mail_request_intent import (
+from app.services.current_mail_intent_policy import (
     is_current_mail_cause_analysis_request,
     is_current_mail_solution_request,
 )

@@ -60,6 +60,7 @@ class IntentOutputFormat(str, Enum):
     TABLE = "table"
     ISSUE_ACTION = "issue_action"
     SCHEDULE_OWNER_ACTION = "schedule_owner_action"
+    TRANSLATION = "translation"
 
 
 class IntentFocusTopic(str, Enum):

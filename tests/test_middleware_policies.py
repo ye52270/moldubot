@@ -216,8 +216,9 @@ class MiddlewarePoliciesTest(unittest.TestCase):
             summary_line_target=5,
             date_filter=DateFilter(mode=DateFilterMode.NONE),
             missing_slots=[],
-            task_type=IntentTaskType.ANALYSIS,
+            task_type=IntentTaskType.EXTRACTION,
             output_format=IntentOutputFormat.GENERAL,
+            focus_topics=[IntentFocusTopic.RECIPIENTS],
             confidence=0.8,
         )
         parser = type("StubParser", (), {"parse": lambda self, user_message: decomposition})()
@@ -259,7 +260,7 @@ class MiddlewarePoliciesTest(unittest.TestCase):
             summary_line_target=5,
             date_filter=DateFilter(mode=DateFilterMode.NONE),
             missing_slots=[],
-            task_type=IntentTaskType.GENERAL,
+            task_type=IntentTaskType.EXTRACTION,
             output_format=IntentOutputFormat.GENERAL,
             confidence=0.55,
         )
@@ -280,7 +281,7 @@ class MiddlewarePoliciesTest(unittest.TestCase):
             date_filter=DateFilter(mode=DateFilterMode.NONE),
             missing_slots=[],
             task_type=IntentTaskType.GENERAL,
-            output_format=IntentOutputFormat.GENERAL,
+            output_format=IntentOutputFormat.TRANSLATION,
             confidence=0.55,
         )
         parser = type("StubParser", (), {"parse": lambda self, user_message: decomposition})()
@@ -550,8 +551,9 @@ class MiddlewarePoliciesTest(unittest.TestCase):
             summary_line_target=5,
             date_filter=DateFilter(mode=DateFilterMode.NONE),
             missing_slots=[],
-            task_type=IntentTaskType.ANALYSIS,
+            task_type=IntentTaskType.EXTRACTION,
             output_format=IntentOutputFormat.STRUCTURED_TEMPLATE,
+            focus_topics=[IntentFocusTopic.RECIPIENTS],
             confidence=0.72,
             origin="exaone_cached",
         )

@@ -197,7 +197,7 @@ class ExaoneIntentParser:
             '  "date_filter": {"mode":"none|relative|absolute","relative":"","start":"","end":""},\n'
             '  "missing_slots": [],\n'
             '  "task_type": "general|summary|extraction|analysis|solution|retrieval|action",\n'
-            '  "output_format": "general|structured_template|detailed_summary|line_summary|table|issue_action|schedule_owner_action",\n'
+            '  "output_format": "general|structured_template|detailed_summary|line_summary|table|issue_action|schedule_owner_action|translation",\n'
             '  "focus_topics": ["mail_general|recipients|cost|tech_issue|schedule|ssl"],\n'
             '  "confidence": 0.5\n'
             "}\n\n"

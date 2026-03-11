@@ -3,17 +3,18 @@ from __future__ import annotations
 from typing import Any
 
 from app.agents.deep_chat_agent import FALLBACK_EMPTY_RESPONSE
-from app.agents.intent_parser import get_intent_parser
 from app.agents.intent_schema import ExecutionStep, IntentDecomposition, IntentTaskType
 from app.core.intent_rules import is_code_review_query
-from app.core.logging_config import get_logger
-from app.services.current_mail_request_intent import (
+from app.services.intent_decomposition_service import (
+    is_current_mail_scope_value,
+    parse_intent_decomposition_safely as _parse_intent_decomposition_safely,
+)
+from app.services.current_mail_intent_policy import (
     is_current_mail_direct_fact_request,
     is_current_mail_translation_request,
 )
 from app.services.intent_taxonomy_config import get_intent_taxonomy
 
-logger = get_logger(__name__)
 INTENT_CLARIFICATION_CONFIDENCE_THRESHOLD = 0.6
 
 
@@ -33,27 +34,17 @@ def is_non_action_query_for_interrupt_retry(
 
 def parse_intent_decomposition_safely(
     user_message: str,
-    parser_factory: Any = get_intent_parser,
+    parser_factory: Any = None,
     has_selected_mail: bool = False,
     selected_message_id_exists: bool = False,
 ) -> IntentDecomposition | None:
     """라우팅 보조용 intent 구조분해를 안전하게 파싱한다."""
-    normalized = str(user_message or "").strip()
-    if not normalized:
-        return None
-    try:
-        parser = parser_factory() if callable(parser_factory) else get_intent_parser()
-        try:
-            return parser.parse(
-                user_message=normalized,
-                has_selected_mail=has_selected_mail,
-                selected_message_id_exists=selected_message_id_exists,
-            )
-        except TypeError:
-            return parser.parse(user_message=normalized)
-    except Exception as exc:
-        logger.warning("intent 구조분해 파싱 실패: %s", exc)
-        return None
+    return _parse_intent_decomposition_safely(
+        user_message=user_message,
+        parser_factory=parser_factory,
+        has_selected_mail=has_selected_mail,
+        selected_message_id_exists=selected_message_id_exists,
+    )
 
 
 def select_prompt_variant_from_intent(
@@ -67,13 +58,13 @@ def select_prompt_variant_from_intent(
         query = str(decomposition.original_query or "").strip()
     compact_query = query.replace(" ", "")
     if (
-        str(resolved_scope or "").strip().lower() == "current_mail"
+        is_current_mail_scope_value(scope_value=resolved_scope)
         and "현재메일" in compact_query
         and ("요약" in compact_query)
     ):
         return "quality_structured_json_strict"
     if (
-        str(resolved_scope or "").strip().lower() == "current_mail"
+        is_current_mail_scope_value(scope_value=resolved_scope)
         and "현재메일" in compact_query
         and ("정리" in compact_query or "작업내역" in compact_query or "주요작업" in compact_query)
         and "요약" not in compact_query
@@ -81,13 +72,13 @@ def select_prompt_variant_from_intent(
         return "quality_freeform_grounded"
     if is_current_mail_translation_request(
         user_message=query,
-        has_current_mail_context=(str(resolved_scope or "").strip().lower() == "current_mail"),
+        has_current_mail_context=is_current_mail_scope_value(scope_value=resolved_scope),
         decomposition=decomposition,
     ):
         return "quality_translation_grounded"
     if is_current_mail_direct_fact_request(
         user_message=query,
-        has_current_mail_context=(str(resolved_scope or "").strip().lower() == "current_mail"),
+        has_current_mail_context=is_current_mail_scope_value(scope_value=resolved_scope),
         decomposition=decomposition,
     ):
         return "quality_freeform_grounded"

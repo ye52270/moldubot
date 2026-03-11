@@ -9,6 +9,7 @@ from app.agents.intent_schema import (
     DateFilterMode,
     ExecutionStep,
     IntentDecomposition,
+    IntentFocusTopic,
     IntentOutputFormat,
     IntentTaskType,
 )
@@ -156,9 +157,9 @@ class SearchChatIntentRoutingTest(unittest.TestCase):
         self.assertEqual("completed", response["status"])
         get_agent_mock.assert_called_with(prompt_variant="quality_freeform_grounded")
 
-    def test_current_mail_translation_selects_freeform_prompt_variant(self) -> None:
+    def test_current_mail_translation_selects_translation_prompt_variant(self) -> None:
         """
-        현재메일 번역 요청은 요약 JSON 템플릿 대신 freeform grounded variant를 선택해야 한다.
+        현재메일 번역 요청은 번역 전용 grounded variant를 선택해야 한다.
         """
         decomposition = IntentDecomposition(
             original_query="현재메일 번역해줘",
@@ -167,7 +168,7 @@ class SearchChatIntentRoutingTest(unittest.TestCase):
             date_filter=DateFilter(mode=DateFilterMode.NONE),
             missing_slots=[],
             task_type=IntentTaskType.GENERAL,
-            output_format=IntentOutputFormat.GENERAL,
+            output_format=IntentOutputFormat.TRANSLATION,
             confidence=0.75,
         )
         parser = type("StubParser", (), {"parse": lambda self, user_message: decomposition})()
@@ -179,6 +180,40 @@ class SearchChatIntentRoutingTest(unittest.TestCase):
                 fake_agent.get_last_assistant_answer.return_value = "번역 응답"
                 with patch("app.api.routes.get_deep_chat_agent", return_value=fake_agent) as get_agent_mock:
                     response = search_chat(payload=ChatRequest(message="현재메일 번역해줘"))
+        self.assertEqual("completed", response["status"])
+        get_agent_mock.assert_called_with(prompt_variant="quality_translation_grounded")
+
+    def test_current_mail_contact_followup_selects_freeform_prompt_variant(self) -> None:
+        """
+        현재메일 문맥 후속질문(문의처/연락처)은 structured 대신 freeform grounded variant를 선택해야 한다.
+        """
+        decomposition = IntentDecomposition(
+            original_query="어디로 연락하면 돼?",
+            steps=[ExecutionStep.READ_CURRENT_MAIL],
+            summary_line_target=5,
+            date_filter=DateFilter(mode=DateFilterMode.NONE),
+            missing_slots=[],
+            task_type=IntentTaskType.EXTRACTION,
+            output_format=IntentOutputFormat.GENERAL,
+            focus_topics=[IntentFocusTopic.RECIPIENTS],
+            confidence=0.75,
+        )
+        parser = type("StubParser", (), {"parse": lambda self, user_message: decomposition})()
+        with patch("app.api.search_chat_flow.get_intent_parser", return_value=parser):
+            with patch("app.api.routes.is_openai_key_configured", return_value=True):
+                fake_agent = MagicMock()
+                fake_agent.execute_turn.return_value = {"status": "completed", "answer": "지원팀에 문의하세요.", "interrupts": []}
+                fake_agent.get_last_tool_payload.return_value = {}
+                fake_agent.get_last_assistant_answer.return_value = "지원팀에 문의하세요."
+                with patch("app.api.routes.get_deep_chat_agent", return_value=fake_agent) as get_agent_mock:
+                    response = search_chat(
+                        payload=ChatRequest(
+                            message="어디로 연락하면 돼?",
+                            email_id="m-current",
+                            mailbox_user="jaeyoung_dev@outlook.com",
+                            runtime_options={"scope": "current_mail"},
+                        )
+                    )
         self.assertEqual("completed", response["status"])
         get_agent_mock.assert_called_with(prompt_variant="quality_freeform_grounded")
 

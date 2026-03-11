@@ -5,7 +5,7 @@ import re
 from app.models.response_contracts import LLMResponseContract
 from app.services.answer_postprocessor_guard_utils import normalize_action_item_line
 from app.services.answer_postprocessor_summary import extract_summary_lines, sanitize_summary_lines
-from app.services.current_mail_request_intent import (
+from app.services.current_mail_intent_policy import (
     is_current_mail_cause_analysis_request,
     is_current_mail_solution_request,
     resolve_current_mail_issue_sections,

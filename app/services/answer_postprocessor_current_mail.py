@@ -9,7 +9,7 @@ from app.services.query_artifact_extractor import (
     rank_query_artifact_candidates,
 )
 from app.services.answer_postprocessor_summary import sanitize_summary_lines
-from app.services.current_mail_request_intent import (
+from app.services.current_mail_intent_policy import (
     is_current_mail_direct_fact_request,
     render_current_mail_grounded_safe_message,
     should_apply_current_mail_grounded_safe_guard,

@@ -442,6 +442,9 @@ def _is_deictic_current_mail_reference(text: str) -> bool:
     """
     compact = str(text or "").replace(" ", "").lower()
     deictic_tokens = (
+        "현재선택메일",
+        "현재선택된메일",
+        "선택메일",
         "이메일",
         "이메일에서",
         "이메일의",

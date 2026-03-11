@@ -10,7 +10,7 @@ from app.agents.intent_schema import (
     IntentOutputFormat,
     IntentTaskType,
 )
-from app.services.current_mail_request_intent import (
+from app.services.current_mail_intent_policy import (
     is_current_mail_direct_fact_request,
     is_current_mail_cause_analysis_request,
     is_current_mail_solution_request,
