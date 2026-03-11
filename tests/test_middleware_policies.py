@@ -604,7 +604,7 @@ class MiddlewarePoliciesTest(unittest.TestCase):
             output_format=IntentOutputFormat.STRUCTURED_TEMPLATE,
             focus_topics=[IntentFocusTopic.RECIPIENTS],
             confidence=0.72,
-            origin="exaone_cached",
+            origin="llm_cached",
         )
         parser = type("StubParser", (), {"parse": lambda self, user_message: decomposition})()
         with patch("app.middleware.policies.get_intent_parser", return_value=parser):
@@ -628,7 +628,7 @@ class MiddlewarePoliciesTest(unittest.TestCase):
             output_format=IntentOutputFormat.STRUCTURED_TEMPLATE,
             focus_topics=[IntentFocusTopic.MAIL_GENERAL],
             confidence=0.8,
-            origin="exaone_cached",
+            origin="llm_cached",
         )
         parser = type("StubParser", (), {"parse": lambda self, user_message: decomposition})()
         with patch("app.middleware.policies.get_intent_parser", return_value=parser):
@@ -654,7 +654,7 @@ class MiddlewarePoliciesTest(unittest.TestCase):
             output_format=IntentOutputFormat.STRUCTURED_TEMPLATE,
             focus_topics=[IntentFocusTopic.MAIL_GENERAL],
             confidence=0.9,
-            origin="exaone_cached",
+            origin="llm_cached",
         )
         parser = type("StubParser", (), {"parse": lambda self, user_message: decomposition})()
         with patch("app.middleware.policies.get_intent_parser", return_value=parser):
@@ -668,7 +668,7 @@ class MiddlewarePoliciesTest(unittest.TestCase):
 
     def test_non_override_keeps_original_origin(self) -> None:
         """
-        output_format override 조건이 아니면 기존 origin(exaone_cached)을 유지해야 한다.
+        output_format override 조건이 아니면 기존 origin(llm_cached)을 유지해야 한다.
         """
         decomposition = IntentDecomposition(
             original_query="현재메일 요약해줘",
@@ -679,13 +679,13 @@ class MiddlewarePoliciesTest(unittest.TestCase):
             task_type=IntentTaskType.SUMMARY,
             output_format=IntentOutputFormat.LINE_SUMMARY,
             confidence=0.82,
-            origin="exaone_cached",
+            origin="llm_cached",
         )
         parser = type("StubParser", (), {"parse": lambda self, user_message: decomposition})()
         with patch("app.middleware.policies.get_intent_parser", return_value=parser):
             text = compose_intent_augmented_text("현재메일 요약해줘")
         self.assertIn("- output_format: line_summary", text)
-        self.assertIn("- origin: exaone_cached", text)
+        self.assertIn("- origin: llm_cached", text)
 
     def test_natural_current_mail_summary_overrides_structured_template_to_general(self) -> None:
         """
@@ -700,7 +700,7 @@ class MiddlewarePoliciesTest(unittest.TestCase):
             task_type=IntentTaskType.SUMMARY,
             output_format=IntentOutputFormat.STRUCTURED_TEMPLATE,
             confidence=0.9,
-            origin="exaone_cached",
+            origin="llm_cached",
         )
         parser = type("StubParser", (), {"parse": lambda self, user_message: decomposition})()
         with patch("app.middleware.policies.get_intent_parser", return_value=parser):
@@ -723,7 +723,7 @@ class MiddlewarePoliciesTest(unittest.TestCase):
             task_type=IntentTaskType.SUMMARY,
             output_format=IntentOutputFormat.STRUCTURED_TEMPLATE,
             confidence=0.9,
-            origin="exaone_cached",
+            origin="llm_cached",
         )
         parser = type("StubParser", (), {"parse": lambda self, user_message: decomposition})()
         with patch("app.middleware.policies.get_intent_parser", return_value=parser):
@@ -731,7 +731,7 @@ class MiddlewarePoliciesTest(unittest.TestCase):
                 "[질의 범위] 현재 선택 메일 1건만 기준으로 처리\n/메일요약"
             )
         self.assertIn("- output_format: structured_template", text)
-        self.assertIn("- origin: exaone_cached", text)
+        self.assertIn("- origin: llm_cached", text)
 
     def test_current_mail_scope_retrieval_search_only_drops_search_step(self) -> None:
         """
@@ -747,7 +747,7 @@ class MiddlewarePoliciesTest(unittest.TestCase):
             output_format=IntentOutputFormat.STRUCTURED_TEMPLATE,
             focus_topics=[IntentFocusTopic.MAIL_GENERAL],
             confidence=0.9,
-            origin="exaone_cached",
+            origin="llm_cached",
         )
         parser = type("StubParser", (), {"parse": lambda self, user_message: decomposition})()
         with patch("app.middleware.policies.get_intent_parser", return_value=parser):

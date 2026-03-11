@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 
-from app.agents.intent_parser import ExaoneIntentParser
+from app.agents.intent_parser import IntentParser
 from app.agents.intent_schema import (
     ExecutionStep,
     IntentFocusTopic,
@@ -21,8 +21,8 @@ class IntentParserExtensibleSchemaTest(unittest.TestCase):
         """
         테스트용 fast-path parser를 준비한다.
         """
-        self.parser = ExaoneIntentParser(
-            model_name="exaone3.5:2.4b",
+        self.parser = IntentParser(
+            model_name="gpt-4o-mini",
             base_url="http://127.0.0.1:11434",
             fast_path_mode="always",
             max_steps=3,

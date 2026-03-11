@@ -58,6 +58,37 @@ class AnswerPostprocessorCurrentMailTest(unittest.TestCase):
         )
         self.assertEqual("", rendered)
 
+    def test_render_current_mail_direct_value_from_tool_payload_skips_major_issue_request(self) -> None:
+        """현재메일 주요 이슈 질의는 direct-value 강제 렌더를 수행하면 안 된다."""
+        rendered = render_current_mail_direct_value_from_tool_payload(
+            user_message="현재메일의 주요 이슈가 뭐야?",
+            tool_payload={
+                "action": "current_mail",
+                "mail_context": {
+                    "body_excerpt": "Grafana Daily Report 수신 차단 이슈가 발생했습니다.",
+                    "body_code_excerpt": "From: a@example.com\nTo: b@example.com",
+                },
+            },
+        )
+        self.assertEqual("", rendered)
+
+    def test_render_current_mail_direct_value_respects_policy_metadata_decision(self) -> None:
+        """후처리 정책 metadata에서 direct fact 비허용이면 direct-value 렌더를 생략해야 한다."""
+        rendered = render_current_mail_direct_value_from_tool_payload(
+            user_message="현재메일에서 어떤 메일주소가 문제인거야?",
+            tool_payload={
+                "action": "current_mail",
+                "mail_context": {
+                    "body_code_excerpt": "From: sender@example.com",
+                    "body_excerpt": "메일 반송이 발생했습니다.",
+                },
+                "postprocess_policy": {
+                    "direct_fact_decision": False,
+                },
+            },
+        )
+        self.assertEqual("", rendered)
+
     def test_render_current_mail_grounded_safe_response_for_sparse_evidence(self) -> None:
         """근거가 summary 1줄 수준이면 안전 템플릿으로 강제 응답해야 한다."""
         rendered = render_current_mail_grounded_safe_response(

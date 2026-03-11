@@ -37,7 +37,7 @@
 
 ## 3. 런타임 로직 (요약)
 1. `POST /search/chat` 요청 수신
-2. `ExaoneIntentParser`가 의도 구조분해 시도
+2. `IntentParser`가 의도 구조분해 시도
    - Fast-path / LRU cache / 실패 시 규칙 기반 fallback
 3. `DeepChatAgent` 실행 (`create_deep_agent`)
    - tool: `run_mail_post_action`, `search_mails`, `book_meeting_room`, `create_outlook_calendar_event`, `create_outlook_todo` 등
@@ -92,8 +92,9 @@
 - `MOLDUBOT_AGENT_MODEL`: 실행 에이전트 모델 (기본 `gpt-4o-mini`)
 - `MOLDUBOT_AGENT_SYSTEM_PROMPT`: 실행 에이전트 시스템 프롬프트
 - `MOLDUBOT_AGENT_SKILLS_PATHS`: Deep Agents skills 디렉터리 목록(콤마/세미콜론/줄바꿈 구분, 예: `/skills/core,/skills/mail`)
-- `OLLAMA_BASE_URL`: 의도 구조분해용 Ollama URL (기본 `http://127.0.0.1:11434`)
-- `MOLDUBOT_INTENT_MODEL`: 의도 구조분해 모델 태그 (기본 `exaone3.5:2.4b`)
+- `MOLDUBOT_INTENT_MODEL`: 의도 구조분해 모델 (기본 `azure_openai:gpt-4o-mini`)
+- `MOLDUBOT_INTENT_BASE_URL`: provider가 base_url을 필요로 할 때 사용하는 endpoint (선택)
+- `MOLDUBOT_INTENT_TIMEOUT_SEC`: 의도 구조분해 LLM 호출 timeout(초, 기본 `60`)
 - `MOLDUBOT_LOG_LEVEL`: 로깅 레벨
 - `PROMPT_TRACE_ENABLED`: 프롬프트 트레이스 로그 on/off
 - `MOLDUBOT_PUBLIC_BASE_URL`: Add-in manifest 공개 URL 치환용

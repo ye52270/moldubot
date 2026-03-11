@@ -51,6 +51,50 @@ class AgentMiddlewaresToolPayloadTest(unittest.TestCase):
 
         self.assertEqual({}, payload)
 
+    def test_attaches_direct_fact_policy_for_current_mail_payload(self) -> None:
+        """current_mail payload에는 direct_fact 판정 메타가 주입되어야 한다."""
+        current_mail_payload = {
+            "action": "current_mail",
+            "mail_context": {"subject": "테스트"},
+        }
+        messages = [
+            HumanMessage(content="현재 요청"),
+            ToolMessage(content=json.dumps(current_mail_payload), tool_call_id="new-1"),
+            AIMessage(content="현재 응답"),
+        ]
+
+        payload = _extract_latest_tool_payload(
+            messages=messages,
+            ai_index=len(messages) - 1,
+            user_message="현재메일에서 어떤 메일주소가 문제야?",
+        )
+
+        policy = payload.get("postprocess_policy")
+        self.assertIsInstance(policy, dict)
+        self.assertTrue(policy.get("direct_fact_decision"))
+
+    def test_attaches_direct_fact_policy_false_for_summary_like_current_mail_query(self) -> None:
+        """요약/이슈 질의 current_mail payload에는 direct_fact=false가 주입되어야 한다."""
+        current_mail_payload = {
+            "action": "current_mail",
+            "mail_context": {"subject": "테스트"},
+        }
+        messages = [
+            HumanMessage(content="현재 요청"),
+            ToolMessage(content=json.dumps(current_mail_payload), tool_call_id="new-1"),
+            AIMessage(content="현재 응답"),
+        ]
+
+        payload = _extract_latest_tool_payload(
+            messages=messages,
+            ai_index=len(messages) - 1,
+            user_message="현재메일의 주요 이슈가 뭐야?",
+        )
+
+        policy = payload.get("postprocess_policy")
+        self.assertIsInstance(policy, dict)
+        self.assertFalse(policy.get("direct_fact_decision"))
+
 
 if __name__ == "__main__":
     unittest.main()

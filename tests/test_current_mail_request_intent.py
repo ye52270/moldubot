@@ -119,6 +119,14 @@ class CurrentMailRequestIntentTest(unittest.TestCase):
             )
         )
 
+    def test_rejects_current_mail_major_issue_question_for_direct_fact(self) -> None:
+        """`주요 이슈` 질의는 direct fact가 아니라 이슈 설명 질의로 처리되어야 한다."""
+        self.assertFalse(
+            is_current_mail_direct_fact_request(
+                user_message="현재메일의 주요 이슈가 뭐야?"
+            )
+        )
+
     def test_detects_current_mail_direct_fact_request_for_ou_query(self) -> None:
         """OU 쿼리/명령어를 직접 묻는 현재메일 질의는 direct fact 요청으로 판별되어야 한다."""
         self.assertTrue(

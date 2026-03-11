@@ -5,6 +5,7 @@ from collections import OrderedDict
 from functools import lru_cache
 from typing import Any
 
+from langchain.chat_models import init_chat_model
 from pydantic import ValidationError
 
 from app.agents.intent_parser_utils import (
@@ -22,17 +23,19 @@ from app.agents.intent_parser_utils import (
 )
 from app.agents.intent_schema import IntentDecomposition, create_default_decomposition
 from app.core.intent_rules import sanitize_user_query
+from app.core.llm_runtime import normalize_model_name, resolve_env_model
 from app.core.logging_config import get_logger, is_prompt_trace_enabled
 
-DEFAULT_OLLAMA_BASE_URL = "http://127.0.0.1:11434"
-DEFAULT_EXAONE_MODEL = "exaone3.5:2.4b"
+DEFAULT_INTENT_BASE_URL = ""
+DEFAULT_INTENT_MODEL = "azure_openai:gpt-4o-mini"
 INTENT_PARSE_CACHE_SIZE = 128
+DEFAULT_INTENT_TIMEOUT_SEC = 60
 
 logger = get_logger(__name__)
 
 
-class ExaoneIntentParser:
-    """Ollama Exaone 모델로 최소 구조분해를 수행하는 파서 클래스."""
+class IntentParser:
+    """구조화 출력 LLM으로 최소 의도 구조분해를 수행하는 파서 클래스."""
 
     def __init__(
         self,
@@ -41,13 +44,15 @@ class ExaoneIntentParser:
         temperature: float = 0.0,
         fast_path_mode: str = DEFAULT_INTENT_FAST_PATH_MODE,
         max_steps: int = DEFAULT_INTENT_MAX_STEPS,
+        timeout_sec: int = DEFAULT_INTENT_TIMEOUT_SEC,
     ) -> None:
-        """Exaone 파서 인스턴스를 초기화한다."""
+        """의도 파서 인스턴스를 초기화한다."""
         self._model_name = model_name
         self._base_url = base_url
         self._temperature = temperature
         self._fast_path_mode = normalize_fast_path_mode(raw_mode=fast_path_mode)
         self._max_steps = normalize_max_steps(raw_max_steps=max_steps)
+        self._timeout_sec = max(1, int(timeout_sec))
         self._structured_model: Any = None
         self._parse_cache: OrderedDict[str, IntentDecomposition] = OrderedDict()
 
@@ -71,7 +76,7 @@ class ExaoneIntentParser:
         cached = self._read_cached_decomposition(cache_key=cache_key)
         if cached is not None:
             logger.info("intent parse cache hit")
-            cached = cached.model_copy(update={"origin": "exaone_cached"})
+            cached = cached.model_copy(update={"origin": "llm_cached"})
             return apply_step_limit_to_decomposition(
                 decomposition=cached,
                 max_steps=self._max_steps,
@@ -83,7 +88,7 @@ class ExaoneIntentParser:
         )
         if fast_path_result is not None:
             logger.info("intent fast-path 적용: mode=%s", self._fast_path_mode)
-            fast_path_result = fast_path_result.model_copy(update={"origin": "exaone_fresh"})
+            fast_path_result = fast_path_result.model_copy(update={"origin": "llm_fresh"})
             final_decomposition = apply_step_limit_to_decomposition(
                 decomposition=fast_path_result,
                 max_steps=self._max_steps,
@@ -92,14 +97,14 @@ class ExaoneIntentParser:
             return final_decomposition
 
         prompt = self._build_prompt(user_message=sanitized_query)
-        parsed = self._invoke_ollama_structured(prompt=prompt)
+        parsed = self._invoke_structured_llm(prompt=prompt)
         if parsed is None:
-            logger.info("Ollama 구조분해 실패로 규칙 기반 분해로 전환합니다.")
+            logger.info("LLM 구조분해 실패로 규칙 기반 분해로 전환합니다.")
             fallback = apply_step_limit_to_decomposition(
                 decomposition=rule_based_decomposition(user_message=sanitized_query),
                 max_steps=self._max_steps,
             )
-            fallback = fallback.model_copy(update={"origin": "exaone_fresh"})
+            fallback = fallback.model_copy(update={"origin": "llm_fresh"})
             self._write_cached_decomposition(cache_key=cache_key, decomposition=fallback)
             return fallback
 
@@ -111,9 +116,9 @@ class ExaoneIntentParser:
         parsed_payload = parsed.model_dump()
         parsed_payload["original_query"] = sanitized_query
         parsed_payload["steps"] = normalized_steps
-        parsed_payload["origin"] = "exaone_fresh"
+        parsed_payload["origin"] = "llm_fresh"
         decomposition = IntentDecomposition.model_validate(parsed_payload)
-        decomposition = decomposition.model_copy(update={"origin": "exaone_fresh"})
+        decomposition = decomposition.model_copy(update={"origin": "llm_fresh"})
         decomposition = apply_step_limit_to_decomposition(
             decomposition=decomposition,
             max_steps=self._max_steps,
@@ -124,16 +129,16 @@ class ExaoneIntentParser:
             user_message=sanitized_query,
             enforce_required_steps=False,
         ):
-            logger.warning("Ollama 구조분해 품질 검증 실패로 규칙 기반 분해로 전환합니다.")
+            logger.warning("LLM 구조분해 품질 검증 실패로 규칙 기반 분해로 전환합니다.")
             fallback = apply_step_limit_to_decomposition(
                 decomposition=rule_based_decomposition(user_message=sanitized_query),
                 max_steps=self._max_steps,
             )
-            fallback = fallback.model_copy(update={"origin": "exaone_fresh"})
+            fallback = fallback.model_copy(update={"origin": "llm_fresh"})
             self._write_cached_decomposition(cache_key=cache_key, decomposition=fallback)
             return fallback
 
-        logger.info("Ollama 구조분해 성공: steps=%s", [step.value for step in decomposition.steps])
+        logger.info("LLM 구조분해 성공: steps=%s", [step.value for step in decomposition.steps])
         self._write_cached_decomposition(cache_key=cache_key, decomposition=decomposition)
         return decomposition
 
@@ -166,21 +171,26 @@ class ExaoneIntentParser:
             self._parse_cache.popitem(last=False)
 
     def _get_structured_model(self) -> Any:
-        """Ollama structured output 모델 인스턴스를 재사용한다."""
+        """의도 구조분해 structured output 모델 인스턴스를 재사용한다."""
         if self._structured_model is not None:
             return self._structured_model
-        from langchain_ollama import ChatOllama
-
-        model = ChatOllama(
-            model=self._model_name,
-            base_url=self._base_url,
-            temperature=self._temperature,
+        normalized_model = normalize_model_name(
+            model_name=self._model_name,
+            default_model=DEFAULT_INTENT_MODEL,
         )
+        model_kwargs: dict[str, Any] = {
+            "model": normalized_model,
+            "temperature": self._temperature,
+            "timeout": self._timeout_sec,
+        }
+        if normalized_model.startswith("ollama:") and str(self._base_url or "").strip():
+            model_kwargs["base_url"] = self._base_url.strip()
+        model = init_chat_model(**model_kwargs)
         self._structured_model = model.with_structured_output(IntentDecomposition)
         return self._structured_model
 
     def _build_prompt(self, user_message: str) -> str:
-        """Exaone 최소 구조분해 프롬프트를 생성한다."""
+        """의도 최소 구조분해 프롬프트를 생성한다."""
         return (
             '너는 "의도 JSON 슬롯 파서"다. 생성형 비서가 아니라 분류기처럼 동작한다.\n\n'
             "절대 규칙:\n"
@@ -253,26 +263,17 @@ class ExaoneIntentParser:
             "출력: JSON 객체 1개"
         )
 
-    def _invoke_ollama_structured(self, prompt: str) -> IntentDecomposition | None:
-        """Ollama structured output 호출로 구조분해 결과를 얻는다."""
-        try:
-            structured_model = self._get_structured_model()
-        except ImportError:
-            logger.warning("langchain-ollama 패키지가 없어 규칙 기반 구조분해를 사용합니다.")
-            return None
+    def _invoke_structured_llm(self, prompt: str) -> IntentDecomposition | None:
+        """구조화 출력 LLM 호출로 구조분해 결과를 얻는다."""
+        structured_model = self._get_structured_model()
 
         if is_prompt_trace_enabled():
             logger.info("prompt_trace.intent_request: %s", prompt)
 
         try:
-            from ollama import ResponseError as OllamaResponseError
-        except ImportError:
-            OllamaResponseError = RuntimeError
-
-        try:
             result = structured_model.invoke(prompt)
-        except (ConnectionError, TimeoutError, RuntimeError, ValueError, TypeError, OllamaResponseError) as exc:
-            logger.warning("Ollama 구조분해 호출 실패: %s", exc)
+        except (ConnectionError, TimeoutError, RuntimeError, ValueError, TypeError) as exc:
+            logger.warning("LLM 구조분해 호출 실패: %s", exc)
             return None
         if is_prompt_trace_enabled():
             logger.info("prompt_trace.intent_response: %s", serialize_intent_result(result=result))
@@ -282,36 +283,52 @@ class ExaoneIntentParser:
         if isinstance(result, str):
             parsed = parse_intent_json_from_text(text=result)
             if parsed is None:
-                logger.warning("Ollama 구조분해 문자열 결과 파싱 실패")
+                logger.warning("LLM 구조분해 문자열 결과 파싱 실패")
                 return None
             return parsed
         try:
             return IntentDecomposition.model_validate(result)
         except ValidationError as exc:
-            logger.warning("Ollama 구조분해 결과 검증 실패: %s", exc)
+            logger.warning("LLM 구조분해 결과 검증 실패: %s", exc)
             return None
 
 
 @lru_cache(maxsize=1)
-def get_intent_parser() -> ExaoneIntentParser:
-    """애플리케이션 전역에서 재사용할 Exaone 파서를 반환한다."""
-    model_name = str(os.getenv("MOLDUBOT_INTENT_MODEL", DEFAULT_EXAONE_MODEL)).strip() or DEFAULT_EXAONE_MODEL
-    base_url = str(os.getenv("OLLAMA_BASE_URL", DEFAULT_OLLAMA_BASE_URL)).strip() or DEFAULT_OLLAMA_BASE_URL
+def get_intent_parser() -> IntentParser:
+    """애플리케이션 전역에서 재사용할 의도 파서를 반환한다."""
+    model_name = resolve_env_model(
+        primary_env="MOLDUBOT_INTENT_MODEL",
+        fallback_envs=("MOLDUBOT_AGENT_MODEL", "DEFAULT_CHAT_MODEL"),
+        default_model=DEFAULT_INTENT_MODEL,
+    )
+    base_url = str(os.getenv("MOLDUBOT_INTENT_BASE_URL", DEFAULT_INTENT_BASE_URL)).strip()
     fast_path_mode = str(os.getenv("MOLDUBOT_INTENT_FAST_PATH", DEFAULT_INTENT_FAST_PATH_MODE)).strip()
     max_steps = normalize_max_steps(
         raw_max_steps=os.getenv("MOLDUBOT_INTENT_MAX_STEPS", str(DEFAULT_INTENT_MAX_STEPS))
     )
+    timeout_raw = str(os.getenv("MOLDUBOT_INTENT_TIMEOUT_SEC", str(DEFAULT_INTENT_TIMEOUT_SEC))).strip()
+    try:
+        timeout_sec = int(timeout_raw or str(DEFAULT_INTENT_TIMEOUT_SEC))
+    except ValueError:
+        timeout_sec = DEFAULT_INTENT_TIMEOUT_SEC
+        logger.warning(
+            "MOLDUBOT_INTENT_TIMEOUT_SEC 값이 유효하지 않아 기본값을 사용합니다: raw=%s default=%s",
+            timeout_raw,
+            DEFAULT_INTENT_TIMEOUT_SEC,
+        )
     logger.info(
-        "ExaoneIntentParser 초기화: model=%s base_url=%s fast_path_mode=%s max_steps=%s",
+        "IntentParser 초기화: model=%s base_url=%s fast_path_mode=%s max_steps=%s timeout_sec=%s",
         model_name,
         base_url,
         normalize_fast_path_mode(raw_mode=fast_path_mode),
         max_steps,
+        timeout_sec,
     )
-    return ExaoneIntentParser(
+    return IntentParser(
         model_name=model_name,
         base_url=base_url,
         temperature=0.0,
         fast_path_mode=fast_path_mode,
         max_steps=max_steps,
+        timeout_sec=timeout_sec,
     )

@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from app.agents.intent_schema import (
+    DateFilter,
+    DateFilterMode,
     ExecutionStep,
     IntentDecomposition,
     IntentFocusTopic,
@@ -128,33 +130,56 @@ def is_current_mail_direct_fact_request(
         return False
     if is_translation_like_request_text(user_message=user_message):
         return False
-    if _is_summary_like_request(user_message=user_message):
+    if not _has_direct_fact_entity_signal(user_message=user_message):
         return False
 
     resolved = contract.decomposition
     if resolved is None:
-        return False
-    if resolved.task_type == IntentTaskType.EXTRACTION:
         return True
+    if resolved.task_type in (IntentTaskType.SUMMARY, IntentTaskType.SOLUTION, IntentTaskType.ACTION):
+        return False
     if resolved.task_type == IntentTaskType.RETRIEVAL and IntentFocusTopic.RECIPIENTS in resolved.focus_topics:
         return True
     if IntentFocusTopic.RECIPIENTS in resolved.focus_topics:
         return True
-    return False
+    return True
 
 
-def _is_summary_like_request(user_message: str) -> bool:
+def _has_direct_fact_entity_signal(user_message: str) -> bool:
     """
-    direct fact 강제 분기에서 제외해야 하는 요약형 요청인지 판별한다.
+    direct fact로 해석 가능한 명시적 엔터티 질의 신호를 판별한다.
 
     Args:
         user_message: 사용자 입력 원문
 
     Returns:
-        요약형 요청이면 True
+        엔터티 직접값 질의 신호가 있으면 True
     """
-    compact = str(user_message or "").replace(" ", "")
-    return "요약" in compact
+    compact = str(user_message or "").replace(" ", "").lower()
+    if not compact:
+        return False
+    entity_tokens = (
+        "메일주소",
+        "이메일주소",
+        "도메인",
+        "ou",
+        "발신자",
+        "수신자",
+        "담당자",
+        "문의처",
+        "연락처",
+        "from",
+        "to",
+        "주체",
+        "어느팀",
+        "누구",
+        "누가",
+    )
+    if any(token in compact for token in entity_tokens):
+        return True
+    if "어디로" in compact and ("연락" in compact or "문의" in compact):
+        return True
+    return False
 
 
 def is_current_mail_artifact_analysis_request(
@@ -268,7 +293,11 @@ def resolve_current_mail_intent_contract(
         has_current_mail_context=has_current_mail_context,
         decomposition=decomposition,
     )
-    has_anchor = bool(has_current_mail_context) or _is_current_mail_decomposition(decomposition=resolved)
+    has_anchor = (
+        bool(has_current_mail_context)
+        or _is_current_mail_decomposition(decomposition=resolved)
+        or _has_current_mail_anchor_text(user_message=user_message)
+    )
     return CurrentMailIntentContract(
         has_anchor=has_anchor,
         decomposition=resolved,
@@ -300,11 +329,97 @@ def _resolve_decomposition(
     normalized = str(user_message or "").strip()
     if not normalized:
         return None
-    return parse_intent_decomposition_safely(
+    parsed = parse_intent_decomposition_safely(
         user_message=normalized,
         has_selected_mail=bool(has_current_mail_context),
         selected_message_id_exists=bool(has_current_mail_context),
     )
+    if parsed is not None:
+        return parsed
+    return _build_text_fallback_decomposition(
+        user_message=normalized,
+        has_current_mail_context=has_current_mail_context,
+    )
+
+
+def _build_text_fallback_decomposition(
+    user_message: str,
+    has_current_mail_context: bool,
+) -> IntentDecomposition | None:
+    """
+    LLM 구조분해 실패 시 텍스트 신호 기반 최소 decomposition을 생성한다.
+
+    Args:
+        user_message: 사용자 질의
+        has_current_mail_context: scope current_mail 확정 여부
+
+    Returns:
+        추론된 decomposition 또는 None
+    """
+    if not has_current_mail_context and not _has_current_mail_anchor_text(user_message=user_message):
+        return None
+    compact = str(user_message or "").replace(" ", "").lower()
+    is_translation = is_translation_like_request_text(user_message=user_message)
+    has_cause_token = any(token in compact for token in ("원인", "이유", "왜", "문제", "이슈"))
+    has_solution_token = any(token in compact for token in ("해결", "대응", "조치", "방안", "방법"))
+    has_summary_token = any(token in compact for token in ("요약", "정리", "핵심", "주요"))
+    if is_translation:
+        task_type = IntentTaskType.GENERAL
+        output_format = IntentOutputFormat.TRANSLATION
+    elif has_solution_token:
+        task_type = IntentTaskType.SOLUTION
+        output_format = IntentOutputFormat.ISSUE_ACTION if has_cause_token else IntentOutputFormat.GENERAL
+    elif has_cause_token:
+        task_type = IntentTaskType.ANALYSIS
+        output_format = IntentOutputFormat.GENERAL
+    elif _has_direct_fact_entity_signal(user_message=user_message):
+        task_type = IntentTaskType.EXTRACTION
+        output_format = IntentOutputFormat.GENERAL
+    elif has_summary_token:
+        task_type = IntentTaskType.SUMMARY
+        output_format = IntentOutputFormat.GENERAL
+    else:
+        task_type = IntentTaskType.GENERAL
+        output_format = IntentOutputFormat.GENERAL
+    focus_topics = [IntentFocusTopic.MAIL_GENERAL]
+    if any(token in compact for token in ("수신자", "발신자", "담당자", "문의처", "연락처")):
+        focus_topics = [IntentFocusTopic.RECIPIENTS]
+    return IntentDecomposition(
+        original_query=str(user_message or "").strip(),
+        steps=[ExecutionStep.READ_CURRENT_MAIL],
+        summary_line_target=5,
+        date_filter=DateFilter(mode=DateFilterMode.NONE),
+        missing_slots=[],
+        task_type=task_type,
+        output_format=output_format,
+        focus_topics=focus_topics,
+        confidence=0.51,
+        origin="policy_override",
+    )
+
+
+def _has_current_mail_anchor_text(user_message: str) -> bool:
+    """
+    decomposition 없이도 현재메일 지시 앵커를 텍스트에서 판별한다.
+
+    Args:
+        user_message: 사용자 질의
+
+    Returns:
+        현재메일 지시 신호가 있으면 True
+    """
+    compact = str(user_message or "").replace(" ", "").lower()
+    if not compact:
+        return False
+    anchor_tokens = (
+        "현재메일",
+        "현재선택메일",
+        "현재선택된메일",
+        "해당메일",
+        "이메일의",
+        "이이메일의",
+    )
+    return any(token in compact for token in anchor_tokens)
 
 
 def _is_current_mail_decomposition(decomposition: IntentDecomposition | None) -> bool:

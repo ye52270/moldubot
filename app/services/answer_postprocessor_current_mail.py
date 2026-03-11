@@ -150,9 +150,9 @@ def render_current_mail_direct_value_from_tool_payload(
     action = str(tool_payload.get("action") or "").strip().lower()
     if action != "current_mail":
         return ""
-    if not is_current_mail_direct_fact_request(
+    if not _resolve_direct_fact_render_decision(
         user_message=user_message,
-        has_current_mail_context=True,
+        tool_payload=tool_payload,
     ):
         return ""
     mail_context = tool_payload.get("mail_context")
@@ -167,6 +167,31 @@ def render_current_mail_direct_value_from_tool_payload(
         lines.append(f"{index}. `{candidate}`")
     lines.extend(["", "근거: 현재메일 본문 발췌 기준"])
     return "\n".join(lines).strip()
+
+
+def _resolve_direct_fact_render_decision(
+    user_message: str,
+    tool_payload: dict[str, Any],
+) -> bool:
+    """
+    direct-value 강제 렌더링 허용 여부를 정책 메타 우선으로 결정한다.
+
+    Args:
+        user_message: 사용자 입력 원문
+        tool_payload: 직전 tool payload
+
+    Returns:
+        direct-value 렌더링 허용 여부
+    """
+    postprocess_policy = tool_payload.get("postprocess_policy")
+    if isinstance(postprocess_policy, dict):
+        decision = postprocess_policy.get("direct_fact_decision")
+        if isinstance(decision, bool):
+            return decision
+    return is_current_mail_direct_fact_request(
+        user_message=user_message,
+        has_current_mail_context=True,
+    )
 
 
 def render_current_mail_manager_single_paragraph(

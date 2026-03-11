@@ -26,6 +26,7 @@ from app.middleware.policies import (
     normalize_message_text,
     should_inject_intent_context,
 )
+from app.services.current_mail_intent_policy import is_current_mail_direct_fact_request
 from app.services.answer_postprocessor import postprocess_final_answer
 
 EMPTY_MODEL_RESPONSE_FALLBACK = "응답을 생성하지 못했습니다. 다시 시도해 주세요."
@@ -445,10 +446,42 @@ def _extract_latest_tool_payload(messages: list[Any], ai_index: int, user_messag
         return {}
 
     preferred_action = "mail_search" if _should_prefer_mail_search_payload(user_message=user_message) else ""
-    return extract_preferred_tool_payload_from_messages(
+    selected_payload = extract_preferred_tool_payload_from_messages(
         messages=tool_messages,
         preferred_action=preferred_action,
     )
+    return _attach_postprocess_policy(
+        tool_payload=selected_payload,
+        user_message=user_message,
+    )
+
+
+def _attach_postprocess_policy(tool_payload: dict[str, Any], user_message: str) -> dict[str, Any]:
+    """
+    후처리 재판단을 줄이기 위해 tool payload에 정책 결정을 주입한다.
+
+    Args:
+        tool_payload: 선택된 도구 payload
+        user_message: 원본 사용자 입력
+
+    Returns:
+        정책 메타가 보강된 payload
+    """
+    if not isinstance(tool_payload, dict) or not tool_payload:
+        return {}
+    action = str(tool_payload.get("action") or "").strip().lower()
+    if action != "current_mail":
+        return dict(tool_payload)
+    decision = is_current_mail_direct_fact_request(
+        user_message=user_message,
+        has_current_mail_context=True,
+    )
+    updated_payload = dict(tool_payload)
+    policy = updated_payload.get("postprocess_policy")
+    normalized_policy = dict(policy) if isinstance(policy, dict) else {}
+    normalized_policy["direct_fact_decision"] = bool(decision)
+    updated_payload["postprocess_policy"] = normalized_policy
+    return updated_payload
 
 
 def _collect_tool_messages_for_current_turn(messages: list[Any], ai_index: int) -> list[ToolMessage]:

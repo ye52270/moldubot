@@ -20,7 +20,7 @@ def should_apply_current_mail_grounded_safe_guard(
     """
     resolved = decomposition or parse_intent_decomposition_safely(user_message=user_message)
     if resolved is None:
-        return False
+        return _is_grounded_safe_risk_query_text(user_message=user_message)
     if resolved.task_type == IntentTaskType.ACTION:
         return False
     if resolved.output_format == IntentOutputFormat.TRANSLATION:
@@ -37,6 +37,42 @@ def should_apply_current_mail_grounded_safe_guard(
         IntentTaskType.RETRIEVAL,
         IntentTaskType.GENERAL,
     )
+
+
+def _is_grounded_safe_risk_query_text(user_message: str) -> bool:
+    """
+    구조분해 실패 시 텍스트 신호 기반으로 grounded-safe 가드 필요 여부를 추정한다.
+
+    Args:
+        user_message: 사용자 입력 원문
+
+    Returns:
+        grounded-safe 가드 필요 시 True
+    """
+    compact = str(user_message or "").replace(" ", "").lower()
+    if not compact:
+        return False
+    if any(token in compact for token in ("번역", "translate", "translation")):
+        return False
+    if any(token in compact for token in ("요약해줘", "요약", "한줄", "정리")) and not any(
+        token in compact for token in ("왜", "이유", "문제", "역할", "원인", "이슈")
+    ):
+        return False
+    risk_tokens = (
+        "왜",
+        "이유",
+        "원인",
+        "문제",
+        "이슈",
+        "영향",
+        "대응",
+        "해결",
+        "역할",
+        "담당",
+        "누가",
+        "누구",
+    )
+    return any(token in compact for token in risk_tokens)
 
 
 def render_current_mail_grounded_safe_message(user_message: str, summary_text: str) -> str:

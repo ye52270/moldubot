@@ -127,7 +127,7 @@ class DateFilter(BaseModel):
 
 class IntentDecomposition(BaseModel):
     """
-    Exaone 최소 구조분해 결과를 담는 표준 모델이다.
+    의도 최소 구조분해 결과를 담는 표준 모델이다.
 
     Attributes:
         original_query: 사용자 원문
@@ -150,8 +150,8 @@ class IntentDecomposition(BaseModel):
     output_format: IntentOutputFormat = Field(default=IntentOutputFormat.GENERAL, description="출력 형식")
     focus_topics: list[IntentFocusTopic] = Field(default_factory=list, description="주요 주제 포커스")
     confidence: float = Field(default=0.5, ge=0.0, le=1.0, description="의도 분류 신뢰도")
-    origin: Literal["exaone_fresh", "exaone_cached", "policy_override"] = Field(
-        default="exaone_fresh",
+    origin: Literal["llm_fresh", "llm_cached", "policy_override"] = Field(
+        default="llm_fresh",
         description="의도 결과 생성 경로",
     )
 

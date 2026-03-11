@@ -11,7 +11,6 @@ openai
 langchain>=1.0.0
 langchain-openai
 langchain-anthropic
-langchain-ollama
 langgraph>=1.0.0
 deepagents>=0.4.1
 pydantic>=2.0.0

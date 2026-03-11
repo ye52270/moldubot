@@ -23,6 +23,7 @@ from app.services.answer_postprocessor_current_mail import (
     render_current_mail_recipients_table,
 )
 from app.services.answer_postprocessor_fallback import render_fallback_answer
+from app.services.current_mail_intent_policy import is_translation_like_request_text
 from app.services.format_contract_renderer import render_template_driven_contract
 from app.services.format_exception_policy import should_apply_template_driven_contract
 from app.services.format_policy_selector import select_format_template
@@ -162,6 +163,8 @@ def _should_try_contract_parse(user_message: str, answer: str) -> bool:
         계약 파싱 시도 대상이면 True
     """
     if is_code_review_query(user_message=user_message) and not looks_like_json_contract_text(text=answer):
+        return False
+    if is_translation_like_request_text(user_message=user_message) and not looks_like_json_contract_text(text=answer):
         return False
     return True
 

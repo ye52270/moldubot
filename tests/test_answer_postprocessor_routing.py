@@ -2059,6 +2059,31 @@ class AnswerPostprocessorRoutingTest(unittest.TestCase):
         parse_contract.assert_not_called()
         self.assertIn("## 코드 분석", result)
 
+    def test_translation_non_json_skips_contract_parse(self) -> None:
+        """
+        번역 질의의 비-JSON 응답은 JSON 계약 파싱을 시도하지 않아야 한다.
+        """
+        with patch("app.services.answer_postprocessor.parse_llm_response_contract") as parse_contract:
+            result = postprocess_final_answer(
+                user_message="현재메일 번역해줘",
+                answer="안녕하세요.\n프로젝트 일정이 변경되었습니다.\n확인 부탁드립니다.",
+                tool_payload={"action": "current_mail"},
+            )
+        parse_contract.assert_not_called()
+        self.assertIn("프로젝트 일정이 변경되었습니다.", result)
+
+    def test_translation_json_still_tries_contract_parse(self) -> None:
+        """
+        번역 질의라도 JSON 응답이면 기존 계약 파싱 경로를 유지해야 한다.
+        """
+        with patch("app.services.answer_postprocessor.parse_llm_response_contract", return_value=None) as parse_contract:
+            postprocess_final_answer(
+                user_message="현재메일 번역해줘",
+                answer='{"format_type":"general","answer":"번역 결과"}',
+                tool_payload={"action": "current_mail"},
+            )
+        parse_contract.assert_called_once()
+
     def test_generic_json_object_is_rendered_as_readable_text(self) -> None:
         """
         format_type 없는 일반 JSON 객체는 원문 노출 대신 읽기 쉬운 목록 텍스트로 렌더링되어야 한다.

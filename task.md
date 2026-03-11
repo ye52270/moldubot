@@ -1,6 +1,73 @@
 # Task
 
 ## 현재 작업
+current_mail direct_fact 과적용 보정(주요 이슈 질의 오출력 회귀 수정)
+
+## Plan (2026-03-11 direct_fact 정책 정밀화)
+- [x] 1단계: TDD 선행(이슈 질의 direct_value 금지/엔터티 질의 direct_value 유지)
+- [x] 2단계: direct_fact 판정을 positive entity 패턴 기반으로 축소
+- [x] 3단계: 미들웨어 단일결정 metadata 전달 + 후처리 재판단 제거
+- [x] 4단계: 타깃 회귀 테스트 실행 및 Action Log 업데이트
+
+## Action Log (2026-03-11 direct_fact 정책 정밀화)
+- [15:38] 작업 시작: 주요 이슈 질의가 direct_value 강제 렌더로 덮이는 회귀를 정책 단일화로 수정 착수
+- [15:42] 이슈 발생: fallback decomposition `origin` 값이 스키마 literal 제약과 충돌해 ValidationError 발생 → 해결 방법: `origin=policy_override`로 정합화
+- [15:46] 완료: direct_fact positive entity 기반 보정, middleware `postprocess_policy.direct_fact_decision` 주입, 후처리 metadata 우선 적용 및 타깃 테스트 28건 통과
+
+## 현재 작업
+번역 응답의 JSON 파싱 경고 노이즈 제거(하드코딩/사이드이펙트 점검 포함)
+
+## Plan (2026-03-11 translation parse skip 점검/개선)
+- [x] 1단계: answer_postprocessor 파싱 조건의 하드코딩/사이드이펙트 위험 검토
+- [x] 2단계: 번역 질의 비JSON 응답에서 계약 파싱 스킵 조건 추가
+- [x] 3단계: 회귀 테스트(TDD) 추가 및 실행
+- [x] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-11 translation parse skip 점검/개선)
+- [15:28] 작업 시작: 번역 경로 JSON 파싱 경고 노이즈 제거를 위한 안전 조건 점검 및 패치 착수
+- [15:29] 이슈 발생: parse 함수 mock이 MagicMock 객체를 반환해 계약 렌더 단계 JSON 직렬화 오류(TypeError) 발생 → 해결 방법: 호출 여부 검증 테스트에서 `return_value=None`으로 보정
+- [15:29] 완료: 번역+비JSON 응답에서 계약 파싱 스킵 조건 반영 및 관련 테스트 15건(타깃 3 + contract_utils 12) 통과
+
+## 현재 작업
+intent parser Local LLM 잔존 명칭/메타/문서 의존 정리(2/3/4)
+
+## Plan (2026-03-11 local llm 잔존 제거 리팩터링)
+- [x] 1단계: intent parser 클래스/메서드 명칭을 provider-agnostic으로 리팩터링
+- [x] 2단계: intent decomposition origin 값을 일반화하고 호출부/테스트 동기화
+- [x] 3단계: README/requirements의 Local LLM 잔존 설정 문구 정리
+- [x] 4단계: 관련 테스트 실행 및 Action Log 업데이트
+
+## Action Log (2026-03-11 local llm 잔존 제거 리팩터링)
+- [15:24] 작업 시작: Exaone/Ollama 잔존 명칭·origin·문서/의존성 정리 착수
+- [15:26] 완료: IntentParser/llm_origin 일반화, README/requirements 정리, 관련 테스트 78건 통과
+
+## 현재 작업
+Local LLM(Exaone/Ollama) 잔존 불필요 코드 점검
+
+## Plan (2026-03-11 local llm 잔존 코드 점검)
+- [x] 1단계: Exaone/Ollama 관련 참조 전수 검색
+- [x] 2단계: 실제 호출 경로 기준으로 불필요 코드 후보 식별
+- [x] 3단계: 제거/유지 권고안 정리 및 Action Log 업데이트
+
+## Action Log (2026-03-11 local llm 잔존 코드 점검)
+- [15:21] 작업 시작: local llm 관련 잔존 코드 전수 검색 및 불필요 항목 분류 착수
+- [15:22] 완료: 실행경로/설정/문서/테스트의 local llm 잔존 항목 및 우선 제거 후보 식별
+
+## 현재 작업
+슬롯 파서 모델 백엔드 Exaone(Ollama) → Azure OpenAI 전환
+
+## Plan (2026-03-11 intent parser azure 전환)
+- [x] 1단계: intent_parser 모델 초기화 경로를 Azure OpenAI 호환 공통 런타임으로 교체
+- [x] 2단계: 환경변수 계약(모델명 기본값/fallback) 및 로그 문구 정리
+- [x] 3단계: 회귀 테스트 추가(TDD) 및 타깃 테스트 실행
+- [x] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-11 intent parser azure 전환)
+- [15:18] 작업 시작: Exaone(Ollama) 의도 파서 호출 경로를 Azure OpenAI 기반으로 전환 착수
+- [15:19] 이슈 발생: Azure 자격증명 없는 테스트 환경에서 intent parse 실패 시 단순 검색 질의도 intent context 주입으로 회귀 → 해결 방법: parse 실패 시에도 `infer_steps_from_query` fallback으로 `search_mails` 단일 케이스는 주입 생략 유지
+- [15:20] 완료: intent parser를 공통 `init_chat_model` 기반으로 전환(기본 `azure_openai:gpt-4o-mini`), timeout/env fallback 보강 및 관련 테스트 69건 통과
+
+## 현재 작업
 moldubot-conventions 스킬에서 Exaone 슬롯추출 강제 규칙 제거
 
 ## Plan (2026-03-11 스킬 규칙 수정)

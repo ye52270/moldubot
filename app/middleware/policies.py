@@ -489,6 +489,9 @@ def should_inject_intent_context(user_message: str) -> bool:
         parser_factory=get_intent_parser,
     )
     if parsed is None:
+        fallback_steps_when_parse_failed = infer_steps_from_query(user_message=user_message)
+        if fallback_steps_when_parse_failed == ["search_mails"]:
+            return False
         return True
     steps = [step.value for step in parsed.steps]
     # 단일 메일조회는 규칙 분기가 안정적이라 컨텍스트 주입을 생략해 토큰/지연을 줄인다.
