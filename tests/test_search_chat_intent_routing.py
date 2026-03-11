@@ -105,12 +105,12 @@ class SearchChatIntentRoutingTest(unittest.TestCase):
         self.assertEqual("completed", response["status"])
         get_agent_mock.assert_called_with(prompt_variant="fast_compact")
 
-    def test_current_mail_summary_selects_json_strict_prompt_variant(self) -> None:
+    def test_mail_summary_skill_selects_json_strict_prompt_variant(self) -> None:
         """
-        현재메일 요약 요청은 strict JSON variant를 선택해야 한다.
+        `/메일요약` 스킬 요청은 strict JSON variant를 선택해야 한다.
         """
         decomposition = IntentDecomposition(
-            original_query="현재메일 요약해줘",
+            original_query="/메일요약",
             steps=[ExecutionStep.SUMMARIZE_MAIL, ExecutionStep.READ_CURRENT_MAIL],
             summary_line_target=5,
             date_filter=DateFilter(mode=DateFilterMode.NONE),
@@ -127,13 +127,13 @@ class SearchChatIntentRoutingTest(unittest.TestCase):
                 fake_agent.get_last_tool_payload.return_value = {}
                 fake_agent.get_last_assistant_answer.return_value = "요약 응답"
                 with patch("app.api.routes.get_deep_chat_agent", return_value=fake_agent) as get_agent_mock:
-                    response = search_chat(payload=ChatRequest(message="현재메일 요약해줘"))
+                    response = search_chat(payload=ChatRequest(message="/메일요약"))
         self.assertEqual("completed", response["status"])
         get_agent_mock.assert_called_with(prompt_variant="quality_structured_json_strict")
 
-    def test_current_mail_work_history_arrange_selects_freeform_prompt_variant(self) -> None:
+    def test_current_mail_work_history_arrange_selects_freeform_grounded_prompt_variant(self) -> None:
         """
-        현재메일 정리형 질의(요약 미명시)는 freeform grounded variant를 선택해야 한다.
+        자연어 현재메일 요약/정리형 질의는 freeform grounded variant를 선택해야 한다.
         """
         decomposition = IntentDecomposition(
             original_query="현재메일의 주요 작업 내역을 정리해줘",
@@ -227,7 +227,7 @@ class SearchChatIntentRoutingTest(unittest.TestCase):
             summary_line_target=5,
             date_filter=DateFilter(mode=DateFilterMode.NONE),
             missing_slots=[],
-            task_type=IntentTaskType.GENERAL,
+            task_type=IntentTaskType.ACTION,
             output_format=IntentOutputFormat.GENERAL,
             confidence=0.41,
         )
@@ -245,6 +245,36 @@ class SearchChatIntentRoutingTest(unittest.TestCase):
                     ):
                         response = search_chat(payload=ChatRequest(message="현재메일 주요 키워드 2~3개 할일로 등록"))
 
+        self.assertEqual("completed", response["status"])
+        self.assertEqual("deep-agent", response["metadata"]["source"])
+
+    def test_action_task_type_skips_intent_clarification_without_todo_tokens(self) -> None:
+        """
+        decomposition이 action이면 ToDo 토큰이 없어도 low-confidence intent clarification을 건너뛰어야 한다.
+        """
+        decomposition = IntentDecomposition(
+            original_query="조치 항목 생성 부탁",
+            steps=[ExecutionStep.READ_CURRENT_MAIL],
+            summary_line_target=5,
+            date_filter=DateFilter(mode=DateFilterMode.NONE),
+            missing_slots=[],
+            task_type=IntentTaskType.ACTION,
+            output_format=IntentOutputFormat.GENERAL,
+            confidence=0.41,
+        )
+        parser = type("StubParser", (), {"parse": lambda self, user_message: decomposition})()
+        with patch("app.api.search_chat_flow.get_intent_parser", return_value=parser):
+            with patch("app.api.routes.is_openai_key_configured", return_value=True):
+                fake_agent = MagicMock()
+                fake_agent.execute_turn.return_value = {"status": "completed", "answer": "실행 준비 완료", "interrupts": []}
+                fake_agent.get_last_tool_payload.return_value = {}
+                fake_agent.get_last_assistant_answer.return_value = "실행 준비 완료"
+                with patch("app.api.routes.get_deep_chat_agent", return_value=fake_agent):
+                    with patch(
+                        "app.api.routes._execute_agent_turn",
+                        return_value={"status": "completed", "answer": "실행 준비 완료", "interrupts": []},
+                    ):
+                        response = search_chat(payload=ChatRequest(message="조치 항목 생성 부탁"))
         self.assertEqual("completed", response["status"])
         self.assertEqual("deep-agent", response["metadata"]["source"])
 

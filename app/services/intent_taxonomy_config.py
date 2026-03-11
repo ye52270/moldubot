@@ -14,6 +14,7 @@ DEFAULT_RECIPIENT_TOKENS: tuple[str, ...] = ("수신자", "받는사람")
 DEFAULT_TODO_TOKENS: tuple[str, ...] = ("todo", "할일", "조치", "액션")
 DEFAULT_DUE_TOKENS: tuple[str, ...] = ("마감", "기한", "due")
 DEFAULT_REGISTRATION_TOKENS: tuple[str, ...] = ("등록", "생성", "추가", "만들어")
+DEFAULT_ENABLE_TOKEN_FALLBACK = False
 
 _CACHE_LOCK = Lock()
 _CACHE_PATH: str = ""
@@ -35,6 +36,7 @@ class RecipientTodoPolicy:
 class IntentTaxonomyConfig:
     """의도 taxonomy 설정 모델."""
 
+    enable_token_fallback: bool
     recipient_todo_policy: RecipientTodoPolicy
     source_path: str
 
@@ -116,15 +118,42 @@ def _parse_intent_taxonomy_payload(payload: object, source_path: str) -> IntentT
     """JSON payload를 IntentTaxonomyConfig로 변환한다."""
     if not isinstance(payload, dict):
         raise ValueError("intent taxonomy payload must be a JSON object")
+    enable_token_fallback = _parse_bool_flag(
+        value=payload.get("enable_token_fallback"),
+        default=DEFAULT_ENABLE_TOKEN_FALLBACK,
+    )
     raw_policy = payload.get("recipient_todo_policy")
-    policy = _parse_recipient_todo_policy(raw_policy=raw_policy)
-    return IntentTaxonomyConfig(recipient_todo_policy=policy, source_path=source_path)
+    policy = _parse_recipient_todo_policy(
+        raw_policy=raw_policy,
+        enable_token_fallback=enable_token_fallback,
+    )
+    return IntentTaxonomyConfig(
+        enable_token_fallback=enable_token_fallback,
+        recipient_todo_policy=policy,
+        source_path=source_path,
+    )
 
 
-def _parse_recipient_todo_policy(raw_policy: object) -> RecipientTodoPolicy:
+def _parse_bool_flag(value: object, default: bool) -> bool:
+    """설정 payload의 bool 플래그를 안전하게 파싱한다."""
+    if isinstance(value, bool):
+        return value
+    if value is None:
+        return default
+    normalized = str(value).strip().lower()
+    if normalized in {"1", "true", "yes", "on"}:
+        return True
+    if normalized in {"0", "false", "no", "off"}:
+        return False
+    return default
+
+
+def _parse_recipient_todo_policy(raw_policy: object, enable_token_fallback: bool) -> RecipientTodoPolicy:
     """recipient_todo_policy payload를 정규화한다."""
+    if not enable_token_fallback:
+        return _build_disabled_policy()
     if not isinstance(raw_policy, dict):
-        return _build_default_policy()
+        return _build_enabled_default_policy()
     return RecipientTodoPolicy(
         recipient_tokens=_normalize_tokens(
             raw_tokens=raw_policy.get("recipient_tokens"),
@@ -163,8 +192,8 @@ def _normalize_tokens(raw_tokens: object, defaults: tuple[str, ...]) -> tuple[st
     return defaults
 
 
-def _build_default_policy() -> RecipientTodoPolicy:
-    """기본 수신자 ToDo 정책을 생성한다."""
+def _build_enabled_default_policy() -> RecipientTodoPolicy:
+    """토큰 fallback 활성화 시 사용할 기본 수신자 ToDo 정책을 생성한다."""
     return RecipientTodoPolicy(
         recipient_tokens=DEFAULT_RECIPIENT_TOKENS,
         todo_tokens=DEFAULT_TODO_TOKENS,
@@ -173,6 +202,20 @@ def _build_default_policy() -> RecipientTodoPolicy:
     )
 
 
+def _build_disabled_policy() -> RecipientTodoPolicy:
+    """토큰 fallback 비활성화 시 사용할 빈 정책을 생성한다."""
+    return RecipientTodoPolicy(
+        recipient_tokens=(),
+        todo_tokens=(),
+        due_tokens=(),
+        registration_tokens=(),
+    )
+
+
 def _build_default_config(source_path: str) -> IntentTaxonomyConfig:
     """기본 의도 taxonomy 설정 모델을 생성한다."""
-    return IntentTaxonomyConfig(recipient_todo_policy=_build_default_policy(), source_path=source_path)
+    return IntentTaxonomyConfig(
+        enable_token_fallback=DEFAULT_ENABLE_TOKEN_FALLBACK,
+        recipient_todo_policy=_build_disabled_policy(),
+        source_path=source_path,
+    )

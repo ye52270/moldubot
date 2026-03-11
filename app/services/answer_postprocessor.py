@@ -471,6 +471,9 @@ def _log_fallback_route(route: str) -> None:
     if route == "summary_text":
         logger.info("answer_postprocess.fallback_route: route=summary_text")
         return
+    if route == "summary_freeform_text":
+        logger.info("answer_postprocess.fallback_route: route=summary_freeform_text")
+        return
     if route == "json_template_guard":
         logger.warning("answer_postprocess.fallback_route: route=json_template_guard")
         return

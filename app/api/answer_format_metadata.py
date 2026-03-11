@@ -3,11 +3,18 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from app.agents.intent_schema import ExecutionStep, IntentDecomposition, IntentOutputFormat, IntentTaskType
+
 
 MAX_BLOCKS = 64
 
 
-def build_answer_format_metadata(user_message: str, answer: str, status: str = "completed") -> dict[str, Any]:
+def build_answer_format_metadata(
+    user_message: str,
+    answer: str,
+    status: str = "completed",
+    decomposition: IntentDecomposition | None = None,
+) -> dict[str, Any]:
     """
     최종 응답 텍스트를 UI 친화적 블록 메타데이터로 변환한다.
 
@@ -15,6 +22,7 @@ def build_answer_format_metadata(user_message: str, answer: str, status: str = "
         user_message: 사용자 입력 원문
         answer: 최종 사용자 노출 응답 텍스트
         status: API 응답 상태값
+        decomposition: 구조화 의도 결과(있으면 format 추론에 우선 사용)
 
     Returns:
         version/format_type/blocks를 포함한 포맷 메타데이터
@@ -24,6 +32,7 @@ def build_answer_format_metadata(user_message: str, answer: str, status: str = "
         user_message=user_message,
         answer=normalized_answer,
         status=status,
+        decomposition=decomposition,
     )
     blocks = _extract_blocks(text=normalized_answer)
     return {
@@ -66,7 +75,12 @@ def _insert_structural_newlines(text: str) -> str:
     return normalized
 
 
-def _infer_format_type(user_message: str, answer: str, status: str) -> str:
+def _infer_format_type(
+    user_message: str,
+    answer: str,
+    status: str,
+    decomposition: IntentDecomposition | None = None,
+) -> str:
     """
     사용자 질의와 응답 텍스트 패턴으로 format_type을 추론한다.
 
@@ -74,19 +88,21 @@ def _infer_format_type(user_message: str, answer: str, status: str) -> str:
         user_message: 사용자 입력
         answer: 정규화된 응답 텍스트
         status: API 응답 상태
+        decomposition: 구조화 의도 결과
 
     Returns:
         추론된 포맷 타입
     """
     if status == "needs_clarification":
         return "clarification_card"
-    query = str(user_message or "")
-    if "현재메일" in query:
-        return "current_mail"
-    if any(token in query for token in ("보고서", "보고용")):
-        return "report"
-    if any(token in query for token in ("요약", "핵심")):
-        return "summary"
+    if decomposition is not None:
+        has_current_mail_context = ExecutionStep.READ_CURRENT_MAIL in decomposition.steps
+        if has_current_mail_context and decomposition.output_format == IntentOutputFormat.TRANSLATION:
+            return "current_mail_translation"
+        if has_current_mail_context:
+            return "current_mail"
+        if decomposition.task_type == IntentTaskType.SUMMARY:
+            return "summary"
     if "근거메일" in answer:
         return "grounded_answer"
     return "general"

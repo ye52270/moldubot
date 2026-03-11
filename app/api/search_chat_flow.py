@@ -72,6 +72,7 @@ from app.api.search_chat_next_actions_runtime import (
 )
 from app.api.search_chat_stream_utils import resolve_thread_id
 from app.core.logging_config import get_logger
+from app.core.intent_rules import is_mail_summary_skill_query
 from app.core.metrics import get_chat_metrics_tracker
 from app.core.llm_runtime import invoke_text_messages, resolve_env_model
 from app.services.answer_postprocessor import postprocess_final_answer
@@ -167,7 +168,7 @@ def _should_use_current_mail_summary_fast_lane(
         return False
     if not has_cached_context:
         return False
-    if not is_current_mail_summary_request(user_message=user_message):
+    if not is_mail_summary_skill_query(user_message=user_message):
         return False
     return ExecutionStep.SUMMARIZE_MAIL in decomposition.steps
 
@@ -276,12 +277,11 @@ def _use_fresh_agent_thread_for_current_mail_summary(
     Returns:
         fresh thread 사용 대상이면 True
     """
-    compact = str(user_message or "").replace(" ", "")
     if str(resolved_scope or "").strip().lower() != "current_mail":
         return False
     if not str(selected_message_id or "").strip():
         return False
-    return "현재메일" in compact and ("요약" in compact or "정리" in compact)
+    return is_mail_summary_skill_query(user_message=user_message)
 
 
 def _build_agent_thread_id(
@@ -329,7 +329,7 @@ def _should_retry_current_mail_summary_json(
     tool_action = str(tool_payload.get("action") or "").strip().lower() if isinstance(tool_payload, dict) else ""
     if tool_action != "current_mail":
         return False
-    if not is_current_mail_summary_request(user_message=user_message):
+    if not is_mail_summary_skill_query(user_message=user_message):
         return False
     normalized_answer = str(final_answer or "").strip()
     looks_like_raw_json_answer = (
@@ -920,6 +920,7 @@ def run_search_chat(
         user_message=text,
         answer=answer,
         status="completed",
+        decomposition=intent_decomposition,
     )
     major_point_evidence = build_major_point_evidence(
         answer_format=answer_format,

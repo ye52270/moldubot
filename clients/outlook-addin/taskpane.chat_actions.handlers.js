@@ -220,7 +220,6 @@
 
     async function handleScopeSelect(button) {
       const scope = String(button && button.getAttribute('data-scope') ? button.getAttribute('data-scope') : '').trim();
-      const scopeLabel = String(button && button.getAttribute('data-scope-label') ? button.getAttribute('data-scope-label') : '').trim();
       const originalQuery = String(button && button.getAttribute('data-original-query') ? button.getAttribute('data-original-query') : '').trim();
       if (!scope || !originalQuery) {
         messageUi.addMessage('assistant', '범위 선택 정보를 확인하지 못했습니다. 다시 시도해 주세요.');
@@ -228,7 +227,6 @@
       }
       setSendingState(true);
       try {
-        messageUi.addMessage('assistant', '선택 범위: ' + (scopeLabel || scope));
         const assistantPayload = await chatApi.requestAssistantReply(
           originalQuery,
           null,

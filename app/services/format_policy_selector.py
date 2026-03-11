@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Mapping
 
-from app.core.intent_rules import infer_steps_from_query
+from app.core.intent_rules import infer_steps_from_query, is_mail_summary_skill_query
 
 EXPLICIT_SUMMARY_TOKENS: tuple[str, ...] = ("요약",)
 ANALYSIS_TOKENS: tuple[str, ...] = ("정리", "분석", "설명", "원인", "영향", "대응", "비용", "금액", "리스크")
@@ -87,6 +87,7 @@ def select_format_template(
     action = _extract_action(tool_payload=tool_payload)
     signature = _build_intent_signature(user_message=user_message, normalized_query=text)
     has_explicit_summary = _is_explicit_summary_request(normalized_query=text)
+    is_mail_summary_skill = is_mail_summary_skill_query(user_message=user_message)
     facets = _build_facets(signature=signature)
 
     if action == "create_outlook_todo" or (
@@ -106,9 +107,9 @@ def select_format_template(
             else FormatTemplateId.MAIL_SEARCH_SUMMARY
         )
         return _selection(template_id=template_id, facets=facets)
-    if signature.has_current_mail and has_explicit_summary and signature.has_issue:
+    if signature.has_current_mail and is_mail_summary_skill and signature.has_issue:
         return _selection(template_id=FormatTemplateId.CURRENT_MAIL_SUMMARY_ISSUE, facets=facets)
-    if signature.has_current_mail and has_explicit_summary:
+    if signature.has_current_mail and is_mail_summary_skill:
         return _selection(template_id=FormatTemplateId.CURRENT_MAIL_SUMMARY, facets=facets)
     if signature.has_mail_search and has_explicit_summary:
         template_id = (

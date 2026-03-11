@@ -153,23 +153,6 @@
       return '<div class="evidence-block"><div class="evidence-title rich-heading major-summary-heading">📬 근거 메일</div><ul class="evidence-list">' + items + '</ul></div>';
     }
 
-    function buildScopeStatusHtml(metadata) {
-      var data = metadata && typeof metadata === 'object' ? metadata : {};
-      var scopeLabel = String(data.scope_label || '').trim();
-      var scopeReason = String(data.scope_reason || '').trim();
-      if (!scopeLabel && !scopeReason) return '';
-      var label = scopeLabel || '검색 범위';
-      var reasonHtml = scopeReason
-        ? '<span class="scope-status-reason">' + escapeHtml(scopeReason) + '</span>'
-        : '';
-      return (
-        '<div class="scope-status-block" title="' + escapeAttr(scopeReason || label) + '">' +
-          '<span class="scope-status-chip">범위: ' + escapeHtml(label) + '</span>' +
-          reasonHtml +
-        '</div>'
-      );
-    }
-
     function buildScopeClarificationHtml(metadata) {
       var clarification = metadata && metadata.clarification && typeof metadata.clarification === 'object' ? metadata.clarification : null;
       if (!clarification || !clarification.required) return '';
@@ -229,7 +212,6 @@
     }
 
     return {
-      buildScopeStatusHtml: buildScopeStatusHtml,
       buildEvidenceListHtml: buildEvidenceListHtml,
       buildScopeClarificationHtml: buildScopeClarificationHtml,
       buildHitlConfirmHtml: buildHitlConfirmHtml,

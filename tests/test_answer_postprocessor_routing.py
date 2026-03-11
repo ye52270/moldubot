@@ -271,6 +271,24 @@ class AnswerPostprocessorRoutingTest(unittest.TestCase):
         self.assertNotIn("### 🧾 제목", result)
         self.assertIn("Gmail 정책에서 도메인 정합성 검증 실패", result)
 
+    def test_non_skill_current_mail_summary_fallback_preserves_freeform_text(self) -> None:
+        """
+        자연어 현재메일 요약의 비JSON 응답 fallback은 `요약 결과` 번호화 대신 freeform 본문을 유지해야 한다.
+        """
+        answer = (
+            "해당 메일은 구독 티어 업그레이드 자격 안내입니다.\n\n"
+            "**주요 내용 요약:**\n"
+            "- 3일 내 조치가 없으면 Tier 1로 자동 업그레이드됩니다.\n"
+            "- Free Tier 유지 희망 시 안내 링크에서 거부 절차가 필요합니다."
+        )
+        result = postprocess_final_answer(
+            user_message="현재메일 요약해줘",
+            answer=answer,
+            tool_payload={"action": "current_mail"},
+        )
+        self.assertIn("**주요 내용 요약:**", result)
+        self.assertNotIn("요약 결과:", result)
+
     def test_current_mail_json_contract_is_preferred_over_grounded_safe(self) -> None:
         """
         현재메일 위험 질의라도 JSON 계약 파싱에 성공하면 grounded-safe 축약보다 계약 렌더를 우선해야 한다.

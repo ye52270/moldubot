@@ -44,6 +44,20 @@ class AnswerPostprocessorCurrentMailTest(unittest.TestCase):
         )
         self.assertEqual("현재메일 본문에서 요청한 직접값을 확인하지 못했습니다.", rendered)
 
+    def test_render_current_mail_direct_value_from_tool_payload_skips_translation_request(self) -> None:
+        """현재메일 번역 요청은 direct-value 강제 렌더를 수행하면 안 된다."""
+        rendered = render_current_mail_direct_value_from_tool_payload(
+            user_message="현재메일 번역해줘",
+            tool_payload={
+                "action": "current_mail",
+                "mail_context": {
+                    "body_excerpt": "We are pleased to inform you that your subscription ...",
+                    "body_code_excerpt": "subscription 140dacee-7eb0-4146-9e9c-db9cd411cd08",
+                },
+            },
+        )
+        self.assertEqual("", rendered)
+
     def test_render_current_mail_grounded_safe_response_for_sparse_evidence(self) -> None:
         """근거가 summary 1줄 수준이면 안전 템플릿으로 강제 응답해야 한다."""
         rendered = render_current_mail_grounded_safe_response(
@@ -110,7 +124,7 @@ class AnswerPostprocessorCurrentMailTest(unittest.TestCase):
         self.assertIn("확인할 수 없습니다", rendered)
 
     def test_render_current_mail_grounded_safe_response_for_role_question(self) -> None:
-        """역할 질문은 인물/역할 미확인 안내를 우선 반환해야 한다."""
+        """역할 질문도 공통 안전 템플릿을 반환해야 한다."""
         rendered = render_current_mail_grounded_safe_response(
             user_message="수신자와 발신자의 역할을 분석해 주세요.",
             answer="박제영은 요청자이고 남슬기는 공급사 담당자입니다.",
@@ -122,10 +136,10 @@ class AnswerPostprocessorCurrentMailTest(unittest.TestCase):
                 },
             },
         )
-        self.assertIn("발신자·수신자·역할 정보", rendered)
+        self.assertIn("확인할 수 없습니다", rendered)
 
     def test_render_current_mail_grounded_safe_response_for_reason_question(self) -> None:
-        """이유 질문은 라이선스 확인 필요만 근거로 이유 미확인 안내를 반환해야 한다."""
+        """이유 질문도 공통 안전 템플릿을 반환해야 한다."""
         rendered = render_current_mail_grounded_safe_response(
             user_message="M365 라이선스 비용을 별도로 확인해야 하는 이유는 무엇인가요?",
             answer="정종석 수석 검토가 필요하기 때문입니다.",
@@ -137,7 +151,7 @@ class AnswerPostprocessorCurrentMailTest(unittest.TestCase):
                 },
             },
         )
-        self.assertIn("구체적 이유는 확인할 수 없습니다", rendered)
+        self.assertIn("확인할 수 없습니다", rendered)
 
     def test_render_current_mail_grounded_safe_response_skips_for_reply_draft_request(self) -> None:
         """회신 본문 초안 작성 질의는 안전가드를 적용하면 안 된다."""

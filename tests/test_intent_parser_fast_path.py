@@ -115,8 +115,7 @@ class IntentParserFastPathTest(unittest.TestCase):
         with patch.object(parser, "_invoke_ollama_structured", return_value=mocked) as invoke_mock:
             result = parser.parse("현재 메일 요약해줘")
         invoke_mock.assert_called_once()
-        self.assertIn(ExecutionStep.READ_CURRENT_MAIL, result.steps)
-        self.assertIn(ExecutionStep.SUMMARIZE_MAIL, result.steps)
+        self.assertEqual([ExecutionStep.SUMMARIZE_MAIL], result.steps)
 
     def test_fast_path_auto_uses_rules_when_steps_detected(self) -> None:
         """
@@ -131,9 +130,36 @@ class IntentParserFastPathTest(unittest.TestCase):
             result = parser.parse("현재메일 요약해줘")
         self.assertEqual([ExecutionStep.READ_CURRENT_MAIL, ExecutionStep.SUMMARIZE_MAIL], result.steps)
 
-    def test_fast_path_auto_uses_rule_based_for_complex_query_with_known_steps(self) -> None:
+    def test_fast_path_auto_calls_ollama_for_complex_natural_query(self) -> None:
         """
-        `auto` 모드에서 규칙으로 단계 추출이 가능한 복합 질의는 Ollama를 생략해야 한다.
+        `auto` 모드에서 복합 자연어 질의는 fast-path 대신 Ollama 구조분해를 우선해야 한다.
+        """
+        parser = ExaoneIntentParser(
+            model_name="exaone3.5:2.4b",
+            base_url="http://127.0.0.1:11434",
+            fast_path_mode="auto",
+        )
+        mocked = IntentDecomposition(
+            original_query="현재메일에서 주요 수신자 정보를 알려주고 요약보고서를 만들어줘",
+            steps=[
+                ExecutionStep.READ_CURRENT_MAIL,
+                ExecutionStep.EXTRACT_RECIPIENTS,
+                ExecutionStep.SUMMARIZE_MAIL,
+            ],
+            summary_line_target=5,
+            date_filter=DateFilter(mode=DateFilterMode.NONE),
+            missing_slots=[],
+        )
+        with patch.object(parser, "_invoke_ollama_structured", return_value=mocked) as invoke_mock:
+            result = parser.parse("현재메일에서 주요 수신자 정보를 알려주고 요약보고서를 만들어줘")
+        invoke_mock.assert_called_once()
+        self.assertIn(ExecutionStep.READ_CURRENT_MAIL, result.steps)
+        self.assertIn(ExecutionStep.SUMMARIZE_MAIL, result.steps)
+        self.assertNotIn(ExecutionStep.EXTRACT_RECIPIENTS, result.steps)
+
+    def test_fast_path_auto_uses_rules_for_explicit_skill_command(self) -> None:
+        """
+        `auto` 모드에서 `/메일요약` 명령은 fast-path로 즉시 구조분해해야 한다.
         """
         parser = ExaoneIntentParser(
             model_name="exaone3.5:2.4b",
@@ -141,9 +167,8 @@ class IntentParserFastPathTest(unittest.TestCase):
             fast_path_mode="auto",
         )
         with patch.object(parser, "_invoke_ollama_structured", side_effect=AssertionError("should not call")):
-            result = parser.parse("현재메일에서 주요 수신자 정보를 알려주고 요약보고서를 만들어줘")
+            result = parser.parse("/메일요약")
         self.assertIn(ExecutionStep.READ_CURRENT_MAIL, result.steps)
-        self.assertIn(ExecutionStep.EXTRACT_RECIPIENTS, result.steps)
         self.assertIn(ExecutionStep.SUMMARIZE_MAIL, result.steps)
 
     def test_fast_path_auto_calls_ollama_when_rule_steps_are_not_detected(self) -> None:
@@ -195,9 +220,9 @@ class IntentParserFastPathTest(unittest.TestCase):
             result.steps,
         )
 
-    def test_parser_falls_back_when_required_steps_missing(self) -> None:
+    def test_parser_success_path_does_not_inject_required_steps(self) -> None:
         """
-        모델 결과에 필수 step(수신자)이 없으면 규칙 기반 fallback으로 전환해야 한다.
+        모델 성공 결과에서는 규칙 기반 required step을 강제 주입하지 않아야 한다.
         """
         parser = ExaoneIntentParser(
             model_name="exaone3.5:2.4b",
@@ -214,13 +239,13 @@ class IntentParserFastPathTest(unittest.TestCase):
         )
         with patch.object(parser, "_invoke_ollama_structured", return_value=mocked):
             result = parser.parse("현재메일에서 주요 수신자 정보를 알려주고 요약보고서를 만들어줘")
-        self.assertIn(ExecutionStep.EXTRACT_RECIPIENTS, result.steps)
+        self.assertNotIn(ExecutionStep.EXTRACT_RECIPIENTS, result.steps)
         self.assertIn(ExecutionStep.SUMMARIZE_MAIL, result.steps)
         self.assertIn(ExecutionStep.READ_CURRENT_MAIL, result.steps)
 
-    def test_parser_falls_back_when_search_step_missing_for_search_query(self) -> None:
+    def test_parser_success_path_does_not_inject_search_step(self) -> None:
         """
-        검색형 질의에서 모델 결과에 search_mails가 없으면 규칙 기반 fallback으로 전환해야 한다.
+        검색형 질의여도 모델 성공 결과에 없는 search step을 규칙으로 주입하지 않아야 한다.
         """
         parser = ExaoneIntentParser(
             model_name="exaone3.5:2.4b",
@@ -237,13 +262,13 @@ class IntentParserFastPathTest(unittest.TestCase):
         )
         with patch.object(parser, "_invoke_ollama_structured", return_value=mocked):
             result = parser.parse("IT Application 위탁운영 1월분 계산서 발행 요청 메일에서 액션 아이템만 뽑아줘")
-        self.assertIn(ExecutionStep.SEARCH_MAILS, result.steps)
-        self.assertNotIn(ExecutionStep.READ_CURRENT_MAIL, result.steps)
-        self.assertNotIn(ExecutionStep.EXTRACT_KEY_FACTS, result.steps)
+        self.assertNotIn(ExecutionStep.SEARCH_MAILS, result.steps)
+        self.assertIn(ExecutionStep.READ_CURRENT_MAIL, result.steps)
+        self.assertIn(ExecutionStep.EXTRACT_KEY_FACTS, result.steps)
 
-    def test_parser_drops_search_mails_when_query_is_not_mail_search(self) -> None:
+    def test_parser_success_path_keeps_model_steps_without_search_token_normalization(self) -> None:
         """
-        비검색 질의에서 모델이 search_mails를 반환해도 정규화 단계에서 제거되어야 한다.
+        모델 성공 결과에서는 질의 토큰 정규화로 step을 제거하지 않아야 한다.
         """
         parser = ExaoneIntentParser(
             model_name="exaone3.5:2.4b",
@@ -260,7 +285,7 @@ class IntentParserFastPathTest(unittest.TestCase):
         )
         with patch.object(parser, "_invoke_ollama_structured", return_value=mocked):
             result = parser.parse("저 LDAP 쿼리에 대해 외부 검색을 해줘")
-        self.assertNotIn(ExecutionStep.SEARCH_MAILS, result.steps)
+        self.assertIn(ExecutionStep.SEARCH_MAILS, result.steps)
 
     def test_build_prompt_marks_monthly_billing_terms_as_non_date_filter(self) -> None:
         """
@@ -276,9 +301,24 @@ class IntentParserFastPathTest(unittest.TestCase):
         self.assertIn('date_filter는 반드시 none', prompt)
         self.assertIn('"지난달에 받은"', prompt)
 
-    def test_parser_preserves_required_steps_under_step_limit(self) -> None:
+    def test_build_prompt_enforces_translation_priority_contract(self) -> None:
         """
-        step 상한 적용 시에도 수신자/핵심/요약/예약 필수 step이 누락되지 않아야 한다.
+        프롬프트는 번역 의도 우선순위와 현재메일 번역 step 제한 규칙을 명시해야 한다.
+        """
+        parser = ExaoneIntentParser(
+            model_name="exaone3.5:2.4b",
+            base_url="http://127.0.0.1:11434",
+            fast_path_mode="never",
+        )
+        prompt = parser._build_prompt("현재메일 번역해줘")
+        self.assertIn("translation > action > retrieval > summary > analysis > extraction > general", prompt)
+        self.assertIn('output_format = "translation"', prompt)
+        self.assertIn('steps = ["read_current_mail"] 만 사용', prompt)
+        self.assertIn("번역 요청에서 steps에 extract_key_facts 포함 금지", prompt)
+
+    def test_parser_limits_steps_without_rule_required_expansion_on_success_path(self) -> None:
+        """
+        성공 경로에서는 step 상한을 적용하되 규칙 기반 required step 확장은 수행하지 않아야 한다.
         """
         parser = ExaoneIntentParser(
             model_name="exaone3.5:2.4b",
@@ -302,15 +342,14 @@ class IntentParserFastPathTest(unittest.TestCase):
         with patch.object(parser, "_invoke_ollama_structured", return_value=mocked):
             result = parser.parse("현재메일 주요 내용과 수신자정보 요약 후 회의실 예약")
 
-        self.assertIn(ExecutionStep.BOOK_MEETING_ROOM, result.steps)
-        self.assertIn(ExecutionStep.READ_CURRENT_MAIL, result.steps)
-        self.assertIn(ExecutionStep.SUMMARIZE_MAIL, result.steps)
-        self.assertIn(ExecutionStep.EXTRACT_RECIPIENTS, result.steps)
-        self.assertIn(ExecutionStep.EXTRACT_KEY_FACTS, result.steps)
+        self.assertEqual(
+            [ExecutionStep.BOOK_MEETING_ROOM, ExecutionStep.READ_CURRENT_MAIL],
+            result.steps,
+        )
 
-    def test_parser_preserves_calendar_booking_step_for_current_mail_schedule_registration(self) -> None:
+    def test_parser_keeps_priority_steps_only_under_limit_for_calendar_registration(self) -> None:
         """
-        현재메일 일정 등록 질의는 step 상한 상황에서도 calendar booking step을 유지해야 한다.
+        성공 경로의 일정 등록 질의는 step 상한에 따라 우선순위 step만 유지해야 한다.
         """
         parser = ExaoneIntentParser(
             model_name="exaone3.5:2.4b",
@@ -333,10 +372,40 @@ class IntentParserFastPathTest(unittest.TestCase):
         with patch.object(parser, "_invoke_ollama_structured", return_value=mocked):
             result = parser.parse("현재메일 요약 후 주요 수신자를 참석자로 해서 일정 등록해줘")
 
-        self.assertIn(ExecutionStep.BOOK_CALENDAR_EVENT, result.steps)
-        self.assertIn(ExecutionStep.READ_CURRENT_MAIL, result.steps)
-        self.assertIn(ExecutionStep.SUMMARIZE_MAIL, result.steps)
-        self.assertIn(ExecutionStep.EXTRACT_RECIPIENTS, result.steps)
+        self.assertEqual(
+            [ExecutionStep.BOOK_CALENDAR_EVENT, ExecutionStep.READ_CURRENT_MAIL],
+            result.steps,
+        )
+
+    def test_parser_success_path_preserves_llm_metadata_without_rule_recompose(self) -> None:
+        """
+        모델 성공 결과의 task/output/focus/confidence/summary target은 재합성 없이 유지되어야 한다.
+        """
+        parser = ExaoneIntentParser(
+            model_name="exaone3.5:2.4b",
+            base_url="http://127.0.0.1:11434",
+            fast_path_mode="never",
+            max_steps=4,
+        )
+        mocked = IntentDecomposition.model_validate(
+            {
+                "original_query": "주요한 내용을 3개만 요약해줘",
+                "steps": ["summarize_mail"],
+                "summary_line_target": 3,
+                "date_filter": {"mode": "none", "relative": "", "start": "", "end": ""},
+                "missing_slots": [],
+                "task_type": "summary",
+                "output_format": "line_summary",
+                "focus_topics": ["mail_general"],
+                "confidence": 0.91,
+            }
+        )
+        with patch.object(parser, "_invoke_ollama_structured", return_value=mocked):
+            result = parser.parse("주요한 내용을 3개만 요약해줘")
+        self.assertEqual(3, result.summary_line_target)
+        self.assertEqual("line_summary", result.output_format.value)
+        self.assertEqual(["mail_general"], [topic.value for topic in result.focus_topics])
+        self.assertEqual(0.91, result.confidence)
 
     def test_parser_reuses_cached_decomposition_for_same_query(self) -> None:
         """

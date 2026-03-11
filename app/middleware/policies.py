@@ -1,23 +1,21 @@
 from __future__ import annotations
 
-import os
 from typing import Sequence
 
 from langchain_core.messages import BaseMessage, HumanMessage
 
 from app.agents.intent_parser import get_intent_parser
-from app.core.intent_rules import infer_steps_from_query, is_code_review_query
+from app.core.intent_rules import infer_steps_from_query, is_code_review_query, is_mail_summary_skill_query
 from app.agents.intent_schema import (
     ExecutionStep,
     IntentDecomposition,
-    IntentFocusTopic,
     IntentOutputFormat,
     IntentTaskType,
+    create_default_decomposition,
     decomposition_to_context_text,
 )
 from app.core.logging_config import get_logger
 from app.services.current_mail_intent_policy import (
-    has_current_mail_anchor,
     is_current_mail_direct_fact_request,
     is_current_mail_translation_request,
     resolve_current_mail_issue_sections,
@@ -27,20 +25,17 @@ from app.services.intent_decomposition_service import (
     is_current_mail_scope_label,
     parse_intent_decomposition_safely,
 )
-from app.services.intent_taxonomy_config import get_intent_taxonomy
+from app.middleware.intent_routing_policy import (
+    is_calendar_event_hil_payload_request,
+    is_composite_mail_retrieval_request,
+    is_explicit_todo_registration_request,
+    is_mail_subagents_enabled,
+    is_meeting_room_hil_payload_request,
+    is_recipient_todo_summary_request,
+)
 
 INTENT_CONTEXT_PREFIX = "구조분해 결과:"
 INTENT_SYSTEM_CONTEXT_PREFIX = "의도 라우팅 컨텍스트:"
-CURRENT_MAIL_SEARCH_INTENT_TOKENS: tuple[str, ...] = (
-    "전체메일",
-    "전체사서함",
-    "다른메일",
-    "유사메일",
-    "관련메일",
-    "검색",
-    "찾아",
-)
-
 logger = get_logger(__name__)
 
 
@@ -109,6 +104,11 @@ def compose_intent_augmented_text(user_message: str) -> str:
         user_message=original_user_message,
         scope_label=scope_label,
     )
+    decomposition = _apply_task_type_policy_override(
+        decomposition=decomposition,
+        user_message=original_user_message,
+        scope_label=scope_label,
+    )
     decomposition = _apply_output_format_policy_override(
         decomposition=decomposition,
         user_message=original_user_message,
@@ -141,6 +141,11 @@ def compose_intent_system_context(user_message: str) -> str:
         scope_label=scope_label,
     )
     decomposition = _sanitize_current_mail_steps(
+        decomposition=decomposition,
+        user_message=original_user_message,
+        scope_label=scope_label,
+    )
+    decomposition = _apply_task_type_policy_override(
         decomposition=decomposition,
         user_message=original_user_message,
         scope_label=scope_label,
@@ -182,22 +187,70 @@ def _sanitize_current_mail_steps(
         step 정규화가 반영된 의도 구조분해 결과
     """
     has_scope_current_mail = is_current_mail_scope_label(scope_label=scope_label)
-    has_anchor_signal = has_scope_current_mail or has_current_mail_anchor(user_message=user_message)
-    compact = str(user_message or "").replace(" ", "").lower()
-    has_search_intent = any(token in compact for token in CURRENT_MAIL_SEARCH_INTENT_TOKENS)
-    if not has_anchor_signal or has_search_intent:
+    has_anchor_signal = has_scope_current_mail or ExecutionStep.READ_CURRENT_MAIL in decomposition.steps
+    if not has_anchor_signal:
         return decomposition
 
     if ExecutionStep.SEARCH_MAILS not in decomposition.steps:
         return decomposition
+    if _should_keep_search_step_for_current_mail(
+        decomposition=decomposition,
+        user_message=user_message,
+        has_scope_current_mail=has_scope_current_mail,
+    ):
+        return decomposition
 
     filtered_steps = [step for step in decomposition.steps if step != ExecutionStep.SEARCH_MAILS]
+    if has_scope_current_mail and ExecutionStep.READ_CURRENT_MAIL not in filtered_steps:
+        filtered_steps = [ExecutionStep.READ_CURRENT_MAIL, *filtered_steps]
     logger.info(
         "intent.step_sanitized: removed=search_mails reason=current_mail_focused_query before=%s after=%s",
         [step.value for step in decomposition.steps],
         [step.value for step in filtered_steps],
     )
     return decomposition.model_copy(update={"steps": filtered_steps})
+
+
+def _apply_task_type_policy_override(
+    decomposition: IntentDecomposition,
+    user_message: str,
+    scope_label: str,
+) -> IntentDecomposition:
+    """
+    current_mail scope에서 구조 신호 기반 task_type 과분석을 보정한다.
+
+    Args:
+        decomposition: 의도 구조분해 결과
+        user_message: scope prefix 제거된 사용자 질의
+        scope_label: 질의 범위 라벨
+
+    Returns:
+        task_type 보정이 반영된 의도 구조분해 결과
+    """
+    del user_message
+    has_current_mail_scope = is_current_mail_scope_label(scope_label=scope_label)
+    if not has_current_mail_scope:
+        return decomposition
+    if decomposition.task_type != IntentTaskType.ANALYSIS:
+        return decomposition
+    step_set = set(decomposition.steps)
+    if ExecutionStep.SUMMARIZE_MAIL in step_set:
+        return decomposition
+    if ExecutionStep.SEARCH_MAILS in step_set:
+        return decomposition
+    if not step_set.intersection({ExecutionStep.EXTRACT_KEY_FACTS, ExecutionStep.READ_CURRENT_MAIL}):
+        return decomposition
+    logger.info(
+        "intent.task_type_override: %s -> %s, reason=current_mail_structural_extraction",
+        decomposition.task_type.value,
+        IntentTaskType.EXTRACTION.value,
+    )
+    return decomposition.model_copy(
+        update={
+            "task_type": IntentTaskType.EXTRACTION,
+            "origin": "policy_override",
+        }
+    )
 
 
 def _apply_output_format_policy_override(
@@ -228,6 +281,21 @@ def _apply_output_format_policy_override(
     if is_direct_fact_request and original_format == IntentOutputFormat.STRUCTURED_TEMPLATE:
         overridden_format = IntentOutputFormat.GENERAL
         reason = "current_mail_direct_fact_prefers_general"
+    if (
+        has_current_mail_scope
+        and decomposition.task_type == IntentTaskType.SUMMARY
+        and original_format == IntentOutputFormat.STRUCTURED_TEMPLATE
+        and not is_mail_summary_skill_query(user_message=user_message)
+    ):
+        overridden_format = IntentOutputFormat.GENERAL
+        reason = "current_mail_natural_summary_prefers_general"
+    if (
+        has_current_mail_scope
+        and decomposition.task_type == IntentTaskType.EXTRACTION
+        and original_format == IntentOutputFormat.STRUCTURED_TEMPLATE
+    ):
+        overridden_format = IntentOutputFormat.GENERAL
+        reason = "current_mail_extraction_prefers_general"
 
     if overridden_format == original_format:
         return decomposition
@@ -299,9 +367,9 @@ def _build_routing_instruction(
                 lines.append("- 원인/영향/대응 순서로 간결하게 정리한다.")
     if decomposition.task_type == IntentTaskType.SOLUTION:
         lines.append("- 가능한 원인/점검 순서/즉시 조치 순서로 제시한다.")
-    is_meeting_room_hil_payload = _is_meeting_room_hil_payload_request(decomposition=decomposition)
-    is_calendar_event_hil_payload = _is_calendar_event_hil_payload_request(decomposition=decomposition)
-    is_explicit_todo_registration = _is_explicit_todo_registration_request(decomposition=decomposition)
+    is_meeting_room_hil_payload = is_meeting_room_hil_payload_request(decomposition=decomposition)
+    is_calendar_event_hil_payload = is_calendar_event_hil_payload_request(decomposition=decomposition)
+    is_explicit_todo_registration = is_explicit_todo_registration_request(decomposition=decomposition)
     if (
         decomposition.confidence < 0.6
         and not is_explicit_todo_registration
@@ -317,9 +385,9 @@ def _build_routing_instruction(
         lines.append("- 전달된 슬롯(subject/date/start_time/end_time/attendees/body)을 그대로 사용한다.")
     if is_explicit_todo_registration:
         lines.append("- ToDo 등록 요청은 추가 질문 없이 create_outlook_todo 도구를 실행한다.")
-    if _is_recipient_todo_summary_request(decomposition=decomposition):
+    if is_recipient_todo_summary_request(decomposition=decomposition):
         lines.append("- 수신자 todo/마감기한 요약 요청은 표/요약만 수행하고 실행 툴(create_outlook_todo)은 호출하지 않는다.")
-    if _is_mail_subagents_enabled() and _is_composite_mail_retrieval_request(decomposition=decomposition):
+    if is_mail_subagents_enabled() and is_composite_mail_retrieval_request(decomposition=decomposition):
         lines.append("- 복합 메일 조회 질의이므로 `mail-retrieval-summary-agent`에 위임해 주요 내용 digest를 먼저 수집한다.")
         lines.append("- 기술 이슈 축은 `mail-tech-issue-agent`에 위임해 기술 이슈 후보를 별도로 수집한다.")
         lines.append("- 최종 응답은 `주요 내용`/`기술 이슈`/`근거 메일` 순서로 통합한다.")
@@ -370,91 +438,35 @@ def _parse_intent_with_namespace(user_message: str, scope_label: str) -> IntentD
     return parse_intent_decomposition_safely(
         user_message=user_message,
         parser_factory=get_intent_parser,
-    ) or IntentDecomposition(
-        original_query=user_message,
-        steps=[ExecutionStep.READ_CURRENT_MAIL],
-        summary_line_target=5,
-        date_filter={"mode": "none", "relative": "", "start": "", "end": ""},
-        missing_slots=[],
-        task_type=IntentTaskType.GENERAL,
-        output_format=IntentOutputFormat.GENERAL,
-        focus_topics=[IntentFocusTopic.MAIL_GENERAL],
-        confidence=0.5,
+    ) or create_default_decomposition(user_message=user_message)
+
+
+def _should_keep_search_step_for_current_mail(
+    decomposition: IntentDecomposition,
+    user_message: str,
+    has_scope_current_mail: bool,
+) -> bool:
+    """
+    current_mail 문맥에서 `search_mails` step을 유지할지 정책으로 판단한다.
+
+    Args:
+        decomposition: 의도 구조분해 결과
+        user_message: 사용자 질의 원문
+        has_scope_current_mail: scope가 current_mail인지 여부
+
+    Returns:
+        유지하면 True, 제거하면 False
+    """
+    if decomposition.task_type != IntentTaskType.RETRIEVAL:
+        return False
+    if has_scope_current_mail and ExecutionStep.READ_CURRENT_MAIL not in decomposition.steps:
+        return False
+    is_direct_fact_request = is_current_mail_direct_fact_request(
+        user_message=user_message,
+        has_current_mail_context=has_scope_current_mail,
+        decomposition=decomposition,
     )
-
-
-def _is_recipient_todo_summary_request(decomposition: IntentDecomposition) -> bool:
-    """
-    수신자별 ToDo/마감기한을 요약하는 분석 질의인지 판별한다.
-
-    Args:
-        decomposition: 의도 구조분해 결과
-
-    Returns:
-        요약형 수신자 ToDo 질의면 True
-    """
-    taxonomy = get_intent_taxonomy()
-    policy = taxonomy.recipient_todo_policy
-    query_text = str(decomposition.original_query or "").replace(" ", "").lower()
-    has_recipient = any(token in query_text for token in policy.recipient_tokens)
-    has_todo = any(token in query_text for token in policy.todo_tokens)
-    has_due = any(token in query_text for token in policy.due_tokens)
-    has_registration = any(token in query_text for token in policy.registration_tokens)
-    return has_recipient and has_todo and has_due and not has_registration
-
-
-def _is_explicit_todo_registration_request(decomposition: IntentDecomposition) -> bool:
-    """
-    수신자 요약이 아닌 명시적 ToDo 등록 실행 요청인지 판별한다.
-
-    Args:
-        decomposition: 의도 구조분해 결과
-
-    Returns:
-        명시적 ToDo 등록 요청이면 True
-    """
-    taxonomy = get_intent_taxonomy()
-    policy = taxonomy.recipient_todo_policy
-    query_text = str(decomposition.original_query or "").replace(" ", "").lower()
-    has_todo = any(token in query_text for token in policy.todo_tokens)
-    has_registration = any(token in query_text for token in policy.registration_tokens)
-    return has_todo and has_registration
-
-
-def _is_meeting_room_hil_payload_request(decomposition: IntentDecomposition) -> bool:
-    """
-    회의실 예약 HIL 페이로드 질의인지 판별한다.
-
-    Args:
-        decomposition: 의도 구조분해 결과
-
-    Returns:
-        회의실 예약 HIL 페이로드면 True
-    """
-    query_text = str(decomposition.original_query or "").replace(" ", "").lower()
-    return (
-        '"task":"book_meeting_room"' in query_text
-        or "task=book_meeting_room" in query_text
-        or "task:book_meeting_room" in query_text
-    )
-
-
-def _is_calendar_event_hil_payload_request(decomposition: IntentDecomposition) -> bool:
-    """
-    일정 등록 HIL 페이로드 질의인지 판별한다.
-
-    Args:
-        decomposition: 의도 구조분해 결과
-
-    Returns:
-        일정 등록 HIL 페이로드면 True
-    """
-    query_text = str(decomposition.original_query or "").replace(" ", "").lower()
-    return (
-        '"task":"create_outlook_calendar_event"' in query_text
-        or "task=create_outlook_calendar_event" in query_text
-        or "task:create_outlook_calendar_event" in query_text
-    )
+    return not is_direct_fact_request
 
 
 def should_inject_intent_context(user_message: str) -> bool:
@@ -469,42 +481,20 @@ def should_inject_intent_context(user_message: str) -> bool:
     """
     if is_code_review_query(user_message=user_message):
         return False
-    steps = infer_steps_from_query(user_message=user_message)
+    scope_label, original_user_message = _split_scope_instruction(user_message=user_message)
+    if is_current_mail_scope_label(scope_label=scope_label):
+        return True
+    parsed = parse_intent_decomposition_safely(
+        user_message=original_user_message or user_message,
+        parser_factory=get_intent_parser,
+    )
+    if parsed is None:
+        return True
+    steps = [step.value for step in parsed.steps]
     # 단일 메일조회는 규칙 분기가 안정적이라 컨텍스트 주입을 생략해 토큰/지연을 줄인다.
     if steps == ["search_mails"]:
         return False
+    fallback_steps = infer_steps_from_query(user_message=user_message)
+    if fallback_steps == ["search_mails"]:
+        return False
     return True
-
-
-def _is_mail_subagents_enabled() -> bool:
-    """
-    메일 조회 전용 서브에이전트 활성화 여부를 반환한다.
-
-    Returns:
-        환경변수(`MOLDUBOT_ENABLE_MAIL_SUBAGENTS`)가 truthy면 True
-    """
-    raw_value = str(os.getenv("MOLDUBOT_ENABLE_MAIL_SUBAGENTS", "")).strip().lower()
-    return raw_value in {"1", "true", "yes", "on"}
-
-
-def _is_composite_mail_retrieval_request(decomposition: IntentDecomposition) -> bool:
-    """
-    복합 메일 조회(요약+기술 이슈 동시) 질의인지 판별한다.
-
-    Args:
-        decomposition: 의도 구조분해 결과
-
-    Returns:
-        복합 조회 질의면 True
-    """
-    if decomposition.task_type != IntentTaskType.RETRIEVAL:
-        return False
-    has_search_step = ExecutionStep.SEARCH_MAILS in decomposition.steps
-    has_summary_step = ExecutionStep.SUMMARIZE_MAIL in decomposition.steps
-    if not has_search_step or not has_summary_step:
-        return False
-    focus_topics = set(decomposition.focus_topics)
-    return (
-        IntentFocusTopic.SCHEDULE in focus_topics
-        and IntentFocusTopic.TECH_ISSUE in focus_topics
-    )

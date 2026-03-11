@@ -11,6 +11,7 @@ from app.services.query_artifact_extractor import (
 from app.services.answer_postprocessor_summary import sanitize_summary_lines
 from app.services.current_mail_intent_policy import (
     is_current_mail_direct_fact_request,
+    is_translation_like_request_text,
     render_current_mail_grounded_safe_message,
     should_apply_current_mail_grounded_safe_guard,
 )
@@ -144,6 +145,8 @@ def render_current_mail_direct_value_from_tool_payload(
     Returns:
         값 추출 응답 문자열. 적용 대상이 아니면 빈 문자열
     """
+    if is_translation_like_request_text(user_message=user_message):
+        return ""
     action = str(tool_payload.get("action") or "").strip().lower()
     if action != "current_mail":
         return ""

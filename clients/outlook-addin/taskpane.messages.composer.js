@@ -81,7 +81,6 @@
         return '<div class="message ' + safeRole + '"><div class="msg-content"><div class="msg-body">' + escapeHtml(text) + '</div>' + actionsHtml(safeRole, sentAtLabel) + '</div></div>';
       }
       var evidenceHtml = metaRenderer && metaRenderer.buildEvidenceListHtml ? metaRenderer.buildEvidenceListHtml(data) : '';
-      var scopeStatusHtml = metaRenderer && metaRenderer.buildScopeStatusHtml ? metaRenderer.buildScopeStatusHtml(data) : '';
       var hitlConfirmHtml = metaRenderer && metaRenderer.buildHitlConfirmHtml ? metaRenderer.buildHitlConfirmHtml(data) : '';
       var nextActionsHtml = metaRenderer && metaRenderer.buildNextActionsHtml ? metaRenderer.buildNextActionsHtml(data) : '';
       var replyTonePickerHtml = metaRenderer && metaRenderer.buildReplyTonePickerHtml ? metaRenderer.buildReplyTonePickerHtml(data) : '';
@@ -98,7 +97,7 @@
       var rawModelContentHtml = rawModelContent
         ? '<div class="msg-raw-model-content" hidden>' + escapeHtml(rawModelContent) + '</div>'
         : '';
-      var assistantContentHtml = scopeStatusHtml + assistantBodyHtml + rawAnswerHtml + rawModelOutputHtml + rawModelContentHtml + evidenceHtml + webSourcesHtml + actionHtml;
+      var assistantContentHtml = assistantBodyHtml + rawAnswerHtml + rawModelOutputHtml + rawModelContentHtml + evidenceHtml + webSourcesHtml + actionHtml;
       return '<div class="message ' + safeRole + '"><div class="msg-content">' + assistantContentHtml + actionsHtml(safeRole, sentAtLabel) + '</div></div>';
     }
 

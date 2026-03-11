@@ -20,7 +20,10 @@ from app.core.intent_rules import (
     extract_date_filter_fields,
     extract_summary_line_target,
     infer_steps_from_query,
+    is_explicit_skill_query,
+    is_current_mail_reference,
     is_mail_search_query,
+    is_mail_summary_skill_query,
     sanitize_user_query,
 )
 
@@ -60,12 +63,26 @@ def build_date_filter(user_message: str) -> DateFilter:
     )
 
 
-def normalize_steps(raw_steps: list[ExecutionStep], user_message: str) -> list[ExecutionStep]:
-    """모델이 반환한 steps를 사용자 입력 근거 기반으로 정규화한다."""
+def normalize_steps(
+    raw_steps: list[ExecutionStep],
+    user_message: str,
+    allow_rule_fallback: bool = False,
+) -> list[ExecutionStep]:
+    """
+    모델이 반환한 steps를 정규화한다.
+
+    Args:
+        raw_steps: 모델이 반환한 step 목록
+        user_message: 원본 사용자 질의
+        allow_rule_fallback: True면 규칙 기반 step 보강/검색 정규화를 허용한다.
+    """
     normalized: list[ExecutionStep] = []
     for step in raw_steps:
         if step not in normalized:
             normalized.append(step)
+
+    if not allow_rule_fallback:
+        return normalized
 
     inferred_steps = infer_steps_from_query(user_message=user_message)
     step_map = {
@@ -117,26 +134,32 @@ def infer_intent_dimensions(
     text = str(user_message or "")
     compact = text.replace(" ", "").lower()
     is_translation = any(token in compact for token in ("번역", "translate", "translation"))
-    has_contact_entity = any(token in compact for token in ("연락처", "문의처", "연락", "support", "contact"))
-    has_direct_entity = any(
-        token in compact
-        for token in ("메일주소", "이메일주소", "주소", "도메인", "ou", "ldap", "쿼리", "query", "명령어", "filter", "dn")
-    )
-    is_solution = any(token in compact for token in ("해결", "해결방법", "대응방안", "개선안", "어떻게해결"))
-    is_analysis = any(token in compact for token in ("왜", "원인", "이유", "문제", "분석", "해석", "검토"))
-    is_extraction = ("수신자" in compact) or ("받는사람" in compact) or has_contact_entity or has_direct_entity
-    is_summary = ("요약" in compact) or ("정리" in compact)
-    if is_translation:
+    has_reply_intent = any(token in compact for token in ("회신", "답장", "reply"))
+    has_draft_intent = any(token in compact for token in ("초안", "본문", "작성", "써줘"))
+    has_calendar_step = ExecutionStep.BOOK_CALENDAR_EVENT in steps
+    has_room_booking_step = ExecutionStep.BOOK_MEETING_ROOM in steps
+    has_retrieval_step = ExecutionStep.SEARCH_MAILS in steps
+    has_recipient_step = ExecutionStep.EXTRACT_RECIPIENTS in steps
+    has_summary_step = ExecutionStep.SUMMARIZE_MAIL in steps
+    has_key_facts_step = ExecutionStep.EXTRACT_KEY_FACTS in steps
+    is_solution = any(token in compact for token in ("해결", "대응", "방안"))
+    is_analysis = any(token in compact for token in ("왜", "원인", "이유", "분석", "해석", "검토"))
+
+    if has_reply_intent and has_draft_intent:
+        task_type = IntentTaskType.ACTION
+    elif has_calendar_step or has_room_booking_step:
+        task_type = IntentTaskType.ACTION
+    elif is_translation:
         task_type = IntentTaskType.GENERAL
     elif is_solution:
         task_type = IntentTaskType.SOLUTION
-    elif is_extraction:
+    elif has_recipient_step:
         task_type = IntentTaskType.EXTRACTION
     elif is_analysis:
         task_type = IntentTaskType.ANALYSIS
-    elif ExecutionStep.SEARCH_MAILS in steps:
+    elif has_retrieval_step:
         task_type = IntentTaskType.RETRIEVAL
-    elif is_summary:
+    elif has_summary_step or is_mail_summary_skill_query(user_message=text):
         task_type = IntentTaskType.SUMMARY
     else:
         task_type = IntentTaskType.GENERAL
@@ -149,9 +172,9 @@ def infer_intent_dimensions(
         output_format = IntentOutputFormat.DETAILED_SUMMARY
     elif "표" in compact:
         output_format = IntentOutputFormat.TABLE
-    elif ("핵심문제" in compact or "핵심이슈" in compact) and ("해야할일" in compact or "조치" in compact):
+    elif has_key_facts_step and any(token in compact for token in ("핵심문제", "핵심이슈", "조치")):
         output_format = IntentOutputFormat.ISSUE_ACTION
-    elif ("일정" in compact) and ("담당" in compact) and ("조치" in compact):
+    elif has_calendar_step and ("담당" in compact) and ("조치" in compact):
         output_format = IntentOutputFormat.SCHEDULE_OWNER_ACTION
     elif task_type == IntentTaskType.SUMMARY:
         output_format = IntentOutputFormat.STRUCTURED_TEMPLATE
@@ -159,7 +182,7 @@ def infer_intent_dimensions(
         output_format = IntentOutputFormat.GENERAL
 
     focus_topics: list[IntentFocusTopic] = []
-    if any(token in compact for token in ("수신자", "받는사람", "recipient", "to")) or has_contact_entity:
+    if has_recipient_step:
         focus_topics.append(IntentFocusTopic.RECIPIENTS)
     if any(token in compact for token in ("비용", "예산", "정산")):
         focus_topics.append(IntentFocusTopic.COST)
@@ -210,7 +233,11 @@ def rule_based_decomposition(user_message: str) -> IntentDecomposition:
     """모델 파싱 실패 시 사용할 규칙 기반 최소 구조분해를 생성한다."""
     sanitized_query = sanitize_user_query(user_message=user_message)
     fallback = create_default_decomposition(user_message=sanitized_query)
-    steps = normalize_steps(raw_steps=fallback.steps, user_message=sanitized_query)
+    steps = normalize_steps(
+        raw_steps=fallback.steps,
+        user_message=sanitized_query,
+        allow_rule_fallback=True,
+    )
     return compose_decomposition(
         user_message=sanitized_query,
         steps=steps,
@@ -263,28 +290,37 @@ def limit_execution_steps(steps: list[ExecutionStep], max_steps: int) -> list[Ex
 def apply_step_limit_to_decomposition(
     decomposition: IntentDecomposition,
     max_steps: int,
+    enforce_required_steps: bool = True,
 ) -> IntentDecomposition:
-    """구조분해 결과에 step 상한을 적용해 최종 객체를 재구성한다."""
-    required_steps = infer_required_steps_from_query(user_message=decomposition.original_query)
+    """
+    구조분해 결과에 step 상한을 적용한다.
+
+    Args:
+        decomposition: 원본 구조분해 결과
+        max_steps: 유지할 최대 step 개수
+        enforce_required_steps: True면 규칙 기반 required step 유지 보정을 수행한다.
+    """
+    required_steps: set[ExecutionStep] = set()
+    if enforce_required_steps:
+        required_steps = infer_required_steps_from_query(user_message=decomposition.original_query)
     effective_max_steps = max(max_steps, len(required_steps))
-    limited_steps = limit_execution_steps_with_required(
-        steps=decomposition.steps,
-        max_steps=effective_max_steps,
-        required_steps=required_steps,
-    )
-    rebuilt = compose_decomposition(
-        user_message=decomposition.original_query,
-        steps=limited_steps,
-        summary_line_target=decomposition.summary_line_target,
-        date_filter=decomposition.date_filter,
-    )
-    if decomposition.focus_topics:
-        rebuilt.focus_topics = decomposition.focus_topics
-    rebuilt.task_type = decomposition.task_type
-    rebuilt.output_format = decomposition.output_format
-    rebuilt.confidence = decomposition.confidence
-    rebuilt.origin = decomposition.origin
-    return rebuilt
+    if required_steps:
+        limited_steps = limit_execution_steps_with_required(
+            steps=decomposition.steps,
+            max_steps=effective_max_steps,
+            required_steps=required_steps,
+        )
+    else:
+        limited_steps = limit_execution_steps(
+            steps=decomposition.steps,
+            max_steps=effective_max_steps,
+        )
+
+    payload = decomposition.model_dump()
+    payload["steps"] = limited_steps
+    if ExecutionStep.BOOK_MEETING_ROOM not in limited_steps:
+        payload["missing_slots"] = []
+    return IntentDecomposition.model_validate(payload)
 
 
 def try_simple_fast_path(user_message: str, fast_path_mode: str) -> IntentDecomposition | None:
@@ -302,9 +338,8 @@ def try_simple_fast_path(user_message: str, fast_path_mode: str) -> IntentDecomp
 
 
 def is_rule_fast_path_candidate(user_message: str) -> bool:
-    """auto 모드에서 Ollama 호출을 생략해도 되는 fast-path 후보인지 판별한다."""
-    inferred_steps = infer_steps_from_query(user_message=user_message)
-    return bool(inferred_steps)
+    """auto 모드에서 명시 스킬 명령 기반 fast-path 후보인지 판별한다."""
+    return is_explicit_skill_query(user_message=user_message)
 
 
 def build_simple_fast_path_decomposition(user_message: str) -> IntentDecomposition | None:
@@ -322,43 +357,68 @@ def build_simple_fast_path_decomposition(user_message: str) -> IntentDecompositi
     return None
 
 
-def is_valid_decomposition(decomposition: IntentDecomposition, user_message: str) -> bool:
-    """모델 구조분해 결과가 최소 품질 기준을 만족하는지 검증한다."""
+def is_valid_decomposition(
+    decomposition: IntentDecomposition,
+    user_message: str,
+    enforce_required_steps: bool = True,
+) -> bool:
+    """
+    모델 구조분해 결과가 최소 품질 기준을 만족하는지 검증한다.
+
+    Args:
+        decomposition: 검증할 구조분해 결과
+        user_message: 원본 사용자 질의
+        enforce_required_steps: True면 규칙 기반 required step 검증을 수행한다.
+    """
     if not decomposition.steps:
         return False
+    if not enforce_required_steps:
+        return True
     required_steps = infer_required_steps_from_query(user_message=user_message)
     return required_steps.issubset(set(decomposition.steps))
 
 
 def infer_required_steps_from_query(user_message: str) -> set[ExecutionStep]:
-    """사용자 질의의 핵심 키워드에서 필수 step 집합을 계산한다."""
-    text = str(user_message or "").replace(" ", "")
+    """
+    사용자 질의에서 필수 step 집합을 계산한다.
+
+    Notes:
+        문자열 토큰 판별 중복을 줄이기 위해 core 규칙(`infer_steps_from_query`) 결과를
+        단일 변환 경로로 재사용한다.
+    """
+    inferred_steps = infer_steps_from_query(user_message=user_message)
+    required = _map_step_names_to_execution_steps(step_names=inferred_steps)
+    if ExecutionStep.READ_CURRENT_MAIL in required and not is_current_mail_reference(text=user_message):
+        required.discard(ExecutionStep.READ_CURRENT_MAIL)
+    return required
+
+
+def _map_step_names_to_execution_steps(step_names: list[str]) -> set[ExecutionStep]:
+    """
+    step 이름 문자열 목록을 ExecutionStep 집합으로 변환한다.
+
+    Args:
+        step_names: core 규칙에서 계산된 step 이름 목록
+
+    Returns:
+        변환된 ExecutionStep 집합
+    """
+    step_map = {
+        "read_current_mail": ExecutionStep.READ_CURRENT_MAIL,
+        "summarize_mail": ExecutionStep.SUMMARIZE_MAIL,
+        "extract_key_facts": ExecutionStep.EXTRACT_KEY_FACTS,
+        "extract_recipients": ExecutionStep.EXTRACT_RECIPIENTS,
+        "search_mails": ExecutionStep.SEARCH_MAILS,
+        "search_meeting_schedule": ExecutionStep.SEARCH_MEETING_SCHEDULE,
+        "book_meeting_room": ExecutionStep.BOOK_MEETING_ROOM,
+        "book_calendar_event": ExecutionStep.BOOK_CALENDAR_EVENT,
+    }
     required: set[ExecutionStep] = set()
-    if "현재메일" in text:
-        required.add(ExecutionStep.READ_CURRENT_MAIL)
-    if is_mail_search_query(text=str(user_message or "").strip()):
-        required.add(ExecutionStep.SEARCH_MAILS)
-    if "수신자" in text or "받는" in text:
-        required.add(ExecutionStep.EXTRACT_RECIPIENTS)
-    if "중요" in text or "핵심" in text or "주요" in text or "키워드" in text or "할일" in text or "액션아이템" in text:
-        required.add(ExecutionStep.EXTRACT_KEY_FACTS)
-    if (
-        "왜" in text
-        or "원인" in text
-        or "이유" in text
-        or "문제" in text
-        or "해결" in text
-        or "대응" in text
-        or "방안" in text
-    ):
-        required.add(ExecutionStep.SUMMARIZE_MAIL)
-        required.add(ExecutionStep.EXTRACT_KEY_FACTS)
-    if "요약" in text or "정리" in text or "보고서" in text:
-        required.add(ExecutionStep.SUMMARIZE_MAIL)
-    if "예약" in text or "잡아" in text:
-        required.add(ExecutionStep.BOOK_MEETING_ROOM)
-    if "일정" in text and ("등록" in text or "추가" in text or "생성" in text) and "회의실" not in text:
-        required.add(ExecutionStep.BOOK_CALENDAR_EVENT)
+    for step_name in step_names:
+        mapped = step_map.get(step_name)
+        if mapped is None:
+            continue
+        required.add(mapped)
     return required
 
 

@@ -80,11 +80,11 @@ class CurrentMailRequestIntentTest(unittest.TestCase):
         self.assertEqual(("cause", "response"), sections)
 
     def test_resolve_issue_sections_cause_only(self) -> None:
-        """원인 전용 요청은 원인 섹션만 계약으로 계산되어야 한다."""
+        """분석 질의는 decomposition 정책에 따라 기본 3섹션으로 계산되어야 한다."""
         sections = resolve_current_mail_issue_sections(
             user_message="현재메일에서 오류 원인 정리해줘"
         )
-        self.assertEqual(("cause",), sections)
+        self.assertEqual(("cause", "impact", "response"), sections)
 
     def test_detects_current_mail_direct_fact_request_for_problem_address(self) -> None:
         """문제 주소를 직접 묻는 현재메일 질의는 direct fact 요청으로 판별되어야 한다."""
@@ -172,12 +172,12 @@ class CurrentMailRequestIntentTest(unittest.TestCase):
         )
 
     def test_render_grounded_safe_message_for_reason_query(self) -> None:
-        """이유 질의는 라이선스 확인 필요 근거 기반 문구를 반환해야 한다."""
+        """근거 부족 질의는 공통 안전 템플릿을 반환해야 한다."""
         rendered = render_current_mail_grounded_safe_message(
             user_message="왜 M365 라이선스 확인이 필요한가요?",
             summary_text="M365 및 AD 환경 구축 가견적 안내: 총 193,000,000원, 라이선스 확인 필요.",
         )
-        self.assertIn("구체적 이유는 확인할 수 없습니다", rendered)
+        self.assertIn("확인할 수 없습니다", rendered)
 
     def test_detects_current_mail_translation_request(self) -> None:
         """현재메일 번역 요청은 번역 의도로 판별되어야 한다."""

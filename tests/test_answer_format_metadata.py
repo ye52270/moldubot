@@ -3,6 +3,7 @@ from __future__ import annotations
 import unittest
 from unittest.mock import patch
 
+from app.agents.intent_schema import DateFilter, DateFilterMode, ExecutionStep, IntentDecomposition, IntentOutputFormat, IntentTaskType
 import app.api.answer_format_metadata as answer_format_metadata
 from app.api.answer_format_metadata import build_answer_format_metadata
 
@@ -16,6 +17,16 @@ class AnswerFormatMetadataTest(unittest.TestCase):
             user_message="메일 요약해줘",
             answer="## 이메일 요약\n\n1. 핵심 내용\n2. 조치 필요",
             status="completed",
+            decomposition=IntentDecomposition(
+                original_query="메일 요약해줘",
+                steps=[ExecutionStep.SUMMARIZE_MAIL],
+                summary_line_target=5,
+                date_filter=DateFilter(mode=DateFilterMode.NONE),
+                missing_slots=[],
+                task_type=IntentTaskType.SUMMARY,
+                output_format=IntentOutputFormat.STRUCTURED_TEMPLATE,
+                confidence=0.8,
+            ),
         )
 
         self.assertEqual("v1", metadata["version"])
@@ -33,6 +44,45 @@ class AnswerFormatMetadataTest(unittest.TestCase):
         )
 
         self.assertEqual("clarification_card", metadata["format_type"])
+
+    def test_build_answer_format_metadata_for_current_mail_translation(self) -> None:
+        """현재메일 번역 질의는 current_mail_translation format_type이어야 한다."""
+        metadata = build_answer_format_metadata(
+            user_message="현재메일 번역해줘",
+            answer="제목: 테스트\n\n본문 번역 문단",
+            status="completed",
+            decomposition=IntentDecomposition(
+                original_query="현재메일 번역해줘",
+                steps=[ExecutionStep.READ_CURRENT_MAIL],
+                summary_line_target=5,
+                date_filter=DateFilter(mode=DateFilterMode.NONE),
+                missing_slots=[],
+                task_type=IntentTaskType.GENERAL,
+                output_format=IntentOutputFormat.TRANSLATION,
+                confidence=0.8,
+            ),
+        )
+        self.assertEqual("current_mail_translation", metadata["format_type"])
+
+    def test_build_answer_format_metadata_prefers_decomposition_over_query_tokens(self) -> None:
+        """decomposition이 있으면 질의 토큰보다 구조화 의도 결과를 우선해야 한다."""
+        decomposition = IntentDecomposition(
+            original_query="일반 질문",
+            steps=[ExecutionStep.READ_CURRENT_MAIL],
+            summary_line_target=5,
+            date_filter=DateFilter(mode=DateFilterMode.NONE),
+            missing_slots=[],
+            task_type=IntentTaskType.GENERAL,
+            output_format=IntentOutputFormat.TRANSLATION,
+            confidence=0.8,
+        )
+        metadata = build_answer_format_metadata(
+            user_message="번역이라는 단어가 없어도 됨",
+            answer="본문 번역 문단",
+            status="completed",
+            decomposition=decomposition,
+        )
+        self.assertEqual("current_mail_translation", metadata["format_type"])
 
     def test_build_answer_format_metadata_extracts_table_and_quote_blocks(self) -> None:
         """표/인용문 markdown은 table/quote 블록으로 추출되어야 한다."""

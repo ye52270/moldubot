@@ -21,9 +21,9 @@ class SearchChatFlowFastLaneTest(unittest.TestCase):
     """현재메일 요약 fast-lane 동작을 검증한다."""
 
     def test_current_mail_summary_cache_hit_uses_single_call_fast_lane(self) -> None:
-        """summarize_mail+read_current_mail + cache-hit이면 deep-agent 대신 fast-lane을 사용해야 한다."""
+        """`/메일요약` + cache-hit이면 deep-agent 대신 fast-lane을 사용해야 한다."""
         decomposition = IntentDecomposition(
-            original_query="현재메일 요약해줘",
+            original_query="/메일요약",
             steps=[ExecutionStep.SUMMARIZE_MAIL, ExecutionStep.READ_CURRENT_MAIL],
             summary_line_target=5,
             date_filter=DateFilter(mode=DateFilterMode.NONE),
@@ -58,7 +58,7 @@ class SearchChatFlowFastLaneTest(unittest.TestCase):
         ):
             response = run_search_chat(
                 payload=ChatRequest(
-                    message="현재메일 요약해줘",
+                    message="/메일요약",
                     email_id="m-fast",
                     mailbox_user="jaeyoung_dev@outlook.com",
                 ),

@@ -48,6 +48,13 @@ class MiddlewarePoliciesTest(unittest.TestCase):
         """
         self.assertFalse(should_inject_intent_context("현재메일 코드 리뷰해줘"))
 
+    def test_should_inject_intent_context_for_current_mail_scope_without_additional_parse(self) -> None:
+        """
+        current_mail scope 라벨이 있으면 추가 파싱 없이 컨텍스트 주입을 유지해야 한다.
+        """
+        scoped_query = "[질의 범위] 현재 선택 메일 1건만 기준으로 처리\n내 구독이 어떻게 되는지 알려줘"
+        self.assertTrue(should_inject_intent_context(scoped_query))
+
     def test_compose_intent_augmented_text_includes_routing_instruction_for_solution(self) -> None:
         """
         해결 질의는 실행 라우팅 지시(가능 원인/점검/즉시 조치)가 주입되어야 한다.
@@ -188,7 +195,7 @@ class MiddlewarePoliciesTest(unittest.TestCase):
 
     def test_compose_intent_augmented_text_for_cause_only_analysis(self) -> None:
         """
-        원인 전용 질의는 원인만 지시하고 영향/대응 강제 지시를 넣지 않아야 한다.
+        분석 질의는 decomposition 정책 기준 3섹션 정리 지시가 주입되어야 한다.
         """
         decomposition = IntentDecomposition(
             original_query="현재메일에서 오류 원인 정리해줘",
@@ -203,8 +210,7 @@ class MiddlewarePoliciesTest(unittest.TestCase):
         parser = type("StubParser", (), {"parse": lambda self, user_message: decomposition})()
         with patch("app.middleware.policies.get_intent_parser", return_value=parser):
             text = compose_intent_augmented_text("현재메일에서 오류 원인 정리해줘")
-        self.assertIn("원인만 간결하게 정리한다", text)
-        self.assertNotIn("원인/영향/대응 순서", text)
+        self.assertIn("원인/영향/대응 순서로 간결하게 정리한다.", text)
 
     def test_compose_intent_augmented_text_for_direct_fact_analysis(self) -> None:
         """
@@ -240,6 +246,7 @@ class MiddlewarePoliciesTest(unittest.TestCase):
             missing_slots=[],
             task_type=IntentTaskType.RETRIEVAL,
             output_format=IntentOutputFormat.GENERAL,
+            focus_topics=[IntentFocusTopic.RECIPIENTS],
             confidence=0.75,
         )
         parser = type("StubParser", (), {"parse": lambda self, user_message: decomposition})()
@@ -302,6 +309,7 @@ class MiddlewarePoliciesTest(unittest.TestCase):
             missing_slots=[],
             task_type=IntentTaskType.RETRIEVAL,
             output_format=IntentOutputFormat.GENERAL,
+            focus_topics=[IntentFocusTopic.RECIPIENTS],
             confidence=0.75,
         )
         parser = type("StubParser", (), {"parse": lambda self, user_message: decomposition})()
@@ -357,6 +365,27 @@ class MiddlewarePoliciesTest(unittest.TestCase):
         self.assertIn("- steps: read_current_mail, summarize_mail", text)
         self.assertNotIn("search_mails", text)
 
+    def test_compose_intent_augmented_text_keeps_search_step_for_retrieval_discovery_query(self) -> None:
+        """
+        current_mail 문맥이라도 discovery 성격 retrieval 질의는 `search_mails`를 유지해야 한다.
+        """
+        decomposition = IntentDecomposition(
+            original_query="현재메일과 관련된 다른 메일 찾아줘",
+            steps=[ExecutionStep.SEARCH_MAILS, ExecutionStep.READ_CURRENT_MAIL],
+            summary_line_target=5,
+            date_filter=DateFilter(mode=DateFilterMode.NONE),
+            missing_slots=[],
+            task_type=IntentTaskType.RETRIEVAL,
+            output_format=IntentOutputFormat.GENERAL,
+            confidence=0.76,
+        )
+        parser = type("StubParser", (), {"parse": lambda self, user_message: decomposition})()
+        with patch("app.middleware.policies.get_intent_parser", return_value=parser):
+            text = compose_intent_augmented_text(
+                "[질의 범위] 현재 선택 메일 1건만 기준으로 처리\n현재메일과 관련된 다른 메일 찾아줘"
+            )
+        self.assertIn("search_mails", text)
+
     def test_compose_intent_augmented_text_blocks_todo_tool_for_summary_style_request(self) -> None:
         """
         수신자 todo/마감기한 요약형 질의는 실행 툴 금지 지시가 주입되어야 한다.
@@ -382,9 +411,9 @@ class MiddlewarePoliciesTest(unittest.TestCase):
         self.assertIn("create_outlook_todo", text)
         self.assertIn("호출하지 않는다", text)
 
-    def test_compose_intent_augmented_text_uses_intent_taxonomy_tokens(self) -> None:
+    def test_compose_intent_augmented_text_uses_decomposition_for_recipient_todo_summary(self) -> None:
         """
-        수신자 ToDo 요약 판별 토큰은 intent taxonomy 설정값을 따라야 한다.
+        수신자 ToDo 요약 판별은 taxonomy 토큰 대신 decomposition 신호를 우선 사용해야 한다.
         """
         with tempfile.TemporaryDirectory() as temp_dir:
             config_path = os.path.join(temp_dir, "intent_taxonomy.json")
@@ -435,7 +464,7 @@ class MiddlewarePoliciesTest(unittest.TestCase):
             summary_line_target=5,
             date_filter=DateFilter(mode=DateFilterMode.NONE),
             missing_slots=[],
-            task_type=IntentTaskType.GENERAL,
+            task_type=IntentTaskType.ACTION,
             output_format=IntentOutputFormat.GENERAL,
             confidence=0.55,
         )
@@ -466,6 +495,26 @@ class MiddlewarePoliciesTest(unittest.TestCase):
             text = compose_intent_augmented_text(decomposition.original_query)
 
         self.assertNotIn("의도가 모호하면", text)
+        self.assertIn("book_meeting_room", text)
+        self.assertIn("추가 질문 없이", text)
+
+    def test_compose_intent_augmented_text_forces_tool_execution_for_meeting_room_json_payload(self) -> None:
+        """
+        JSON 형태 meeting_room_hil payload도 도구 실행 지시가 주입되어야 한다.
+        """
+        decomposition = IntentDecomposition(
+            original_query='{"task":"book_meeting_room","date":"2026-03-09","start_time":"10:00","end_time":"11:00"}',
+            steps=[ExecutionStep.BOOK_MEETING_ROOM],
+            summary_line_target=5,
+            date_filter=DateFilter(mode=DateFilterMode.NONE),
+            missing_slots=[],
+            task_type=IntentTaskType.GENERAL,
+            output_format=IntentOutputFormat.GENERAL,
+            confidence=0.41,
+        )
+        parser = type("StubParser", (), {"parse": lambda self, user_message: decomposition})()
+        with patch("app.middleware.policies.get_intent_parser", return_value=parser):
+            text = compose_intent_augmented_text(decomposition.original_query)
         self.assertIn("book_meeting_room", text)
         self.assertIn("추가 질문 없이", text)
 
@@ -565,6 +614,58 @@ class MiddlewarePoliciesTest(unittest.TestCase):
         self.assertIn("- output_format: general", text)
         self.assertIn("- origin: policy_override", text)
 
+    def test_summary_wording_query_does_not_apply_direct_fact_routing_hint(self) -> None:
+        """
+        요약형 질의는 extraction으로 분해돼도 direct-fact 라우팅 지시를 주입하면 안 된다.
+        """
+        decomposition = IntentDecomposition(
+            original_query="코드를 간단하게 요약해줘",
+            steps=[ExecutionStep.EXTRACT_KEY_FACTS],
+            summary_line_target=5,
+            date_filter=DateFilter(mode=DateFilterMode.NONE),
+            missing_slots=[],
+            task_type=IntentTaskType.EXTRACTION,
+            output_format=IntentOutputFormat.STRUCTURED_TEMPLATE,
+            focus_topics=[IntentFocusTopic.MAIL_GENERAL],
+            confidence=0.8,
+            origin="exaone_cached",
+        )
+        parser = type("StubParser", (), {"parse": lambda self, user_message: decomposition})()
+        with patch("app.middleware.policies.get_intent_parser", return_value=parser):
+            text = compose_intent_augmented_text(
+                "[질의 범위] 현재 선택 메일 1건만 기준으로 처리\n코드를 간단하게 요약해줘"
+            )
+        self.assertNotIn("해당 값을 먼저 1~3개로 직접 답한다", text)
+        self.assertNotIn("근거 1줄만", text)
+        self.assertIn("- output_format: general", text)
+        self.assertIn("- origin: policy_override", text)
+
+    def test_current_mail_structural_extraction_overrides_analysis_task_type(self) -> None:
+        """
+        current_mail scope에서 extract_key_facts 중심 질의는 analysis가 아닌 extraction으로 보정되어야 한다.
+        """
+        decomposition = IntentDecomposition(
+            original_query="내 구독이 어떻게 되는지 알려줘",
+            steps=[ExecutionStep.EXTRACT_KEY_FACTS],
+            summary_line_target=5,
+            date_filter=DateFilter(mode=DateFilterMode.NONE),
+            missing_slots=[],
+            task_type=IntentTaskType.ANALYSIS,
+            output_format=IntentOutputFormat.STRUCTURED_TEMPLATE,
+            focus_topics=[IntentFocusTopic.MAIL_GENERAL],
+            confidence=0.9,
+            origin="exaone_cached",
+        )
+        parser = type("StubParser", (), {"parse": lambda self, user_message: decomposition})()
+        with patch("app.middleware.policies.get_intent_parser", return_value=parser):
+            text = compose_intent_augmented_text(
+                "[질의 범위] 현재 선택 메일 1건만 기준으로 처리\n내 구독이 어떻게 되는지 알려줘"
+            )
+        self.assertIn("- task_type: extraction", text)
+        self.assertIn("- output_format: general", text)
+        self.assertNotIn("원인/영향/대응 순서", text)
+        self.assertIn("- origin: policy_override", text)
+
     def test_non_override_keeps_original_origin(self) -> None:
         """
         output_format override 조건이 아니면 기존 origin(exaone_cached)을 유지해야 한다.
@@ -585,6 +686,76 @@ class MiddlewarePoliciesTest(unittest.TestCase):
             text = compose_intent_augmented_text("현재메일 요약해줘")
         self.assertIn("- output_format: line_summary", text)
         self.assertIn("- origin: exaone_cached", text)
+
+    def test_natural_current_mail_summary_overrides_structured_template_to_general(self) -> None:
+        """
+        자연어 현재메일 요약은 structured_template여도 general로 override되어야 한다.
+        """
+        decomposition = IntentDecomposition(
+            original_query="현재메일 요약해줘",
+            steps=[ExecutionStep.SUMMARIZE_MAIL, ExecutionStep.READ_CURRENT_MAIL],
+            summary_line_target=5,
+            date_filter=DateFilter(mode=DateFilterMode.NONE),
+            missing_slots=[],
+            task_type=IntentTaskType.SUMMARY,
+            output_format=IntentOutputFormat.STRUCTURED_TEMPLATE,
+            confidence=0.9,
+            origin="exaone_cached",
+        )
+        parser = type("StubParser", (), {"parse": lambda self, user_message: decomposition})()
+        with patch("app.middleware.policies.get_intent_parser", return_value=parser):
+            text = compose_intent_augmented_text(
+                "[질의 범위] 현재 선택 메일 1건만 기준으로 처리\n현재메일 요약해줘"
+            )
+        self.assertIn("- output_format: general", text)
+        self.assertIn("- origin: policy_override", text)
+
+    def test_mail_summary_skill_keeps_structured_template_on_current_mail_scope(self) -> None:
+        """
+        /메일요약 스킬 명령은 current_mail scope에서도 structured_template를 유지해야 한다.
+        """
+        decomposition = IntentDecomposition(
+            original_query="/메일요약",
+            steps=[ExecutionStep.SUMMARIZE_MAIL, ExecutionStep.READ_CURRENT_MAIL],
+            summary_line_target=5,
+            date_filter=DateFilter(mode=DateFilterMode.NONE),
+            missing_slots=[],
+            task_type=IntentTaskType.SUMMARY,
+            output_format=IntentOutputFormat.STRUCTURED_TEMPLATE,
+            confidence=0.9,
+            origin="exaone_cached",
+        )
+        parser = type("StubParser", (), {"parse": lambda self, user_message: decomposition})()
+        with patch("app.middleware.policies.get_intent_parser", return_value=parser):
+            text = compose_intent_augmented_text(
+                "[질의 범위] 현재 선택 메일 1건만 기준으로 처리\n/메일요약"
+            )
+        self.assertIn("- output_format: structured_template", text)
+        self.assertIn("- origin: exaone_cached", text)
+
+    def test_current_mail_scope_retrieval_search_only_drops_search_step(self) -> None:
+        """
+        current_mail scope의 retrieval가 search_mails 단독일 때는 search step을 제거해야 한다.
+        """
+        decomposition = IntentDecomposition(
+            original_query="내 구독번호가 어떻게 나와있어?",
+            steps=[ExecutionStep.SEARCH_MAILS],
+            summary_line_target=5,
+            date_filter=DateFilter(mode=DateFilterMode.NONE),
+            missing_slots=[],
+            task_type=IntentTaskType.RETRIEVAL,
+            output_format=IntentOutputFormat.STRUCTURED_TEMPLATE,
+            focus_topics=[IntentFocusTopic.MAIL_GENERAL],
+            confidence=0.9,
+            origin="exaone_cached",
+        )
+        parser = type("StubParser", (), {"parse": lambda self, user_message: decomposition})()
+        with patch("app.middleware.policies.get_intent_parser", return_value=parser):
+            text = compose_intent_augmented_text(
+                "[질의 범위] 현재 선택 메일 1건만 기준으로 처리\n내 구독번호가 어떻게 나와있어?"
+            )
+        self.assertIn("- steps:", text)
+        self.assertNotIn("search_mails", text)
 
 
 if __name__ == "__main__":

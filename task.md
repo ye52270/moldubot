@@ -1,6 +1,254 @@
 # Task
 
 ## 현재 작업
+moldubot-conventions 스킬에서 Exaone 슬롯추출 강제 규칙 제거
+
+## Plan (2026-03-11 스킬 규칙 수정)
+- [x] 1단계: moldubot-conventions SKILL.md의 Exaone 강제 문구 제거
+- [x] 2단계: 슬롯 추출 모델 정책을 provider-configurable 규칙으로 대체
+- [x] 3단계: Action Log 업데이트
+
+## Action Log (2026-03-11 스킬 규칙 수정)
+- [15:13] 작업 시작: Exaone 강제 규칙 제거 및 GPT 전환 가능하도록 스킬 문구 수정 착수
+- [15:14] 완료: Exaone 강제 조항을 제거하고 슬롯 추출 모델 선택을 정책/환경변수 기반으로 변경
+
+## 현재 작업
+슬롯 파서 Local LLM(Exaone 2.4B) 구조 분석 및 GPT-4o-mini 전환 지점 파악
+
+## Plan (2026-03-11 슬롯 파서 모델 전환 분석)
+- [x] 1단계: Exaone 슬롯 파서 진입점/호출 체인 식별
+- [x] 2단계: 모델 선택/초기화 경로와 환경변수 계약 확인
+- [x] 3단계: GPT-4o-mini 전환 시 수정 지점 및 리스크 정리
+- [x] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-11 슬롯 파서 모델 전환 분석)
+- [15:10] 작업 시작: Exaone 기반 슬롯 파서 구조와 모델 교체 지점 코드 추적 착수
+- [15:11] 완료: intent_parser 단일 진입 구조/호출 체인/교체 영향 파일 및 테스트 회귀 포인트 정리
+
+## 현재 작업
+현재메일 번역 요청이 direct_value 강제 렌더로 오염되는 회귀 차단
+
+## Plan (2026-03-11 번역 우선 라우팅 고정)
+- [ ] 1단계: current_mail intent에서 번역 의도를 direct-fact보다 우선 판정
+- [ ] 2단계: answer_postprocessor direct_value 강제 렌더 경로에 번역 차단 가드 추가
+- [ ] 3단계: 재현 테스트 추가 및 회귀 실행
+- [ ] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-11 번역 우선 라우팅 고정)
+- [14:42] 작업 시작: `현재메일 번역해줘`가 direct_value 강제 렌더로 떨어지는 회귀 수정 착수
+
+## 현재 작업
+자유형 후속질의(current_mail scope) 흔들림 방지: 구조 보정 + 컨텍스트 주입 안정화
+
+## Plan (2026-03-11 follow-up memory/자유형 응답 안정화)
+- [x] 1단계: current_mail scope에서 구조 신호 기반 task_type 과분석(analysis) 보정
+- [x] 2단계: extraction 경로의 output_format을 freeform 친화(`general`)로 보정
+- [x] 3단계: scope prefix 질의의 추가 파싱을 억제해 파서 흔들림/캐시 오염 완화
+- [x] 4단계: 관련 테스트(TDD) 추가 및 회귀 실행
+
+## Action Log (2026-03-11 follow-up memory/자유형 응답 안정화)
+- [14:31] 작업 시작: "메일 번역해줘" 후속 자유형 질문에서 structured/analysis로 흔들리는 회귀 재현 로그 분석 착수
+- [14:35] 완료: current_mail scope + extract_key_facts 중심 질의를 extraction/general로 구조 보정하고 search 제거 후 read_current_mail 보강 정책 반영
+- [14:38] 완료: scope prefix 질의의 should_inject 재파싱 억제 반영 및 회귀 63건 통과
+
+## 현재 작업
+자연어 current_mail 질의의 `structured_template` 잔존 경로 제거 및 retrieval `search_mails` sanitize 보정
+
+## Plan (2026-03-11 current_mail 자연어 경로 최종 보정)
+- [x] 1단계: middleware output_format override를 자연어 current_mail summary에서 `general`로 강제
+- [x] 2단계: current_mail 고정 질의의 retrieval `search_mails` 유지 조건 축소
+- [x] 3단계: 관련 테스트(TDD) 추가/수정 및 회귀 실행
+- [x] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-11 current_mail 자연어 경로 최종 보정)
+- [14:11] 작업 시작: 자연어 current_mail 질의에서 `output_format=structured_template`가 잔존하는 회귀를 정책 레이어에서 제거 착수
+- [14:12] 이슈 발생: 시스템 전역 `pytest/python/uv` 실행기가 없어 테스트 실행 실패 → 해결 방법: 프로젝트 venv(`.venv/bin/pytest`) + `PYTHONPATH=.`로 실행
+- [14:14] 완료: 자연어 current_mail summary `output_format=general` override 및 current_mail scope retrieval search-only sanitize 반영, 관련 회귀 60건 통과
+- [14:18] 이슈 발생: `코드를 간단하게 요약해줘`가 current_mail direct-fact로 오판정되어 `current_mail_direct_value` 강제 렌더 발생 → 해결 방법: direct-fact 판정에서 요약형 문구를 제외하는 guard 추가
+- [14:23] 완료: direct-fact 오판정 guard + 미들웨어 회귀 테스트 추가 반영, 관련 회귀 61건 통과
+
+## 현재 작업
+현재메일 자연어 요약 freeform 전환: 스킬 명령에서만 정형 템플릿/strict 적용
+
+## Plan (2026-03-11 현재메일 요약 렌더 정책 분리)
+- [x] 1단계: strict prompt/fast-lane/retry 분기를 `/메일요약` 명시 스킬 전용으로 제한
+- [x] 2단계: format template 선택에서 자연어 현재메일 요약의 `current_mail_summary` 선택 제거
+- [x] 3단계: 관련 테스트(TDD) 갱신 및 회귀 실행
+- [x] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-11 현재메일 요약 렌더 정책 분리)
+- [13:45] 작업 시작: 자연어 `현재메일 요약해줘`가 정형 템플릿으로 렌더되는 경로를 스킬 전용으로 분리하는 수정 착수
+- [13:55] 완료: 자연어 현재메일 요약을 freeform 경로로 전환하고 `/메일요약`만 strict/template 경로 유지, 관련 타깃 테스트 32건 통과
+- [14:02] 이슈 발생: 자연어 현재메일 요약에서 계약 파싱 실패 시 fallback `summary_text`가 번호형 `요약 결과`를 강제해 freeform이 다시 깨짐 → 해결 방법: non-skill current_mail summary는 fallback `summary_freeform_text`로 우회
+- [14:05] 완료: fallback freeform 우회 + 로그 route 추가 + 회귀 테스트 33건(추가 2건 포함) 통과
+
+# Task
+
+## 현재 작업
+토큰 의존 제거 12차: intent_parser 성공 경로의 규칙/토큰 재추론 차단
+
+## Plan (2026-03-11 토큰 의존 제거 12차)
+- [x] 1단계: `intent_parser` 성공 경로에서 decomposition 재합성(토큰 추론) 제거
+- [x] 2단계: `intent_parser_utils.normalize_steps`를 fallback-only 추론으로 제한
+- [x] 3단계: `intent_rules` step/검색 토큰 규칙이 fallback 경로에서만 사용되도록 정리
+- [x] 4단계: 테스트(TDD) 추가/수정 및 회귀 실행
+- [x] 5단계: Action Log 업데이트
+
+## Action Log (2026-03-11 토큰 의존 제거 12차)
+- [13:20] 작업 시작: 사용자 요청에 따라 `intent_parser_utils.py`/`intent_rules.py`의 토큰 기반 의존을 성공 경로에서 제거하는 리팩터링 착수
+- [13:32] 완료: LLM 성공 경로의 토큰 재추론 제거, fallback-only 규칙 제한, 관련 회귀 테스트(87건) 통과
+
+# Task
+
+## 현재 작업
+회귀 보정 11차: "N개 요약" 개수 인식 + current_mail summary 라우팅 안정화
+
+## Plan (2026-03-11 회귀 보정 11차)
+- [x] 1단계: `summary_line_target`가 `N개` 표현을 인식하도록 규칙 보강
+- [x] 2단계: current_mail summary를 `quality_structured_json_strict`로 고정해 fallback 요약 과다를 차단
+- [x] 3단계: `focus_topics=tech_issue` 과판정(핵심추출만으로 지정) 제거
+- [x] 4단계: 관련 테스트(TDD) 추가/갱신 후 회귀 실행 및 Action Log 업데이트
+
+## Action Log (2026-03-11 회귀 보정 11차)
+- [13:08] 작업 시작: "주요한 내용을 3개만 요약" 케이스에서 5개 출력되는 회귀 원인 보정 착수
+- [13:10] 완료: `N개` 요약 개수 인식/summary strict 라우팅/tech_issue 과판정 제거 반영, 관련 회귀 86건 통과
+
+## 현재 작업
+토큰 의존 축소 10차: intent_taxonomy token fallback 기본 비활성화
+
+## Plan (2026-03-11 토큰 의존 축소 10차)
+- [x] 1단계: `intent_taxonomy_config`에 token fallback 활성화 플래그 도입
+- [x] 2단계: 기본 정책을 token-off(빈 정책)로 전환하고 config에 명시
+- [x] 3단계: 관련 테스트(TDD) 갱신 및 회귀 실행
+- [x] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-11 토큰 의존 축소 10차)
+- [12:52] 작업 시작: intent taxonomy 토큰 정책을 fallback-only 모드로 격리하는 리팩터링 착수
+- [12:55] 완료: `enable_token_fallback=false` 기본값 적용 및 테스트 갱신, 관련 회귀 85건 통과
+
+## 현재 작업
+토큰 의존 축소 9차: 명시 커맨드 fast-path + 자연어 구조화 출력 경로 분리
+
+## Plan (2026-03-11 토큰 의존 축소 9차)
+- [x] 1단계: fast-path를 명시 커맨드 중심으로 제한하고 자연어는 LLM 구조분해 우선으로 전환
+- [x] 2단계: intent 차원 추론을 step/decomposition 우선으로 단순화하고 토큰 fallback 최소화
+- [x] 3단계: 관련 테스트(TDD) 갱신 및 회귀 실행
+- [x] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-11 토큰 의존 축소 9차)
+- [11:53] 작업 시작: 명시 커맨드(/메일요약·/코드분석) 템플릿 경로와 자연어 자유포맷 경로 분리 리팩터링 착수
+- [11:57] 완료: `auto` fast-path를 explicit skill command 중심으로 제한하고 intent 차원 추론을 step 우선으로 단순화, 회귀 테스트 97건 통과
+
+## 현재 작업
+세션 중단 원인 확인 및 토큰 의존(템플릿/자유포맷) 정책 재검증
+
+## Plan (2026-03-11 세션 중단 + 토큰 의존 재검증)
+- [x] 1단계: 이전 세션 중단 원인 후보(세션/컨텍스트/중단 지점) 확인
+- [x] 2단계: OpenAI 공식 문서 기반 Structured Output/Responses 권장 패턴 검증
+- [x] 3단계: LangChain Fundamentals 기준 템플릿 경로 vs 자유포맷 경로 설계안 정리
+- [x] 4단계: 토큰 의존 필요성 결론 및 Action Log 업데이트
+
+## Action Log (2026-03-11 세션 중단 + 토큰 의존 재검증)
+- [11:46] 작업 시작: 이전 세션 중단 원인 확인 및 문서 근거 기반 토큰 의존 필요성 재평가 착수
+- [11:48] 이슈 발생: openaiDeveloperDocs `fetch_openai_doc`가 `/api/docs/guides/*` URL을 직접 조회하지 못함 → OpenAPI spec(`/responses`) + 검색 인덱스 스니펫 + LangChain 공식 문서(Context7)로 교차 검증
+- [11:49] 완료: 템플릿 경로(명시 커맨드)와 자유포맷 경로(자연어)를 분리한 구조화 출력 정책으로 정리, 질의 토큰 의존은 최소 fallback만 유지 권고
+
+## 현재 작업
+app 하위 Python 중복/불필요 코드 정리(8차: grounded-safe 정책의 decomposition 우선화)
+
+## Plan (2026-03-11 app Python 중복 리팩터링 8차)
+- [x] 1단계: `current_mail_grounded_safe_policy`의 질의 토큰 분기 제거
+- [x] 2단계: parser에서 회신 초안 의도를 `ACTION`으로 구조화해 정책 분기 대체
+- [x] 3단계: 관련 테스트 기대값 갱신 및 전체 회귀 실행
+- [x] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-11 app Python 중복 리팩터링 8차)
+- [11:36] 작업 시작: grounded-safe 정책의 토큰 분기 제거 및 decomposition 기반 일반화 착수
+- [11:42] 이슈 발생: SUMMARY 질의 중 `TECH_ISSUE` 포커스 케이스가 안전가드에서 누락됨 → high-risk summary 허용 규칙 보강
+- [11:45] 완료: grounded-safe를 decomposition 우선 정책으로 전환하고 회귀 113건 통과
+
+## 현재 작업
+app 하위 Python 중복/불필요 코드 정리(7차: intent-context 주입의 규칙 fallback 제거)
+
+## Plan (2026-03-11 app Python 중복 리팩터링 7차)
+- [x] 1단계: `should_inject_intent_context`의 `infer_steps_from_query` fallback 제거
+- [x] 2단계: parser 실패 시 보수적 주입 정책으로 전환
+- [x] 3단계: 회귀 테스트 실행 및 Action Log 업데이트
+
+## Action Log (2026-03-11 app Python 중복 리팩터링 7차)
+- [11:28] 작업 시작: intent-context 주입 판별의 마지막 규칙 fallback 제거 착수
+- [11:30] 완료: parser 실패 시 `True`(주입) 정책으로 단순화해 토큰 규칙 의존 제거, 회귀 104건 통과
+
+## 현재 작업
+app 하위 Python 중복/불필요 코드 정리(6차: current_mail/answer_format query-token fallback 제거)
+
+## Plan (2026-03-11 app Python 중복 리팩터링 6차)
+- [x] 1단계: `current_mail_intent_policy`의 질의 토큰 분기(cause_only/anchor fallback) 제거
+- [x] 2단계: `answer_format_metadata` query-token fallback 제거(decomposition 우선 고정)
+- [x] 3단계: 테스트 기대값 조정 및 회귀 실행
+- [x] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-11 app Python 중복 리팩터링 6차)
+- [11:18] 작업 시작: current_mail 정책의 잔여 토큰 정규식 분기와 answer_format query-token fallback 제거 착수
+- [11:23] 완료: current_mail 섹션 정책을 decomposition-only로 단순화하고 answer_format을 decomposition 우선으로 고정, 회귀 104건 통과
+
+## 현재 작업
+app 하위 Python 중복/불필요 코드 정리(5차: intent-context 주입 판별의 decomposition 우선화)
+
+## Plan (2026-03-11 app Python 중복 리팩터링 5차)
+- [x] 1단계: `should_inject_intent_context`의 step 판별을 decomposition 우선으로 전환
+- [x] 2단계: parser 실패 시 규칙 기반 fallback 유지
+- [x] 3단계: 회귀 테스트 실행 및 Action Log 업데이트
+
+## Action Log (2026-03-11 app Python 중복 리팩터링 5차)
+- [11:09] 작업 시작: intent-context 주입 판별에서 `infer_steps` 직접 의존을 줄이고 decomposition 결과 재사용 전환 착수
+- [11:12] 완료: `should_inject_intent_context`를 decomposition-first + fallback 구조로 변경하고 회귀 104건 통과
+
+## 현재 작업
+app 하위 Python 중복/불필요 코드 정리(4차: answer_format 추론의 decomposition 우선화)
+
+## Plan (2026-03-11 app Python 중복 리팩터링 4차)
+- [x] 1단계: `answer_format_metadata` 토큰 추론 지점을 decomposition 우선으로 전환
+- [x] 2단계: `search_chat_flow` 호출부에 decomposition 전달
+- [x] 3단계: 회귀 테스트 및 신규 테스트(TDD) 추가
+- [x] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-11 app Python 중복 리팩터링 4차)
+- [11:01] 작업 시작: answer_format 추론의 query-token 의존 축소를 위해 decomposition 우선 추론 경로 추가
+- [11:05] 완료: `build_answer_format_metadata(..., decomposition=...)` 경로 도입 및 검색 플로우 연계, 신규 테스트 포함 회귀 104건 통과
+
+## 현재 작업
+app 하위 Python 중복/불필요 코드 정리(3차: core intent step 판별 중복 제거)
+
+## Plan (2026-03-11 app Python 중복 리팩터링 3차)
+- [x] 1단계: `intent_parser_utils`의 required-step 산출 중복 로직 제거
+- [x] 2단계: `core/intent_rules` 재사용 기반으로 step 계약 단일화
+- [x] 3단계: 회귀 테스트 실행 및 정책 안정성 확인
+- [x] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-11 app Python 중복 리팩터링 3차)
+- [10:47] 작업 시작: 토큰 의존 축소를 위해 required-step 판별의 중복 문자열 매칭 제거 착수
+- [10:51] 이슈 발생: 일반 메일 질의가 current_mail로 과판정되어 원인 분석 분기로 유입됨 → required-step 변환 시 `is_current_mail_reference` 재검증으로 보정
+- [10:54] 완료: required-step 계산을 core `infer_steps_from_query` 재사용 구조로 단일화하고 관련 테스트 추가/회귀 103건 통과
+
+## 현재 작업
+app 하위 Python 중복/불필요 코드 정리(2차: middleware 토큰 판별의 decomposition 정책 전환)
+
+## Plan (2026-03-11 app Python 중복 리팩터링 2차)
+- [x] 1단계: `app/middleware/policies.py` 토큰 판별 분기 전수 식별
+- [x] 2단계: 문자열 토큰 판별을 decomposition 필드(task_type/output_format/focus_topics/steps) 우선 정책으로 치환
+- [x] 3단계: 관련 테스트(TDD) 보강 및 회귀 실행
+- [x] 4단계: Action Log 업데이트
+
+## Action Log (2026-03-11 app Python 중복 리팩터링 2차)
+- [10:14] 작업 시작: 토큰 의존 제거 목표에 따라 `middleware/policies`의 현재메일 의도 분기를 decomposition 정책으로 전환 착수
+- [10:19] 이슈 발생: retrieval를 direct-fact로 과판정해 `search_mails`가 과도하게 제거됨 → direct-fact 조건을 extraction/recipient-focus 중심으로 축소
+- [10:22] 완료: `middleware/policies`/`search_chat_intent_helpers`의 주요 토큰 분기를 decomposition 기반으로 치환하고 회귀 테스트 99건 통과
+- [10:29] 완료: ToDo 등록 의도를 parser(`task_type=action`) 우선으로 판별하도록 보강하고 후단 explicit-registration 분기의 토큰 의존을 축소, 회귀 테스트 100건 통과
+- [10:34] 완료: `middleware/policies.py`(522줄) 보조 판별 로직을 `intent_routing_policy.py`로 분리해 파일 길이 규칙을 충족(417줄)하고 회귀 테스트 유지
+- [10:41] 완료: recipient_todo/HIL payload 판별을 토큰 매칭에서 decomposition·구조 파싱 우선으로 전환(일부 fallback 제거)하고 회귀 테스트 101건 통과
+
+## 현재 작업
 app 하위 Python 중복/불필요 코드 정리(1차: current_mail 의도·scope·파서 경로 공통화)
 
 ## Plan (2026-03-11 app Python 중복 리팩터링 1차)

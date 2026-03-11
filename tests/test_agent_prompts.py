@@ -10,6 +10,7 @@ from app.agents.prompts import (
     MAIL_TECH_ISSUE_SUBAGENT_SYSTEM_PROMPT,
     QUALITY_FREEFORM_GROUNDED_SYSTEM_PROMPT,
     QUALITY_STRUCTURED_SYSTEM_PROMPT,
+    QUALITY_TRANSLATION_GROUNDED_SYSTEM_PROMPT,
     get_agent_system_prompt,
 )
 
@@ -51,6 +52,13 @@ class AgentPromptsTest(unittest.TestCase):
         self.assertEqual(
             get_agent_system_prompt("quality_freeform_grounded"),
             QUALITY_FREEFORM_GROUNDED_SYSTEM_PROMPT,
+        )
+
+    def test_returns_quality_translation_grounded_variant(self) -> None:
+        """quality_translation_grounded variant 조회가 가능해야 한다."""
+        self.assertEqual(
+            get_agent_system_prompt("quality_translation_grounded"),
+            QUALITY_TRANSLATION_GROUNDED_SYSTEM_PROMPT,
         )
 
     def test_quality_freeform_prompt_does_not_force_json_contract(self) -> None:

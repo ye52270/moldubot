@@ -3,8 +3,13 @@ from __future__ import annotations
 from typing import Any
 
 from app.agents.deep_chat_agent import FALLBACK_EMPTY_RESPONSE
-from app.agents.intent_schema import ExecutionStep, IntentDecomposition, IntentTaskType
-from app.core.intent_rules import is_code_review_query
+from app.agents.intent_schema import (
+    ExecutionStep,
+    IntentDecomposition,
+    IntentOutputFormat,
+    IntentTaskType,
+)
+from app.core.intent_rules import is_code_review_query, is_mail_summary_skill_query
 from app.services.intent_decomposition_service import (
     is_current_mail_scope_value,
     parse_intent_decomposition_safely as _parse_intent_decomposition_safely,
@@ -13,7 +18,6 @@ from app.services.current_mail_intent_policy import (
     is_current_mail_direct_fact_request,
     is_current_mail_translation_request,
 )
-from app.services.intent_taxonomy_config import get_intent_taxonomy
 
 INTENT_CLARIFICATION_CONFIDENCE_THRESHOLD = 0.6
 
@@ -27,9 +31,7 @@ def is_non_action_query_for_interrupt_retry(
     has_action_step = any(step in action_steps for step in decomposition.steps)
     if decomposition.task_type == IntentTaskType.ACTION or has_action_step:
         return False
-    query = str(user_message or "").strip()
-    action_keywords = ("예약", "등록", "생성", "실행", "승인", "확정")
-    return not any(keyword in query for keyword in action_keywords)
+    return True
 
 
 def parse_intent_decomposition_safely(
@@ -56,29 +58,20 @@ def select_prompt_variant_from_intent(
     query = str(user_message or "").strip()
     if not query and decomposition is not None:
         query = str(decomposition.original_query or "").strip()
-    compact_query = query.replace(" ", "")
-    if (
-        is_current_mail_scope_value(scope_value=resolved_scope)
-        and "현재메일" in compact_query
-        and ("요약" in compact_query)
-    ):
+    if is_mail_summary_skill_query(user_message=query):
         return "quality_structured_json_strict"
-    if (
-        is_current_mail_scope_value(scope_value=resolved_scope)
-        and "현재메일" in compact_query
-        and ("정리" in compact_query or "작업내역" in compact_query or "주요작업" in compact_query)
-        and "요약" not in compact_query
-    ):
+    is_current_mail_scope = is_current_mail_scope_value(scope_value=resolved_scope)
+    if is_current_mail_scope and decomposition is not None and decomposition.task_type == IntentTaskType.SUMMARY:
         return "quality_freeform_grounded"
     if is_current_mail_translation_request(
         user_message=query,
-        has_current_mail_context=is_current_mail_scope_value(scope_value=resolved_scope),
+        has_current_mail_context=is_current_mail_scope,
         decomposition=decomposition,
     ):
         return "quality_translation_grounded"
     if is_current_mail_direct_fact_request(
         user_message=query,
-        has_current_mail_context=is_current_mail_scope_value(scope_value=resolved_scope),
+        has_current_mail_context=is_current_mail_scope,
         decomposition=decomposition,
     ):
         return "quality_freeform_grounded"
@@ -109,7 +102,9 @@ def build_intent_clarification(
         return None
     if str(runtime_options.get("scope") or "").strip():
         return None
-    if is_explicit_todo_registration_query(user_message=user_message):
+    if is_explicit_todo_registration_intent(
+        decomposition=decomposition,
+    ):
         return None
     if any(
         step in decomposition.steps
@@ -124,8 +119,13 @@ def build_intent_clarification(
         return None
     if decomposition.confidence >= INTENT_CLARIFICATION_CONFIDENCE_THRESHOLD:
         return None
-    compact = str(user_message or "").replace(" ", "")
-    if any(token in compact for token in ("요약", "정리", "조회", "검색")):
+    if decomposition.task_type in (IntentTaskType.SUMMARY, IntentTaskType.RETRIEVAL):
+        return None
+    if decomposition.output_format in (
+        IntentOutputFormat.LINE_SUMMARY,
+        IntentOutputFormat.DETAILED_SUMMARY,
+        IntentOutputFormat.TABLE,
+    ):
         return None
     question = (
         "요청 의도를 확인할게요. 현재메일 기준으로 "
@@ -141,15 +141,21 @@ def build_intent_clarification(
     }
 
 
-def is_explicit_todo_registration_query(user_message: str) -> bool:
-    """사용자 입력이 ToDo 등록 실행 의도인지 판별한다."""
-    compact = str(user_message or "").replace(" ", "").lower()
-    if not compact:
+def is_explicit_todo_registration_intent(
+    decomposition: IntentDecomposition | None,
+) -> bool:
+    """
+    ToDo 등록 실행 의도인지 구조화 의도 우선으로 판별한다.
+
+    Args:
+        decomposition: 구조화 의도 결과
+
+    Returns:
+        명시적 ToDo 등록 의도면 True
+    """
+    if decomposition is None:
         return False
-    policy = get_intent_taxonomy().recipient_todo_policy
-    has_todo = any(token in compact for token in policy.todo_tokens)
-    has_registration = any(token in compact for token in policy.registration_tokens)
-    return has_todo and has_registration
+    return decomposition.task_type == IntentTaskType.ACTION
 
 
 def build_hitl_confirm_metadata(

@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from app.core.intent_rules import is_code_review_query
+from app.core.intent_rules import is_code_review_query, is_mail_summary_skill_query
 from app.services.answer_postprocessor_code_snippet import render_auto_code_snippet_text
 from app.models.response_contracts import LLMResponseContract, SummaryResponseContract
 from app.services.answer_postprocessor_contract_utils import augment_contract_with_tool_payload
@@ -88,6 +88,10 @@ def render_fallback_answer(
         return "generic_json_object_text", generic_json_object_rendered
 
     if is_summary_request(user_message=user_message):
+        if is_current_mail_summary_request(user_message=user_message) and not is_mail_summary_skill_query(
+            user_message=user_message
+        ):
+            return "summary_freeform_text", answer
         if '"format_type"' in answer:
             if is_current_mail_summary_request(user_message=user_message):
                 return "summary_json_template_guard_current_mail", "현재메일 요약 형식 변환에 실패했습니다. 다시 시도해 주세요."

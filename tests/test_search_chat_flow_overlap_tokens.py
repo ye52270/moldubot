@@ -23,9 +23,9 @@ class SearchChatFlowOverlapTokensTest(unittest.TestCase):
         self.assertNotIn("a", tokens)
 
     def test_use_fresh_agent_thread_for_current_mail_summary_true(self) -> None:
-        """현재메일 요약 요청은 fresh agent thread를 사용해야 한다."""
+        """`/메일요약` 요청은 fresh agent thread를 사용해야 한다."""
         should_use = _use_fresh_agent_thread_for_current_mail_summary(
-            user_message="현재메일 요약해줘",
+            user_message="/메일요약",
             resolved_scope="current_mail",
             selected_message_id="AQMk_test_message_id",
         )
@@ -41,9 +41,9 @@ class SearchChatFlowOverlapTokensTest(unittest.TestCase):
         self.assertIn("thread-1::cms::AQMk_test_message_id", built)
 
     def test_should_retry_current_mail_summary_json_when_contract_parse_fails(self) -> None:
-        """현재메일 요약에서 raw_model_content가 JSON 계약이 아니면 재시도해야 한다."""
+        """`/메일요약`에서 raw_model_content가 JSON 계약이 아니면 재시도해야 한다."""
         should_retry = _should_retry_current_mail_summary_json(
-            user_message="현재메일 요약해줘",
+            user_message="/메일요약",
             resolved_scope="current_mail",
             tool_payload={"action": "current_mail"},
             final_answer="```json\n{\"format_type\":\"standard_summary\"}\n```",
@@ -54,7 +54,7 @@ class SearchChatFlowOverlapTokensTest(unittest.TestCase):
     def test_should_retry_current_mail_summary_json_false_for_rendered_summary(self) -> None:
         """최종 답변이 이미 렌더된 요약 마크다운이면 재시도하지 않아야 한다."""
         should_retry = _should_retry_current_mail_summary_json(
-            user_message="현재메일 요약해줘",
+            user_message="/메일요약",
             resolved_scope="current_mail",
             tool_payload={"action": "current_mail"},
             final_answer="### 🧾 제목\n\n메일 제목\n",

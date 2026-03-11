@@ -17,6 +17,8 @@ ALLOWED_RELATIVE_DATE_FILTERS = (
 )
 ALLOWED_MISSING_SLOTS = REQUIRED_BOOKING_SLOTS
 MAIL_SUMMARY_SKILL_COMMANDS: tuple[str, ...] = ("/메일요약", "/mailsummary")
+CODE_REVIEW_SKILL_COMMANDS: tuple[str, ...] = ("/코드분석", "/codeanalysis")
+EXPLICIT_SKILL_COMMANDS: tuple[str, ...] = MAIL_SUMMARY_SKILL_COMMANDS + CODE_REVIEW_SKILL_COMMANDS
 
 
 def is_code_review_query(user_message: str) -> bool:
@@ -73,6 +75,25 @@ def is_mail_summary_skill_query(user_message: str) -> bool:
     )
 
 
+def is_explicit_skill_query(user_message: str) -> bool:
+    """
+    사용자 질의가 명시 스킬 슬래시 명령인지 판별한다.
+
+    Args:
+        user_message: 원본 사용자 입력
+
+    Returns:
+        명시 스킬 명령이면 True
+    """
+    normalized = sanitize_user_query(user_message=user_message).lower()
+    if not normalized:
+        return False
+    return any(
+        normalized == command or normalized.startswith(f"{command} ")
+        for command in EXPLICIT_SKILL_COMMANDS
+    )
+
+
 def extract_summary_line_target(user_message: str) -> int:
     """
     사용자 문장에서 목표 요약 줄 수를 추정한다.
@@ -83,7 +104,7 @@ def extract_summary_line_target(user_message: str) -> int:
     Returns:
         추정된 줄 수. 탐지 실패 시 기본값 5
     """
-    match = re.search(r"(\d{1,2})\s*줄", user_message)
+    match = re.search(r"(\d{1,2})\s*(줄|개|가지)", user_message)
     if not match:
         return DEFAULT_SUMMARY_LINE_TARGET
 
@@ -347,6 +368,8 @@ def infer_steps_from_query(user_message: str) -> list[str]:
         step 문자열 목록
     """
     text = user_message.strip()
+    if is_mail_summary_skill_query(user_message=text):
+        return ["read_current_mail", "summarize_mail"]
     compact = text.replace(" ", "")
     steps: list[str] = []
     is_mail_search = _is_mail_search_query(text=text)
@@ -473,6 +496,24 @@ def is_mail_search_query(text: str) -> bool:
     if not normalized:
         return False
     return _is_mail_search_query(text=normalized)
+
+
+def is_current_mail_reference(text: str) -> bool:
+    """
+    사용자 입력이 현재 선택 메일 문맥을 가리키는지 판별한다.
+
+    Args:
+        text: 사용자 입력 문자열
+
+    Returns:
+        현재메일 문맥이면 True
+    """
+    compact = str(text or "").replace(" ", "").lower()
+    if not compact:
+        return False
+    if "현재메일" in compact:
+        return True
+    return _is_deictic_current_mail_reference(text=str(text or ""))
 
 
 def build_missing_slots(steps: list[str], user_message: str) -> list[str]:

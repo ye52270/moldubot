@@ -2,9 +2,14 @@ from app.services.format_policy_selector import FormatTemplateId, select_format_
 
 
 def test_select_current_mail_summary_template() -> None:
-    selection = select_format_template(user_message="현재메일 요약해줘")
+    selection = select_format_template(user_message="/메일요약")
     assert selection.template_id == FormatTemplateId.CURRENT_MAIL_SUMMARY
     assert "evidence" not in selection.facets
+
+
+def test_select_natural_current_mail_summary_prefers_general_template() -> None:
+    selection = select_format_template(user_message="현재메일 요약해줘")
+    assert selection.template_id == FormatTemplateId.GENERAL
 
 
 def test_select_mail_search_summary_template() -> None:

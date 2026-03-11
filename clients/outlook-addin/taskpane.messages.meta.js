@@ -64,7 +64,6 @@
 
     return {
       renderSelectedMailBanner: bannerRenderer.renderSelectedMailBanner || function () { return; },
-      buildScopeStatusHtml: blocksRenderer.buildScopeStatusHtml || function () { return ''; },
       buildEvidenceListHtml: blocksRenderer.buildEvidenceListHtml || function () { return ''; },
       buildScopeClarificationHtml: blocksRenderer.buildScopeClarificationHtml || function () { return ''; },
       buildHitlConfirmHtml: blocksRenderer.buildHitlConfirmHtml || function () { return ''; },

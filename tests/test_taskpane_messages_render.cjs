@@ -88,7 +88,7 @@ test('taskpane messages maps moldubot_mid link to evidence open action', () => {
   assert.equal(html.includes('data-web-link="https://outlook.live.com/owa/?ItemID=abc"'), true);
 });
 
-test('taskpane messages renders scope status chip for assistant metadata', () => {
+test('taskpane messages does not render scope status chip for assistant metadata', () => {
   const moduleRef = loadMessagesModule();
   const instance = moduleRef.create({
     byId: () => null,
@@ -104,8 +104,8 @@ test('taskpane messages renders scope status chip for assistant metadata', () =>
     scope_label: '전체 사서함',
     scope_reason: '선택 메일에 고정하지 않고 전체 사서함에서 검색합니다.',
   });
-  assert.equal(html.includes('scope-status-chip'), true);
-  assert.equal(html.includes('범위: 전체 사서함'), true);
+  assert.equal(html.includes('scope-status-chip'), false);
+  assert.equal(html.includes('범위: 전체 사서함'), false);
 });
 
 test('taskpane messages does not expose legacy streaming methods', () => {

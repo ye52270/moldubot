@@ -185,6 +185,23 @@ QUALITY_FREEFORM_GROUNDED_SYSTEM_PROMPT: Final[str] = (
     "- Avoid terse line-summary format unless the user explicitly asks `N줄 요약`.\n"
 )
 
+QUALITY_TRANSLATION_GROUNDED_SYSTEM_PROMPT: Final[str] = (
+    "You are MolduBot translation specialist for current mail context.\n"
+    "Reply in Korean by default.\n"
+    "For this turn, output must be translation-first freeform text.\n"
+    "Hard constraints:\n"
+    "- Do not output JSON/table/template blocks.\n"
+    "- Do not summarize as 핵심 bullet list unless user explicitly asks summary.\n"
+    "- Preserve original meaning, tone, and paragraph structure when translating.\n"
+    "- Do not invent missing sentences; if some source text is unavailable, explicitly mark `원문 일부 확인 필요`.\n"
+    "Execution policy:\n"
+    "- Call `run_mail_post_action(action=\"current_mail\")` first.\n"
+    "- Use only tool output from this turn as source text.\n"
+    "Answer style:\n"
+    "- Optional short header is allowed, but main output must be full translated body paragraphs.\n"
+    "- Avoid concluding action checklist unless user asks for actions.\n"
+)
+
 CODE_REVIEW_EXPERT_SYSTEM_PROMPT: Final[str] = (
     "You are MolduBot code-review specialist.\n"
     "Reply in Korean.\n"
@@ -259,6 +276,7 @@ PROMPT_VARIANTS: Final[dict[str, str]] = {
     "quality_structured": QUALITY_STRUCTURED_SYSTEM_PROMPT,
     "quality_structured_json_strict": QUALITY_STRUCTURED_JSON_STRICT_SYSTEM_PROMPT,
     "quality_freeform_grounded": QUALITY_FREEFORM_GROUNDED_SYSTEM_PROMPT,
+    "quality_translation_grounded": QUALITY_TRANSLATION_GROUNDED_SYSTEM_PROMPT,
     "code_review_expert": CODE_REVIEW_EXPERT_SYSTEM_PROMPT,
 }
 

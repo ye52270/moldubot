@@ -6,8 +6,10 @@ from datetime import date, timedelta
 from app.core.intent_rules import (
     build_missing_slots,
     extract_date_filter_fields,
+    extract_summary_line_target,
     infer_steps_from_query,
     is_code_review_query,
+    is_explicit_skill_query,
     is_mail_summary_skill_query,
 )
 
@@ -137,6 +139,10 @@ class IntentRulesTest(unittest.TestCase):
         self.assertEqual(expected_start, start)
         self.assertEqual(expected_end, end)
 
+    def test_extract_summary_line_target_from_item_count_expression(self) -> None:
+        """`N개만 요약` 표현도 summary_line_target으로 해석해야 한다."""
+        self.assertEqual(3, extract_summary_line_target("주요한 내용을 3개만 요약해줘"))
+
     def test_is_code_review_query_detects_code_review_phrases(self) -> None:
         """코드 리뷰 핵심 문구를 포함하면 코드리뷰 질의로 판별해야 한다."""
         self.assertTrue(is_code_review_query("현재메일 코드 리뷰해줘"))
@@ -149,6 +155,12 @@ class IntentRulesTest(unittest.TestCase):
         self.assertTrue(is_mail_summary_skill_query("/메일요약"))
         self.assertTrue(is_mail_summary_skill_query("/메일요약 지금 메일 요약"))
         self.assertFalse(is_mail_summary_skill_query("현재메일 요약해줘"))
+
+    def test_is_explicit_skill_query_detects_supported_slash_commands(self) -> None:
+        """명시 스킬 명령(`/메일요약`, `/코드분석`)은 explicit query로 판별해야 한다."""
+        self.assertTrue(is_explicit_skill_query("/메일요약"))
+        self.assertTrue(is_explicit_skill_query("/코드분석"))
+        self.assertFalse(is_explicit_skill_query("현재메일 요약해줘"))
 
     def test_build_missing_slots_accepts_hhmm_and_attendee_count_keys(self) -> None:
         """HH:MM/attendee_count 키가 있으면 예약 슬롯 누락으로 오탐하면 안 된다."""

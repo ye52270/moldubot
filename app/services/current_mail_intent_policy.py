@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-import re
 
 from app.agents.intent_schema import (
     ExecutionStep,
@@ -55,8 +54,6 @@ def is_current_mail_cause_analysis_request(user_message: str) -> bool:
     decomposition = contract.decomposition
     if decomposition is None:
         return False
-    if _is_cause_only_request(user_message=user_message):
-        return True
     return decomposition.task_type in (IntentTaskType.ANALYSIS, IntentTaskType.SOLUTION)
 
 
@@ -97,14 +94,12 @@ def resolve_current_mail_issue_sections(user_message: str) -> tuple[str, ...]:
     decomposition = contract.decomposition
     if decomposition is None:
         return ()
-    if _is_cause_only_request(user_message=user_message):
-        return ("cause",)
     if decomposition.output_format == IntentOutputFormat.ISSUE_ACTION:
         return ("cause", "response")
     if decomposition.task_type == IntentTaskType.SOLUTION:
         return ("cause", "response")
     if decomposition.task_type == IntentTaskType.ANALYSIS:
-        return ("cause", "impact")
+        return ("cause", "impact", "response")
     return ()
 
 
@@ -131,15 +126,35 @@ def is_current_mail_direct_fact_request(
     )
     if not contract.has_anchor or not contract.allows_direct_fact:
         return False
+    if is_translation_like_request_text(user_message=user_message):
+        return False
+    if _is_summary_like_request(user_message=user_message):
+        return False
 
     resolved = contract.decomposition
     if resolved is None:
         return False
-    if resolved.task_type in (IntentTaskType.EXTRACTION, IntentTaskType.RETRIEVAL):
+    if resolved.task_type == IntentTaskType.EXTRACTION:
+        return True
+    if resolved.task_type == IntentTaskType.RETRIEVAL and IntentFocusTopic.RECIPIENTS in resolved.focus_topics:
         return True
     if IntentFocusTopic.RECIPIENTS in resolved.focus_topics:
         return True
     return False
+
+
+def _is_summary_like_request(user_message: str) -> bool:
+    """
+    direct fact 강제 분기에서 제외해야 하는 요약형 요청인지 판별한다.
+
+    Args:
+        user_message: 사용자 입력 원문
+
+    Returns:
+        요약형 요청이면 True
+    """
+    compact = str(user_message or "").replace(" ", "")
+    return "요약" in compact
 
 
 def is_current_mail_artifact_analysis_request(
@@ -194,9 +209,28 @@ def is_current_mail_translation_request(
     )
     if not contract.has_anchor or not contract.allows_translation:
         return False
+    if is_translation_like_request_text(user_message=user_message):
+        return True
     if contract.decomposition is None:
         return False
     return contract.decomposition.output_format == IntentOutputFormat.TRANSLATION
+
+
+def is_translation_like_request_text(user_message: str) -> bool:
+    """
+    사용자 문장이 번역 요청 성격인지 텍스트 기준으로 판별한다.
+
+    Args:
+        user_message: 사용자 입력 원문
+
+    Returns:
+        번역 성격 요청이면 True
+    """
+    compact = str(user_message or "").replace(" ", "").lower()
+    if not compact:
+        return False
+    translation_tokens = ("번역", "translate", "translation")
+    return any(token in compact for token in translation_tokens)
 
 
 def has_current_mail_anchor(user_message: str) -> bool:
@@ -287,7 +321,7 @@ def _is_current_mail_decomposition(decomposition: IntentDecomposition | None) ->
         return False
     if ExecutionStep.READ_CURRENT_MAIL in decomposition.steps:
         return True
-    return _looks_like_current_mail_reference(query=decomposition.original_query)
+    return False
 
 
 def _allows_cause_analysis(decomposition: IntentDecomposition | None) -> bool:
@@ -358,71 +392,3 @@ def _allows_translation(decomposition: IntentDecomposition | None) -> bool:
         IntentTaskType.RETRIEVAL,
         IntentTaskType.EXTRACTION,
     )
-
-
-def _is_cause_only_request(user_message: str) -> bool:
-    """
-    원인만 요청한 질의인지 최소 패턴으로 판별한다.
-
-    Args:
-        user_message: 사용자 입력 원문
-
-    Returns:
-        원인 전용 요청이면 True
-    """
-    compact = _to_compact(user_message=user_message)
-    if not compact:
-        return False
-    if re.search(r"(원인|이유).{0,4}만", compact) is None and "원인정리" not in compact and "이유정리" not in compact:
-        return False
-    return not _contains_any(compact, ("해결", "대응", "방안", "영향", "파급", "리스크"))
-
-
-def _looks_like_current_mail_reference(query: str) -> bool:
-    """
-    문장이 현재 선택 메일 지시어를 포함하는지 최소 패턴으로 판별한다.
-
-    Args:
-        query: 사용자 질의 원문
-
-    Returns:
-        현재메일 지시 표현이면 True
-    """
-    compact = _to_compact(user_message=query)
-    patterns = (
-        "현재메일",
-        "현재선택메일",
-        "현재선택된메일",
-        "선택메일",
-        "이메일에서",
-        "이메일의",
-        "해당메일",
-    )
-    return _contains_any(compact, patterns)
-
-
-def _contains_any(text: str, terms: tuple[str, ...]) -> bool:
-    """
-    텍스트에 후보 문자열이 하나라도 포함되는지 판별한다.
-
-    Args:
-        text: 검사 대상 문자열
-        terms: 포함 여부를 검사할 후보 문자열 목록
-
-    Returns:
-        하나라도 포함되면 True
-    """
-    return any(term in text for term in terms)
-
-
-def _to_compact(user_message: str) -> str:
-    """
-    질의 문자열을 판별용으로 정규화한다.
-
-    Args:
-        user_message: 사용자 입력 원문
-
-    Returns:
-        공백 제거 + 소문자 문자열
-    """
-    return str(user_message or "").replace(" ", "").lower()

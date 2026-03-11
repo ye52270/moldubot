@@ -1043,4 +1043,5 @@ test('scope-select action reruns original query with runtime scope option', asyn
   assert.equal(calls.runtimeOptions.scope, 'global_search');
   assert.equal(calls.runtimeOptions.skip_intent_clarification, true);
   assert.equal(calls.assistantMessages.includes('재조회 완료'), true);
+  assert.equal(calls.assistantMessages.some((text) => text.includes('선택 범위:')), false);
 });
