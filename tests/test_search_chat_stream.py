@@ -30,7 +30,7 @@ class SearchChatStreamTest(unittest.TestCase):
     def test_search_chat_stream_emits_progress_token_and_completed(self) -> None:
         """스트림 엔드포인트는 progress/token/completed 이벤트를 순서대로 내려야 한다."""
         fake_agent = MagicMock()
-        fake_agent.stream_execute_turn.return_value = {
+        fake_agent.execute_turn.return_value = {
             "status": "completed",
             "thread_id": "thread-1",
             "answer": "테스트 응답",
@@ -44,11 +44,7 @@ class SearchChatStreamTest(unittest.TestCase):
             "answer": "요청을 취소했습니다.",
             "interrupts": [],
         }
-        def _stream_turn_side_effect(*args, **kwargs):
-            on_token = kwargs.get("on_token")
-            if callable(on_token):
-                on_token("테")
-                on_token("스트")
+        def _execute_turn_side_effect(*args, **kwargs):
             return {
                 "status": "completed",
                 "thread_id": "thread-1",
@@ -56,7 +52,7 @@ class SearchChatStreamTest(unittest.TestCase):
                 "interrupts": [],
             }
 
-        fake_agent.stream_execute_turn.side_effect = _stream_turn_side_effect
+        fake_agent.execute_turn.side_effect = _execute_turn_side_effect
         with patch("app.api.routes.is_openai_key_configured", return_value=True):
             with patch("app.api.routes.get_deep_chat_agent", return_value=fake_agent):
                 response = self.client.post(
@@ -141,7 +137,6 @@ class SearchChatStreamTest(unittest.TestCase):
     def test_search_chat_stream_handles_unexpected_error_as_completed_payload(self) -> None:
         """스트리밍 경로의 비-OpenAI 예외도 completed 이벤트(internal-error)로 반환해야 한다."""
         fake_agent = MagicMock()
-        fake_agent.stream_execute_turn = None
         fake_agent.execute_turn.side_effect = RuntimeError("unexpected boom")
         with patch("app.api.routes.is_openai_key_configured", return_value=True):
             with patch("app.api.routes.get_deep_chat_agent", return_value=fake_agent):
@@ -158,7 +153,6 @@ class SearchChatStreamTest(unittest.TestCase):
     def test_search_chat_stream_retries_after_auto_dismiss_for_non_action_query(self) -> None:
         """비-실행 질의에서 기존 인터럽트가 남아 있으면 자동 정리 후 재시도해야 한다."""
         fake_agent = MagicMock()
-        fake_agent.stream_execute_turn = None
         fake_agent.resume_pending_actions.return_value = {
             "status": "completed",
             "answer": "요청을 취소했습니다.",

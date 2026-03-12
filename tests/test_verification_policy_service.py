@@ -34,8 +34,8 @@ class VerificationPolicyServiceTest(unittest.TestCase):
         self.assertTrue(decision.enabled)
         self.assertIn("explicit_verification_request", decision.reasons)
 
-    def test_enables_low_confidence_verification(self) -> None:
-        """global 범위에서 low-confidence 분석 질의는 웹 검증 대상이어야 한다."""
+    def test_requires_explicit_external_request_in_global_scope(self) -> None:
+        """global 범위에서는 명시 외부근거 요청이 있어야 웹 검증을 허용해야 한다."""
         decision = decide_web_verification(
             user_message="원인과 대응 정리해줘",
             intent_task_type="analysis",
@@ -44,8 +44,21 @@ class VerificationPolicyServiceTest(unittest.TestCase):
             intent_confidence=0.44,
             model_answer="추정입니다.",
         )
-        self.assertTrue(decision.enabled)
-        self.assertIn("low_confidence_or_uncertain_answer", decision.reasons)
+        self.assertFalse(decision.enabled)
+        self.assertIn("policy_not_matched", decision.reasons)
+
+    def test_blocks_external_search_when_user_requests_internal_only(self) -> None:
+        """명시적으로 외부검색 제외를 요청하면 웹 검증을 차단해야 한다."""
+        decision = decide_web_verification(
+            user_message="현재메일 기준으로 외부 검색 없이 내부메일만 정리해줘",
+            intent_task_type="analysis",
+            resolved_scope="global_search",
+            tool_payload={},
+            intent_confidence=0.92,
+            model_answer="",
+        )
+        self.assertFalse(decision.enabled)
+        self.assertIn("explicit_internal_only_request", decision.reasons)
 
 
 if __name__ == "__main__":

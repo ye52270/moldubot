@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any, Callable
 from app.agents.deep_chat_agent import FALLBACK_EMPTY_RESPONSE, get_deep_chat_agent, is_openai_key_configured
 from app.agents.intent_parser import get_intent_parser
-from app.agents.intent_schema import ExecutionStep, IntentDecomposition
+from app.agents.intent_schema import ExecutionStep, IntentDecomposition, IntentTaskType
 from app.agents.prompts import get_agent_system_prompt
 from app.agents.tools import clear_current_mail, prime_current_mail, run_mail_post_action
 from app.agents.tools import reset_search_scope_contract, set_search_scope_contract
@@ -35,16 +35,11 @@ from app.api.search_chat_intent_helpers import (
 from app.api.search_chat_response_builders import (
     build_intent_clarification_response,
     build_pending_approval_response,
-    build_scope_clarification_response,
     build_web_search_direct_response,
 )
 from app.api.followup_scope import (
-    apply_scope_instruction,
-    build_scope_clarification,
-    parse_requested_scope,
     remember_followup_search_result,
     resolve_default_scope,
-    resolve_effective_scope,
 )
 from app.api.followup_reference import (
     build_followup_reference_hint,
@@ -82,7 +77,8 @@ from app.services.answer_postprocessor_summary import is_current_mail_summary_re
 from app.services.mail_context_service import build_mail_context_service
 from app.services.mail_search_service import MailSearchService
 from app.services.next_action_recommender import recommend_next_actions
-from app.services.web_source_search_service import search_web_sources
+from app.services.visible_answer_service import iter_answer_stream_chunks, sanitize_visible_answer_text
+from app.services.web_source_search_service import search_web_sources, should_search_web_sources
 logger = get_logger(__name__)
 chat_metrics = get_chat_metrics_tracker()
 ROOT_DIR = Path(__file__).resolve().parents[2]
@@ -90,6 +86,38 @@ MAIL_DB_PATH = ROOT_DIR / "data" / "sqlite" / "emails.db"
 mail_context_service = build_mail_context_service(db_path=MAIL_DB_PATH)
 mail_search_service = MailSearchService(db_path=MAIL_DB_PATH)
 DEFAULT_FAST_LANE_MODEL = "gpt-4o-mini"
+
+
+def _resolve_ui_render_mode(user_message: str) -> str:
+    """
+    응답 카드 렌더 모드를 결정한다.
+
+    Args:
+        user_message: 사용자 입력 원문
+
+    Returns:
+        `/메일요약`이면 `card`, 그 외는 `plain_lists`
+    """
+    if is_mail_summary_skill_query(user_message=user_message):
+        return "card"
+    return "plain_lists"
+
+
+def _emit_answer_tokens(answer: str, token_callback: Callable[[str], None] | None) -> None:
+    """
+    최종 답변을 청크로 분해해 토큰 콜백으로 전송한다.
+
+    Args:
+        answer: 사용자 노출 최종 답변
+        token_callback: 스트림 토큰 콜백
+    """
+    if not callable(token_callback):
+        return
+    for chunk in iter_answer_stream_chunks(text=answer):
+        normalized = str(chunk or "")
+        if not normalized:
+            continue
+        token_callback(normalized)
 
 
 def _record_stage_elapsed(stage_timings: dict[str, float], stage_name: str, started_at: float) -> float:
@@ -228,6 +256,43 @@ def _invoke_current_mail_summary_fast_lane(
     return response_text, tool_payload, elapsed_ms
 
 
+def _should_use_current_mail_external_web_direct_path(
+    decomposition: IntentDecomposition | None,
+    user_message: str,
+    resolved_scope: str,
+    selected_message_id: str,
+    next_action_id: str,
+) -> bool:
+    """
+    현재메일 + 명시 외부검색 요청을 direct web-search 경로로 처리할지 판단한다.
+
+    Args:
+        decomposition: 의도 구조분해 결과
+        user_message: 사용자 입력
+        resolved_scope: 최종 scope
+        selected_message_id: 선택 메일 ID
+        next_action_id: 명시 next-action 식별자
+
+    Returns:
+        direct 경로 적용 가능하면 True
+    """
+    if next_action_id:
+        return False
+    if str(resolved_scope or "").strip().lower() != "current_mail":
+        return False
+    if not str(selected_message_id or "").strip():
+        return False
+    task_type = decomposition.task_type if decomposition is not None else None
+    if task_type not in {IntentTaskType.RETRIEVAL, IntentTaskType.ANALYSIS}:
+        return False
+    return should_search_web_sources(
+        user_message=user_message,
+        intent_task_type=task_type.value if task_type is not None else "",
+        resolved_scope=resolved_scope,
+        tool_payload={"action": "current_mail"},
+    )
+
+
 def _build_selected_mail_evidence_snippet(selected_mail: Any) -> str:
     """
     선택 메일 근거 표시용 snippet을 생성한다.
@@ -350,6 +415,7 @@ def run_search_chat(
     stage_started_at = started_at
     stage_timings: dict[str, float] = {}
     text = str(payload.message or "").strip()
+    ui_render_mode = _resolve_ui_render_mode(user_message=text)
     thread_id = resolve_thread_id(payload=payload)
     preview = (text[:80] + "...") if len(text) > 80 else text
     logger.info(
@@ -360,21 +426,19 @@ def run_search_chat(
         thread_id,
     )
     selected_email_id = str(payload.email_id or "").strip()
-    requested_scope = parse_requested_scope(runtime_options=payload.runtime_options)
     is_current_mail_mode = resolve_current_mail_mode(
         user_message=text,
         thread_id=thread_id,
         selected_mail_available=bool(selected_email_id),
-        requested_scope=requested_scope,
+        requested_scope="",
     )
     remember_sticky_current_mail(
         thread_id=thread_id,
         user_message=text,
-        requested_scope=requested_scope,
+        requested_scope="",
         selected_mail_available=bool(selected_email_id),
         is_current_mail_mode=is_current_mail_mode,
     )
-    preliminary_scope = resolve_effective_scope(user_message=text, requested_scope=requested_scope)
     logger.info(
         "%s 선택 메일 식별자 수신: email_id=%s message_id=%s mailbox_user=%s",
         log_prefix,
@@ -413,35 +477,7 @@ def run_search_chat(
         selected_message_id_exists=bool(selected_message_id),
     )
     stage_started_at = _record_stage_elapsed(stage_timings=stage_timings, stage_name="intent_parse", started_at=stage_started_at)
-    scope_clarification = None
-    if not next_action_id:
-        scope_clarification = build_scope_clarification(
-            user_message=text,
-            requested_scope=requested_scope,
-            thread_id=thread_id,
-            selected_mail_available=bool(selected_message_id),
-        )
-    if scope_clarification is not None:
-        logger.info(
-            "%s 범위 확인 필요: thread_id=%s options=%s",
-            log_prefix,
-            thread_id,
-            len(scope_clarification.get("options", [])),
-        )
-        scope_question = str(scope_clarification.get("question") or "질문의 범위를 선택해 주세요.")
-        return build_scope_clarification_response(
-            question=scope_question,
-            clarification=scope_clarification,
-            thread_id=thread_id,
-            is_current_mail_mode=is_current_mail_mode,
-            scope_metadata=build_scope_metadata(
-                resolved_scope=preliminary_scope,
-                is_current_mail_mode=is_current_mail_mode,
-                selected_message_id=selected_message_id,
-                thread_id=thread_id,
-            ),
-            build_answer_format_metadata=build_answer_format_metadata,
-        )
+    preliminary_scope = resolve_default_scope(is_current_mail_mode=is_current_mail_mode)
     intent_clarification = build_intent_clarification(
         user_message=text,
         thread_id=thread_id,
@@ -457,9 +493,8 @@ def run_search_chat(
             thread_id,
             intent_decomposition.confidence if intent_decomposition is not None else -1.0,
         )
-        question = str(intent_clarification.get("question") or "요청 의도를 한 번만 확인해 주세요.")
-        return build_intent_clarification_response(
-            question=question,
+        response_payload = build_intent_clarification_response(
+            question=str(intent_clarification.get("question") or "요청 의도를 한 번만 확인해 주세요."),
             clarification=intent_clarification,
             thread_id=thread_id,
             is_current_mail_mode=is_current_mail_mode,
@@ -471,9 +506,11 @@ def run_search_chat(
             ),
             build_answer_format_metadata=build_answer_format_metadata,
         )
-    resolved_scope = resolve_effective_scope(user_message=text, requested_scope=requested_scope)
-    if not resolved_scope:
-        resolved_scope = resolve_default_scope(is_current_mail_mode=is_current_mail_mode)
+        metadata = response_payload.get("metadata")
+        if isinstance(metadata, dict):
+            metadata["ui_render_mode"] = ui_render_mode
+        return response_payload
+    resolved_scope = resolve_default_scope(is_current_mail_mode=is_current_mail_mode)
     scope_metadata = build_scope_metadata(
         resolved_scope=resolved_scope,
         is_current_mail_mode=is_current_mail_mode,
@@ -573,6 +610,46 @@ def run_search_chat(
             metadata["intent_confidence"] = (
                 round(intent_decomposition.confidence, 2) if intent_decomposition is not None else 0.0
             )
+        if isinstance(metadata, dict):
+            metadata["ui_render_mode"] = ui_render_mode
+        return web_direct_response
+    if _should_use_current_mail_external_web_direct_path(
+        decomposition=intent_decomposition,
+        user_message=text,
+        resolved_scope=resolved_scope,
+        selected_message_id=selected_message_id,
+        next_action_id=next_action_id,
+    ):
+        logger.info("%s current_mail explicit external request: web-search direct path", log_prefix)
+        mail_subject = str(getattr(selected_mail, "subject", "") or "").strip()
+        mail_summary = str(getattr(selected_mail, "summary_text", "") or "").strip()
+        web_direct_response = build_web_search_direct_response(
+            user_message=text,
+            thread_id=thread_id,
+            is_current_mail_mode=is_current_mail_mode,
+            resolved_scope=resolved_scope,
+            selected_message_id=selected_message_id,
+            did_clear_current_mail=did_clear_current_mail,
+            clear_current_mail=clear_current_mail,
+            build_answer_format_metadata=build_answer_format_metadata,
+            selected_mail_subject=mail_subject,
+            selected_mail_summary=mail_summary,
+            search_web_sources_fn=search_web_sources,
+        )
+        metadata = web_direct_response.get("metadata")
+        if isinstance(metadata, dict):
+            metadata.update(scope_metadata)
+            metadata["elapsed_ms"] = round((time.perf_counter() - started_at) * 1000, 1)
+            metadata["intent_task_type"] = (
+                intent_decomposition.task_type.value if intent_decomposition is not None else ""
+            )
+            metadata["intent_output_format"] = (
+                intent_decomposition.output_format.value if intent_decomposition is not None else ""
+            )
+            metadata["intent_confidence"] = (
+                round(intent_decomposition.confidence, 2) if intent_decomposition is not None else 0.0
+            )
+            metadata["ui_render_mode"] = ui_render_mode
         return web_direct_response
     answer = ""
     raw_answer = ""
@@ -619,11 +696,7 @@ def run_search_chat(
                 selected_message_id=selected_message_id,
                 use_fresh_thread=use_fresh_thread,
             )
-            scoped_message = apply_scope_instruction(
-                user_message=text,
-                resolved_scope=resolved_scope,
-                thread_id=thread_id,
-            )
+            scoped_message = str(text or "").strip()
             recent_context_hint = build_recent_context_hint(
                 thread_id=thread_id,
                 user_message=text,
@@ -667,28 +740,20 @@ def run_search_chat(
                     raw_model_content=raw_model_content,
                     chat_mode=resolve_chat_mode(user_message=text),
                 )
-                answer = str(answer or "").strip() or raw_model_content
+                answer = sanitize_visible_answer_text(str(answer or "").strip() or raw_model_content)
                 tool_payload = fast_tool_payload if isinstance(fast_tool_payload, dict) else {}
+                _emit_answer_tokens(answer=answer, token_callback=token_callback)
                 stage_timings["llm_call_1"] = round(llm_call_1_ms, 1)
                 stage_timings["llm_call_2"] = round(llm_call_2_ms, 1)
                 logger.info("%s 처리 완료: source=%s answer_length=%s", log_prefix, source, len(answer))
             else:
                 agent = get_deep_chat_agent(prompt_variant=prompt_variant)
-                stream_execute_turn = getattr(agent, "stream_execute_turn", None)
-                if callable(token_callback) and callable(stream_execute_turn):
-                    llm_call_1_started_at = time.perf_counter()
-                    turn_result = stream_execute_turn(
-                        user_message=scoped_message,
-                        thread_id=agent_thread_id,
-                        on_token=token_callback,
-                    )
-                else:
-                    llm_call_1_started_at = time.perf_counter()
-                    turn_result = execute_agent_turn(
-                        agent=agent,
-                        user_message=scoped_message,
-                        thread_id=agent_thread_id,
-                    )
+                llm_call_1_started_at = time.perf_counter()
+                turn_result = execute_agent_turn(
+                    agent=agent,
+                    user_message=scoped_message,
+                    thread_id=agent_thread_id,
+                )
                 llm_call_1_ms = (time.perf_counter() - llm_call_1_started_at) * 1000
                 turn_status = str(turn_result.get("status") or "").strip()
                 if turn_status == "interrupted" and is_non_action_query_for_interrupt_retry(
@@ -701,21 +766,12 @@ def run_search_chat(
                         approved=False,
                         confirm_token=None,
                     )
-                    stream_execute_turn = getattr(agent, "stream_execute_turn", None)
-                    if callable(token_callback) and callable(stream_execute_turn):
-                        llm_call_1_started_at = time.perf_counter()
-                        turn_result = stream_execute_turn(
-                            user_message=scoped_message,
-                            thread_id=agent_thread_id,
-                            on_token=token_callback,
-                        )
-                    else:
-                        llm_call_1_started_at = time.perf_counter()
-                        turn_result = execute_agent_turn(
-                            agent=agent,
-                            user_message=scoped_message,
-                            thread_id=agent_thread_id,
-                        )
+                    llm_call_1_started_at = time.perf_counter()
+                    turn_result = execute_agent_turn(
+                        agent=agent,
+                        user_message=scoped_message,
+                        thread_id=agent_thread_id,
+                    )
                     llm_call_1_ms = (time.perf_counter() - llm_call_1_started_at) * 1000
                     turn_status = str(turn_result.get("status") or "").strip()
                 if turn_status == "interrupted":
@@ -753,6 +809,8 @@ def run_search_chat(
                     metadata = response_payload.get("metadata")
                     if isinstance(metadata, dict):
                         metadata["elapsed_ms"] = round(elapsed_ms, 1)
+                        metadata["ui_render_mode"] = ui_render_mode
+                    _emit_answer_tokens(answer=answer, token_callback=token_callback)
                     return response_payload
                 answer = str(turn_result.get("answer") or "").strip() or FALLBACK_EMPTY_RESPONSE
                 raw_answer = answer
@@ -773,20 +831,12 @@ def run_search_chat(
                         "직전 결과를 다시 생성하세요. 반드시 JSON 객체 하나만 출력하세요. "
                         "코드펜스/설명/머리말 없이 raw JSON만 반환하세요."
                     )
-                    stream_execute_turn = getattr(agent, "stream_execute_turn", None)
                     llm_call_2_started_at = time.perf_counter()
-                    if callable(token_callback) and callable(stream_execute_turn):
-                        retry_result = stream_execute_turn(
-                            user_message=retry_message,
-                            thread_id=agent_thread_id,
-                            on_token=token_callback,
-                        )
-                    else:
-                        retry_result = execute_agent_turn(
-                            agent=agent,
-                            user_message=retry_message,
-                            thread_id=agent_thread_id,
-                        )
+                    retry_result = execute_agent_turn(
+                        agent=agent,
+                        user_message=retry_message,
+                        thread_id=agent_thread_id,
+                    )
                     llm_call_2_ms = (time.perf_counter() - llm_call_2_started_at) * 1000
                     if str(retry_result.get("status") or "").strip() == "completed":
                         retried_answer = str(retry_result.get("answer") or "").strip()
@@ -808,6 +858,8 @@ def run_search_chat(
                 stage_timings["llm_call_2"] = round(llm_call_2_ms, 1)
                 if not answer:
                     answer = FALLBACK_EMPTY_RESPONSE
+                answer = sanitize_visible_answer_text(answer)
+                _emit_answer_tokens(answer=answer, token_callback=token_callback)
                 tool_action = extract_tool_action(tool_payload=tool_payload)
                 tool_evidence = extract_evidence_from_tool_payload(tool_payload=tool_payload)
                 if tool_action == "mail_search":
@@ -884,6 +936,7 @@ def run_search_chat(
     postprocess_policy = decide_postprocess_execution_policy(
         intent_output_format=intent_output_format,
         tool_action=tool_action,
+        resolved_scope=resolved_scope,
     )
     logger.info(
         "%s postprocess policy: output_format=%s tool_action=%s skip_web=%s skip_related_mail=%s",
@@ -1005,5 +1058,6 @@ def run_search_chat(
             "semantic_contract": semantic_contract,
             "stage_elapsed_ms": stage_timings,
             "code_review_quality": code_review_quality if isinstance(code_review_quality, dict) else {},
+            "ui_render_mode": ui_render_mode,
         },
     }

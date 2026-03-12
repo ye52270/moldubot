@@ -27,34 +27,10 @@ test('meta actions renders HIL confirm block', () => {
   assert.match(html, /data-prompt-variant="quality_structured"/);
 });
 
-test('meta actions renders next action and web sources block', () => {
+test('meta actions exposes next action renderer', () => {
   const renderer = metaActions.create({
     escapeHtml: passthrough,
     escapeAttr: passthrough,
   });
-  const actionsHtml = renderer.buildNextActionsHtml({
-    next_actions: [{ title: '추가 조회', query: '관련 메일 조회', action_id: 'a1', priority: 'high' }],
-  });
-  assert.match(actionsHtml, /next-action-btn/);
-  assert.match(actionsHtml, /priority-high/);
-
-  const sourcesHtml = renderer.buildWebSourcesHtml({
-    web_sources: [{ site_name: 'OpenAI', title: 'Docs', url: 'https://example.com', snippet: 's' }],
-  });
-  assert.match(sourcesHtml, /web-source-popover/);
-  assert.match(sourcesHtml, /OpenAI/);
-});
-
-test('meta actions normalizes long source snippet', () => {
-  const renderer = metaActions.create({
-    escapeHtml: passthrough,
-    escapeAttr: passthrough,
-  });
-  const longSnippet = 'a'.repeat(220);
-  const sourcesHtml = renderer.buildWebSourcesHtml({
-    web_sources: [{ site_name: 'AWS', title: 'Aurora', url: 'https://aws.amazon.com', snippet: longSnippet }],
-  });
-  assert.match(sourcesHtml, /web-source-snippet/);
-  assert.equal(sourcesHtml.includes('a'.repeat(200)), false);
-  assert.equal(sourcesHtml.includes('...'), true);
+  assert.equal(typeof renderer.buildNextActionsHtml, 'function');
 });

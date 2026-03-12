@@ -193,6 +193,125 @@ class SearchChatFlowFastLaneTest(unittest.TestCase):
         self.assertIn("related_mail_ms", stage_elapsed)
         self.assertIn("contract_render_ms", stage_elapsed)
 
+    def test_current_mail_explicit_external_request_uses_web_direct_path(self) -> None:
+        """현재메일 + 명시 외부검색 요청은 deep-agent 대신 web-search direct 경로를 사용해야 한다."""
+        decomposition = IntentDecomposition(
+            original_query="현재메일 기술 이슈를 인터넷 검색해줘",
+            steps=[ExecutionStep.READ_CURRENT_MAIL, ExecutionStep.SEARCH_MAILS],
+            summary_line_target=5,
+            date_filter=DateFilter(mode=DateFilterMode.NONE),
+            missing_slots=[],
+            task_type=IntentTaskType.RETRIEVAL,
+            output_format=IntentOutputFormat.GENERAL,
+            confidence=0.92,
+        )
+        cached_context = SimpleNamespace(
+            status="completed",
+            source="db-cache",
+            reason="",
+            mail=MailRecord(
+                message_id="m-direct-web",
+                subject="LDAP 연동 이슈",
+                from_address="sender@example.com",
+                received_date="2026-03-10T03:38:14Z",
+                body_text="본문",
+                summary_text="LDAP 연동 실패 의심",
+            ),
+        )
+        direct_payload = {
+            "status": "completed",
+            "thread_id": "t-1",
+            "answer": "외부 검색 요약",
+            "metadata": {"source": "web-search-direct"},
+        }
+        with (
+            patch("app.api.search_chat_flow.parse_intent_decomposition_safely", return_value=decomposition),
+            patch("app.api.search_chat_flow.mail_context_service.get_mail_context", return_value=cached_context),
+            patch("app.api.search_chat_flow.should_search_web_sources", return_value=True),
+            patch("app.api.search_chat_flow.build_web_search_direct_response", return_value=direct_payload) as direct_mock,
+            patch("app.api.search_chat_flow.get_deep_chat_agent") as agent_mock,
+        ):
+            response = run_search_chat(
+                payload=ChatRequest(
+                    message="현재메일 기술 이슈를 인터넷 검색해줘",
+                    email_id="m-direct-web",
+                    mailbox_user="jaeyoung_dev@outlook.com",
+                ),
+                log_prefix="test",
+            )
+        self.assertEqual("completed", response["status"])
+        self.assertEqual("web-search-direct", response["metadata"]["source"])
+        direct_mock.assert_called_once()
+        agent_mock.assert_not_called()
+
+    def test_completed_response_includes_recommended_next_actions(self) -> None:
+        """일반 완료 응답은 추천된 `next_actions`를 metadata에 포함해야 한다."""
+        decomposition = IntentDecomposition(
+            original_query="현재메일 번역해줘",
+            steps=[ExecutionStep.READ_CURRENT_MAIL],
+            summary_line_target=5,
+            date_filter=DateFilter(mode=DateFilterMode.NONE),
+            missing_slots=[],
+            task_type=IntentTaskType.GENERAL,
+            output_format=IntentOutputFormat.GENERAL,
+            confidence=0.75,
+        )
+        cached_context = SimpleNamespace(
+            status="completed",
+            source="db-cache",
+            reason="",
+            mail=MailRecord(
+                message_id="m-next-action",
+                subject="번역 테스트 메일",
+                from_address="sender@example.com",
+                received_date="2026-03-10T03:38:14Z",
+                body_text="본문",
+                summary_text="요약",
+            ),
+        )
+        fake_agent = SimpleNamespace()
+        fake_agent.execute_turn = lambda user_message, thread_id=None: {
+            "status": "completed",
+            "answer": "번역 결과입니다.",
+            "interrupts": [],
+        }
+        fake_agent.get_last_tool_payload = lambda: {"action": "current_mail", "status": "completed"}
+        fake_agent.get_last_assistant_answer = lambda: "번역 결과입니다."
+        fake_agent.get_last_raw_model_output = lambda: "번역 결과입니다."
+        fake_agent.get_last_raw_model_content = lambda: "번역 결과입니다."
+        recommended_actions = [
+            {
+                "action_id": "search_related_mails",
+                "title": "관련 메일 추가 조회",
+                "description": "동일 이슈의 과거/연관 메일을 찾아 근거를 확장합니다.",
+                "query": "이 주제 관련 메일 최근순으로 5개 조회해줘",
+                "priority": "high",
+            }
+        ]
+        with (
+            patch("app.api.search_chat_flow.parse_intent_decomposition_safely", return_value=decomposition),
+            patch("app.api.search_chat_flow.mail_context_service.get_mail_context", return_value=cached_context),
+            patch("app.api.search_chat_flow.is_openai_key_configured", return_value=True),
+            patch("app.api.search_chat_flow.get_deep_chat_agent", return_value=fake_agent),
+            patch("app.api.search_chat_flow.recommend_next_actions", return_value=recommended_actions),
+            patch("app.api.search_chat_flow.resolve_web_sources_for_answer", return_value=([], [])),
+            patch("app.api.search_chat_flow.enrich_major_point_related_mails", side_effect=lambda rows, **_: rows),
+            patch(
+                "app.api.search_chat_flow.build_enrichment_payloads",
+                return_value=(None, [], [], {}, {}),
+            ),
+        ):
+            response = run_search_chat(
+                payload=ChatRequest(
+                    message="현재메일 번역해줘",
+                    email_id="m-next-action",
+                    mailbox_user="jaeyoung_dev@outlook.com",
+                ),
+                log_prefix="test",
+            )
+        self.assertEqual("completed", response["status"])
+        self.assertEqual(recommended_actions, response["metadata"]["next_actions"])
+
 
 if __name__ == "__main__":
     unittest.main()

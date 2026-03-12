@@ -3,8 +3,6 @@
    ======================================== */
 
 (function initTaskpaneMessagesMetaBlocks(global) {
-  var SHOW_EVIDENCE_MAIL_BLOCK = false;
-
   function create(options) {
     var escapeHtml = options.escapeHtml;
     var escapeAttr = options.escapeAttr || options.escapeHtml;
@@ -109,85 +107,9 @@
       }
     }
 
-    function shouldHideEvidenceList(metadata) {
-      var confirm = metadata && metadata.confirm && typeof metadata.confirm === 'object' ? metadata.confirm : null;
-      if (!confirm || !confirm.required) return false;
-      var actions = Array.isArray(confirm.actions) ? confirm.actions : [];
-      var firstAction = actions[0] && typeof actions[0] === 'object' ? actions[0] : {};
-      var actionName = String(firstAction.name || '').trim();
-      return actionName === 'book_meeting_room' || actionName === 'create_outlook_todo';
-    }
-
-    function isCurrentMailResponse(metadata) {
-      var data = metadata && typeof metadata === 'object' ? metadata : {};
-      var queryType = String(data.query_type || '').trim().toLowerCase();
-      if (queryType === 'current_mail') return true;
-      var answerFormat = data.answer_format && typeof data.answer_format === 'object' ? data.answer_format : null;
-      var formatType = String(answerFormat && answerFormat.format_type ? answerFormat.format_type : '').trim().toLowerCase();
-      return formatType === 'current_mail';
-    }
-
-    function buildEvidenceListHtml(metadata) {
-      if (!SHOW_EVIDENCE_MAIL_BLOCK) return '';
-      if (isCurrentMailResponse(metadata)) return '';
-      if (shouldHideEvidenceList(metadata)) return '';
-      var evidenceList = metadata && Array.isArray(metadata.evidence_mails) ? metadata.evidence_mails : [];
-      if (!evidenceList.length) return '';
-      var items = evidenceList.map(function (item) {
-        var messageId = String(item && item.message_id ? item.message_id : '').trim();
-        var subject = String(item && item.subject ? item.subject : '제목 없음').trim();
-        var receivedDate = String(item && item.received_date ? item.received_date : '-').trim();
-        var senderNames = String(item && item.sender_names ? item.sender_names : '-').trim();
-        if (!messageId) return '';
-        return (
-          '<li class="evidence-item">' +
-          '<button type="button" class="evidence-open-btn" data-action="open-evidence-mail" data-message-id="' + escapeAttr(messageId) + '" title="메일 열기">' +
-          '<span class="evidence-subject">' + escapeHtml(subject) + '</span>' +
-          '<span class="evidence-meta">' + escapeHtml(receivedDate) + ' · ' + escapeHtml(senderNames) + '</span>' +
-          '</button>' +
-          '</li>'
-        );
-      }).filter(function (value) { return Boolean(value); }).join('');
-      if (!items) return '';
-      return '<div class="evidence-block"><div class="evidence-title rich-heading major-summary-heading">📬 근거 메일</div><ul class="evidence-list">' + items + '</ul></div>';
-    }
-
-    function buildScopeClarificationHtml(metadata) {
-      var clarification = metadata && metadata.clarification && typeof metadata.clarification === 'object' ? metadata.clarification : null;
-      if (!clarification || !clarification.required) return '';
-      var question = String(clarification.question || '').trim() || '질문의 범위를 선택해 주세요.';
-      var originalQuery = String(clarification.original_query || '').trim();
-      var options = Array.isArray(clarification.options) ? clarification.options : [];
-      if (!options.length || !originalQuery) return '';
-      var optionButtons = options.map(function (option) {
-        var scope = String(option && option.scope ? option.scope : '').trim();
-        var label = String(option && option.label ? option.label : '').trim() || scope;
-        var description = String(option && option.description ? option.description : '').trim();
-        if (!scope) return '';
-        return (
-          '<button type="button" class="scope-choice-btn" ' +
-          'data-action="scope-select" ' +
-          'data-scope="' + escapeAttr(scope) + '" ' +
-          'data-scope-label="' + escapeAttr(label) + '" ' +
-          'data-original-query="' + escapeAttr(originalQuery) + '" ' +
-          'title="' + escapeAttr(description || label) + '">' +
-          '<span class="scope-choice-label">' + escapeHtml(label) + '</span>' +
-          '<span class="scope-choice-desc">' + escapeHtml(description || '이 범위로 처리') + '</span>' +
-          '</button>'
-        );
-      }).filter(function (value) { return Boolean(value); }).join('');
-      if (!optionButtons) return '';
-      return '<div class="scope-clarification-block"><div class="scope-clarification-title">' + escapeHtml(question) + '</div><div class="scope-choice-list">' + optionButtons + '</div></div>';
-    }
-
     function buildHitlConfirmHtml(metadata) {
       if (!actionBlocks || typeof actionBlocks.buildHitlConfirmHtml !== 'function') return '';
       return actionBlocks.buildHitlConfirmHtml(metadata);
-    }
-
-    function buildNextActionsHtml(metadata) {
-      if (!actionBlocks || typeof actionBlocks.buildNextActionsHtml !== 'function') return '';
-      return actionBlocks.buildNextActionsHtml(metadata);
     }
 
     function buildReplyDraftActionHtml(metadata) {
@@ -200,9 +122,9 @@
       return actionBlocks.buildReplyTonePickerHtml(metadata);
     }
 
-    function buildWebSourcesHtml(metadata) {
-      if (!actionBlocks || typeof actionBlocks.buildWebSourcesHtml !== 'function') return '';
-      return actionBlocks.buildWebSourcesHtml(metadata);
+    function buildNextActionsHtml(metadata) {
+      if (!actionBlocks || typeof actionBlocks.buildNextActionsHtml !== 'function') return '';
+      return actionBlocks.buildNextActionsHtml(metadata);
     }
 
     function renderBasicInfoRows(headers, rows) {
@@ -211,13 +133,10 @@
     }
 
     return {
-      buildEvidenceListHtml: buildEvidenceListHtml,
-      buildScopeClarificationHtml: buildScopeClarificationHtml,
       buildHitlConfirmHtml: buildHitlConfirmHtml,
-      buildNextActionsHtml: buildNextActionsHtml,
       buildReplyTonePickerHtml: buildReplyTonePickerHtml,
       buildReplyDraftActionHtml: buildReplyDraftActionHtml,
-      buildWebSourcesHtml: buildWebSourcesHtml,
+      buildNextActionsHtml: buildNextActionsHtml,
       normalizeReplyDraftBodyText: normalizeReplyDraftBodyText,
       renderBasicInfoRows: renderBasicInfoRows,
     };

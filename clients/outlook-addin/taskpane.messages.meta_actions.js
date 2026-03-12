@@ -7,12 +7,6 @@
     var escapeHtml = options.escapeHtml;
     var escapeAttr = options.escapeAttr || options.escapeHtml;
 
-    function normalizeSourceSnippet(rawSnippet) {
-      var text = String(rawSnippet || '').replace(/\s+/g, ' ').trim();
-      if (!text) return '';
-      return text.length > 180 ? (text.slice(0, 177) + '...') : text;
-    }
-
     function resolveHitlActionTitle(actionName) {
       var normalized = String(actionName || '').trim();
       if (normalized === 'book_meeting_room') return '회의실 예약 실행';
@@ -63,30 +57,6 @@
       );
     }
 
-    function buildNextActionsHtml(metadata) {
-      var actions = metadata && Array.isArray(metadata.next_actions) ? metadata.next_actions : [];
-      if (!actions.length) return '';
-      var actionButtons = actions.map(function (item) {
-        var action = item && typeof item === 'object' ? item : {};
-        var title = String(action.title || '').trim();
-        var description = String(action.description || '').trim();
-        var query = String(action.query || '').trim();
-        var actionId = String(action.action_id || '').trim();
-        var priority = String(action.priority || 'medium').trim().toLowerCase();
-        if (!query) return '';
-        var safePriority = (priority === 'high' || priority === 'low') ? priority : 'medium';
-        return (
-          '<button type="button" class="next-action-btn priority-' + escapeAttr(safePriority) + '" ' +
-          'data-action="next-action-run" data-query="' + escapeAttr(query) + '" data-title="' + escapeAttr(title || query) + '" data-action-id="' + escapeAttr(actionId) + '">' +
-          '<span class="next-action-main"><span class="next-action-title">' + escapeHtml(title || query) + '</span><span class="next-action-arrow" aria-hidden="true">→</span></span>' +
-          (description ? '<span class="next-action-desc">' + escapeHtml(description) + '</span>' : '') +
-          '</button>'
-        );
-      }).filter(function (value) { return Boolean(value); }).join('');
-      if (!actionButtons) return '';
-      return '<div class="next-actions-block"><div class="next-actions-title">💡 이어서 할 수 있어요</div><div class="next-actions-subtitle">지금 결과를 바탕으로 바로 실행할 수 있는 작업입니다.</div><div class="next-actions-list">' + actionButtons + '</div></div>';
-    }
-
     function buildReplyDraftActionHtml(metadata, normalizeReplyDraftBodyText) {
       var draft = metadata && metadata.reply_draft && typeof metadata.reply_draft === 'object' ? metadata.reply_draft : null;
       if (!draft || !draft.enabled) return '';
@@ -120,37 +90,50 @@
       );
     }
 
-    function buildWebSourcesHtml(metadata) {
-      var sources = metadata && Array.isArray(metadata.web_sources) ? metadata.web_sources : [];
-      if (!sources.length) return '';
-      var iconStack = sources.slice(0, 4).map(function (item, index) {
-        var source = item && typeof item === 'object' ? item : {};
-        var iconText = String(source.icon_text || source.site_name || '•').trim().slice(0, 1).toUpperCase() || '•';
-        var faviconUrl = String(source.favicon_url || '').trim();
-        var iconInner = faviconUrl
-          ? '<img class="web-source-icon-img" src="' + escapeAttr(faviconUrl) + '" alt="" loading="lazy" />'
-          : escapeHtml(iconText);
-        return '<span class="web-source-icon" style="--stack-index:' + String(index) + '">' + iconInner + '</span>';
-      }).join('');
-      var sourceItems = sources.map(function (item) {
-        var source = item && typeof item === 'object' ? item : {};
-        var siteName = String(source.site_name || '').trim() || '출처';
-        var title = String(source.title || '').trim() || '제목 없음';
-        var snippet = normalizeSourceSnippet(source.snippet || '');
-        var url = String(source.url || '').trim();
-        if (!url) return '';
-        return '<li class="web-source-item"><a class="web-source-link" href="' + escapeAttr(url) + '" target="_blank" rel="noopener noreferrer"><span class="web-source-site">' + escapeHtml(siteName) + '</span><span class="web-source-title">' + escapeHtml(title) + '</span>' + (snippet ? '<span class="web-source-snippet">' + escapeHtml(snippet) + '</span>' : '') + '</a></li>';
-      }).filter(function (value) { return Boolean(value); }).join('');
-      if (!sourceItems) return '';
-      return '<details class="web-source-popover"><summary class="web-source-trigger"><span class="web-source-stack">' + iconStack + '</span><span class="web-source-label">출처</span></summary><div class="web-source-panel"><div class="web-source-panel-title">출처</div><ul class="web-source-list">' + sourceItems + '</ul></div></details>';
+    function buildNextActionsHtml(metadata) {
+      var source = metadata && typeof metadata === 'object' ? metadata : {};
+      var replyDraft = source.reply_draft && typeof source.reply_draft === 'object' ? source.reply_draft : null;
+      if (replyDraft && replyDraft.enabled) return '';
+      var items = Array.isArray(source.next_actions) ? source.next_actions : [];
+      if (!items.length) return '';
+      var rows = items.slice(0, 3).map(function (item, index) {
+        var action = item && typeof item === 'object' ? item : {};
+        var actionId = String(action.action_id || '').trim();
+        var title = String(action.title || '').trim();
+        var query = String(action.query || '').trim();
+        if (!title || !query) return '';
+        var description = String(action.description || '').trim();
+        var priority = String(action.priority || '').trim().toLowerCase();
+        var priorityClass = priority === 'high' ? ' priority-high' : (priority === 'low' ? ' priority-low' : '');
+        return (
+          '<button type="button" class="next-action-btn' + priorityClass + '" ' +
+            'data-action="next-action-run" ' +
+            'data-action-id="' + escapeAttr(actionId) + '" ' +
+            'data-title="' + escapeAttr(title) + '" ' +
+            'data-query="' + escapeAttr(query) + '">' +
+            '<span class="next-action-main">' +
+              '<span class="next-action-title">' + escapeHtml(title) + '</span>' +
+              '<span class="next-action-arrow">→</span>' +
+            '</span>' +
+            (description ? '<span class="next-action-desc">' + escapeHtml(description) + '</span>' : '') +
+          '</button>'
+        );
+      }).filter(function (row) { return Boolean(row); }).join('');
+      if (!rows) return '';
+      return (
+        '<div class="next-actions-block">' +
+          '<div class="next-actions-title">이어서 할 수 있어요</div>' +
+          '<div class="next-actions-subtitle">지금 결과를 바탕으로 바로 실행할 수 있는 작업입니다.</div>' +
+          '<div class="next-actions-list">' + rows + '</div>' +
+        '</div>'
+      );
     }
 
     return {
       buildHitlConfirmHtml: buildHitlConfirmHtml,
-      buildNextActionsHtml: buildNextActionsHtml,
       buildReplyTonePickerHtml: buildReplyTonePickerHtml,
       buildReplyDraftActionHtml: buildReplyDraftActionHtml,
-      buildWebSourcesHtml: buildWebSourcesHtml,
+      buildNextActionsHtml: buildNextActionsHtml,
     };
   }
 

@@ -33,7 +33,7 @@
       const raw = String(url || '').replace(/&amp;/g, '&').trim();
       if (!raw) return { webLink: '', messageId: '' };
       const matched = /[?&]moldubot_mid=([^&#]+)/.exec(raw);
-      if (!matched) return { webLink: raw, messageId: '' };
+      if (!matched) return { webLink: raw, messageId: extractItemId(raw) };
       let webLink = raw.replace(/([?&])moldubot_mid=[^&#]*&?/, '$1');
       webLink = webLink.replace(/[?&]$/, '').replace(/\?&/, '?');
       let messageId = '';
@@ -45,11 +45,22 @@
       return { webLink: webLink, messageId: messageId };
     }
 
+    function extractItemId(raw) {
+      const matched = /[?&]ItemID=([^&#]+)/i.exec(String(raw || ''));
+      if (!matched) return '';
+      try {
+        return decodeURIComponent(String(matched[1] || '').trim());
+      } catch (_error) {
+        return String(matched[1] || '').trim();
+      }
+    }
+
     function applyInlineFormatting(text) {
       let rendered = escapeHtml(String(text || ''));
       rendered = rendered.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+      rendered = rendered.replace(/<\/strong>\s+:/g, '</strong>:');
       rendered = rendered.replace(/`(.+?)`/g, '<code class="rich-inline-code">$1</code>');
-      rendered = rendered.replace(/\[((?:\\.|[^\]])+)\]\((https?:\/\/[^\s)]+)\)/g, function (_match, label, url) {
+      rendered = rendered.replace(/\[([^\n]+)\]\((https?:\/\/[^\s)]+)\)/g, function (_match, label, url) {
         const normalizedLabel = String(label || '').replace(/\\\[/g, '[').replace(/\\\]/g, ']');
         const parsed = parseMailOpenUrl(url);
         if (parsed.messageId) {
@@ -185,7 +196,7 @@
       const value = String(text || '').trim();
       if (!value) return false;
       if (/\[메일\s*링크\]/i.test(value)) return true;
-      if (/\[[^\]]+\]\(https?:\/\/outlook\.live\.com\/owa\/\?/i.test(value)) return false;
+      if (/\]\(https?:\/\/outlook\.live\.com\/owa\/\?/i.test(value)) return false;
       if (/^\(?https?:\/\/outlook\.live\.com\/owa\/\?/i.test(value)) return true;
       if (/viewmodel=ReadMessageItem/i.test(value)) return true;
       if (/^https?:\/\/\S+$/i.test(value)) return true;

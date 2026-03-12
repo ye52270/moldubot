@@ -62,3 +62,12 @@
   line-height: 1.45;
   letter-spacing: 0;
 }
+
+.rich-body h3.rich-heading {
+  margin: 18px 0 10px;
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.4;
+  border-left: 3px solid color-mix(in srgb, var(--color-primary) 58%, #b68a68);
+  padding-left: 8px;
+}

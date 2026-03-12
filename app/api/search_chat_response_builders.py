@@ -5,46 +5,9 @@ from typing import Any
 from app.api.search_chat_metadata import build_context_enrichment
 from app.api.search_chat_next_actions_runtime import build_external_web_search_query, render_external_web_search_answer
 from app.core.metrics import get_chat_metrics_tracker
-from app.services.next_action_recommender import recommend_next_actions
 from app.services.web_source_search_service import search_web_sources
 
 chat_metrics = get_chat_metrics_tracker()
-
-
-def build_scope_clarification_response(
-    question: str,
-    clarification: dict[str, Any],
-    thread_id: str,
-    is_current_mail_mode: bool,
-    scope_metadata: dict[str, str],
-    build_answer_format_metadata: Any,
-) -> dict[str, Any]:
-    """
-    scope clarification 응답 페이로드를 생성한다.
-    """
-    return {
-        "status": "needs_clarification",
-        "thread_id": thread_id,
-        "answer": question,
-        "metadata": {
-            "source": "scope-clarification",
-            "raw_answer": question,
-            "raw_model_output": question,
-            "raw_model_content": question,
-            "query_type": "current_mail" if is_current_mail_mode else "general",
-            "evidence_mails": [],
-            "aggregated_summary": [],
-            "search_result_count": None,
-            "resolved_scope": "",
-            **scope_metadata,
-            "clarification": clarification,
-            "answer_format": build_answer_format_metadata(
-                user_message="",
-                answer=question,
-                status="needs_clarification",
-            ),
-        },
-    }
 
 
 def build_intent_clarification_response(
@@ -116,13 +79,7 @@ def build_web_search_direct_response(
     if selected_message_id and not did_clear_current_mail:
         clear_current_mail()
     answer_format = build_answer_format_metadata(user_message=user_message, answer=answer, status="completed")
-    next_actions = recommend_next_actions(
-        user_message=user_message,
-        answer=answer,
-        tool_payload={},
-        intent_task_type="analysis",
-        intent_output_format="general",
-    )
+    next_actions: list[dict[str, str]] = []
     context_enrichment = build_context_enrichment(
         answer=answer,
         answer_format=answer_format,

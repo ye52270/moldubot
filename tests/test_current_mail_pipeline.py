@@ -221,6 +221,16 @@ class CurrentMailPipelineTest(unittest.TestCase):
         )
         self.assertTrue(result)
 
+    def test_related_mail_search_phrase_prefers_global_scope(self) -> None:
+        """`관련된 메일 찾아줘` 문구는 선택 메일이 있어도 global_search를 우선해야 한다."""
+        result = resolve_current_mail_mode(
+            user_message="M365 구축 프로젝트 구축 일정과 관련된 메일을 찾아줘",
+            thread_id="thread-14",
+            selected_mail_available=True,
+            requested_scope="",
+        )
+        self.assertFalse(result)
+
 
 if __name__ == "__main__":
     unittest.main()

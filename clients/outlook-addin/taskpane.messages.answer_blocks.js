@@ -45,8 +45,106 @@
       return '<div class="quality-badge-row">' + badges.join('') + '</div>';
     }
 
+    function shouldUsePlainListMode(metadata) {
+      const mode = String(metadata && metadata.ui_render_mode ? metadata.ui_render_mode : '').trim().toLowerCase();
+      return mode === 'plain_lists';
+    }
+
+    function renderPlainAnswerFormatBlocks(blocks, metadata) {
+      const chunks = [];
+      let orderedStartIndex = 1;
+      let lastHeading = '';
+
+      for (let index = 0; index < blocks.length; index += 1) {
+        const block = blocks[index];
+        if (!block || typeof block !== 'object') continue;
+        const type = String(block.type || '').trim();
+        if (type === 'heading') {
+          const level = Number.isFinite(Number(block.level)) ? Math.min(Math.max(Number(block.level), 1), 4) : 3;
+          const text = String(block.text || '').trim();
+          if (!text) continue;
+          lastHeading = text;
+          orderedStartIndex = 1;
+          const normalizedToken = normalizeHeadingToken(text);
+          if (normalizedToken === '제목' || normalizedToken === 'title') continue;
+          chunks.push('<h' + level + ' class="' + resolveHeadingClass(text) + '">' + applyInlineFormatting(text) + '</h' + level + '>');
+          continue;
+        }
+        if (type === 'ordered_list' || type === 'unordered_list') {
+          const items = Array.isArray(block.items) ? block.items : [];
+          if (!items.length) continue;
+          const tag = type === 'ordered_list' ? 'ol' : 'ul';
+          const orderedClass = type === 'ordered_list' ? ' ordered' : '';
+          const startAttr = type === 'ordered_list' && orderedStartIndex > 1 ? ' start="' + String(orderedStartIndex) + '"' : '';
+          const headingToken = normalizeHeadingToken(lastHeading);
+          const includeInlineEvidence = type === 'ordered_list' && (
+            headingToken.indexOf('주요내용') >= 0 || headingToken.indexOf('외부정보요약') >= 0
+          );
+          const itemPrefixOpen = type === 'ordered_list' ? '<span class="rich-ol-title">' : '';
+          const itemPrefixClose = type === 'ordered_list' ? '</span>' : '';
+          const itemHtml = items
+            .map(function (item) { return String(item || '').trim(); })
+            .filter(function (item) { return Boolean(item); })
+            .map(function (item) {
+              const evidencePopover = includeInlineEvidence ? buildInlineEvidencePopover(metadata, item) : '';
+              if (!evidencePopover) {
+                return '<li>' + itemPrefixOpen + applyInlineFormatting(item) + itemPrefixClose + '</li>';
+              }
+              return (
+                '<li><div class="rich-ol-head">' +
+                  '<div class="rich-ol-line">' + itemPrefixOpen + applyInlineFormatting(item) + itemPrefixClose + '</div>' +
+                  evidencePopover +
+                '</div></li>'
+              );
+            })
+            .join('');
+          if (!itemHtml) continue;
+          chunks.push('<' + tag + ' class="rich-list' + orderedClass + '"' + startAttr + '>' + itemHtml + '</' + tag + '>');
+          if (type === 'ordered_list') orderedStartIndex += items.length;
+          continue;
+        }
+        if (type === 'paragraph') {
+          const text = String(block.text || '').trim();
+          if (!text) continue;
+          if (/^(-{3,}|\*{3,}|_{3,})$/.test(text)) {
+            chunks.push('<hr class="rich-divider" />');
+            continue;
+          }
+          if (isNoiseStructuralToken(text)) continue;
+          chunks.push('<p class="rich-paragraph">' + applyInlineFormatting(text) + '</p>');
+          continue;
+        }
+        if (type === 'quote') {
+          const text = String(block.text || '').trim();
+          if (text) chunks.push('<blockquote class="rich-quote">' + applyInlineFormatting(text) + '</blockquote>');
+          continue;
+        }
+        if (type === 'table') {
+          const headers = Array.isArray(block.headers) ? block.headers : [];
+          const rows = Array.isArray(block.rows) ? block.rows : [];
+          if (!headers.length) continue;
+          const hasOnlyDelimiterHeaders = headers.every(function (cell) { return /^:?-{3,}:?$/.test(String(cell || '').trim()); });
+          if (hasOnlyDelimiterHeaders) continue;
+          const headingToken = normalizeHeadingToken(lastHeading);
+          if (headingToken === '기본정보' || headingToken === 'basic') {
+            chunks.push(renderBasicInfoRows(headers, rows));
+            continue;
+          }
+          const headerLine = '| ' + headers.map(function (cell) { return String(cell || '').trim(); }).join(' | ') + ' |';
+          const rowLines = rows
+            .map(function (row) { return Array.isArray(row) ? row : []; })
+            .map(function (row) { return '| ' + row.map(function (cell) { return String(cell || '').trim(); }).join(' | ') + ' |'; });
+          chunks.push(renderMarkdownTable(headerLine, rowLines));
+        }
+      }
+      return chunks.join('');
+    }
+
     function renderAnswerFormatBlocks(blocks, metadata) {
       if (!Array.isArray(blocks) || !blocks.length) return '';
+      if (shouldUsePlainListMode(metadata)) {
+        return renderPlainAnswerFormatBlocks(blocks, metadata);
+      }
       const chunks = [];
       let orderedStartIndex = 1;
       let lastHeading = '';

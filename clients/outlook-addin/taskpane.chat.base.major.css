@@ -67,6 +67,15 @@
   color: var(--color-text);
 }
 
+.major-summary-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.major-summary-link:hover {
+  text-decoration: underline;
+}
+
 .major-summary-subline {
   margin-top: 4px;
   display: grid;

@@ -17,6 +17,11 @@
   line-height: 1.48;
 }
 
+.rich-list li.rich-subline-item {
+  list-style: none;
+  margin-left: 14px;
+}
+
 .rich-list.ordered li {
   position: relative;
   padding: 11px 12px;

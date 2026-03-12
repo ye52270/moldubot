@@ -10,15 +10,9 @@ function loadModule() {
 
 function createBoundInteractions(openImpl) {
   let clickHandler = null;
-  let toastClickHandler = null;
   const chatArea = {
     addEventListener(eventName, handler) {
       if (eventName === 'click') clickHandler = handler;
-    },
-  };
-  const toastHost = {
-    addEventListener(eventName, handler) {
-      if (eventName === 'click') toastClickHandler = handler;
     },
   };
   global.window = {};
@@ -30,14 +24,11 @@ function createBoundInteractions(openImpl) {
   const interactions = moduleRef.create({
     byId: (id) => {
       if (id === 'chatArea') return chatArea;
-      if (id === 'clarificationToastHost') return toastHost;
       return null;
     },
     logClientEvent: () => {},
     copiedResetMs: 10,
     addMessage: () => {},
-    showClarificationToast: () => {},
-    clearClarificationToast: () => {},
     setSendingState: () => {},
     requestAssistantReply: async () => ({ answer: 'ok', metadata: {} }),
     openEvidenceMail: async () => {},
@@ -51,18 +42,6 @@ function createBoundInteractions(openImpl) {
         closest: () => null,
       };
       clickHandler({
-        target: {
-          closest: () => button,
-        },
-      });
-    },
-    dispatchToastClick(action, extraDataset) {
-      const button = {
-        dataset: Object.assign({ action }, extraDataset || {}),
-        classList: { contains: () => false },
-        closest: () => null,
-      };
-      toastClickHandler({
         target: {
           closest: () => button,
         },
@@ -83,6 +62,110 @@ test('report open file action opens preview url in new tab', () => {
   });
   assert.equal(openCalls.length, 1);
   assert.equal(openCalls[0], '/report/preview/a.docx');
+});
+
+test('report open file action resolves relative preview url for Office browser window', () => {
+  let clickHandler = null;
+  const officeOpenCalls = [];
+  const chatArea = {
+    addEventListener(eventName, handler) {
+      if (eventName === 'click') clickHandler = handler;
+    },
+  };
+  global.window = {
+    location: { href: 'https://addin.example.com/taskpane.html' },
+    Office: {
+      context: {
+        ui: {
+          openBrowserWindow: (url) => {
+            officeOpenCalls.push(url);
+          },
+        },
+      },
+    },
+    open: () => ({}),
+  };
+  const moduleRef = loadModule();
+  const interactions = moduleRef.create({
+    byId: (id) => (id === 'chatArea' ? chatArea : null),
+    logClientEvent: () => {},
+    copiedResetMs: 10,
+    addMessage: () => {},
+    setSendingState: () => {},
+    requestAssistantReply: async () => ({ answer: 'ok', metadata: {} }),
+    openEvidenceMail: async () => {},
+  });
+  interactions.bindMessageActions();
+  const button = {
+    dataset: { action: 'report-open-file', previewUrl: '/report/preview/a.docx', docxUrl: '/report/download/a.docx' },
+    classList: { contains: () => false },
+    closest: () => null,
+  };
+
+  clickHandler({
+    target: { closest: () => button },
+  });
+
+  assert.equal(officeOpenCalls.length, 1);
+  assert.equal(officeOpenCalls[0], 'https://addin.example.com/report/preview/a.docx');
+});
+
+test('major summary link opens external url via Office browser window first', () => {
+  let clickHandler = null;
+  const officeOpenCalls = [];
+  const windowOpenCalls = [];
+  const chatArea = {
+    addEventListener(eventName, handler) {
+      if (eventName === 'click') clickHandler = handler;
+    },
+  };
+  global.window = {
+    open: (url) => {
+      windowOpenCalls.push(url);
+      return {};
+    },
+    Office: {
+      context: {
+        ui: {
+          openBrowserWindow: (url) => {
+            officeOpenCalls.push(url);
+          },
+        },
+      },
+    },
+  };
+  const moduleRef = loadModule();
+  const interactions = moduleRef.create({
+    byId: (id) => (id === 'chatArea' ? chatArea : null),
+    logClientEvent: () => {},
+    copiedResetMs: 10,
+    addMessage: () => {},
+    setSendingState: () => {},
+    requestAssistantReply: async () => ({ answer: 'ok', metadata: {} }),
+    openEvidenceMail: async () => {},
+  });
+  interactions.bindMessageActions();
+
+  const linkNode = {
+    tagName: 'A',
+    classList: { contains: (name) => name === 'major-summary-link' },
+    matches: (selector) => selector === 'a.major-summary-link, a.web-source-link',
+    href: 'https://learn.microsoft.com/example',
+    getAttribute: (name) => (name === 'href' ? 'https://learn.microsoft.com/example' : ''),
+  };
+  clickHandler({
+    target: {
+      closest: (selector) => {
+        if (selector === 'a.major-summary-link, a.web-source-link') return linkNode;
+        return null;
+      },
+    },
+    preventDefault: () => {},
+  });
+
+  assert.equal(officeOpenCalls.length, 1);
+  assert.equal(officeOpenCalls[0], 'https://learn.microsoft.com/example');
+  assert.equal(windowOpenCalls.length, 0);
 });
 
 test('report open file action does nothing when docx url is empty', () => {
@@ -343,68 +426,4 @@ test('raw action opens fallback alert with raw model content when modal dom is u
 
   assert.equal(alerts.length, 1);
   assert.equal(alerts[0], '{"type":"text","text":"모델 원본"}');
-});
-
-test('scope-select click from clarification toast reruns original query with selected scope', async () => {
-  let toastClickHandler = null;
-  const calls = {
-    addMessage: [],
-    requestAssistantReply: [],
-    setSendingState: [],
-    clearClarificationToast: 0,
-    showClarificationToast: [],
-  };
-  const chatArea = { addEventListener: () => {} };
-  const toastHost = {
-    addEventListener(eventName, handler) {
-      if (eventName === 'click') toastClickHandler = handler;
-    },
-  };
-  global.window = {};
-  const moduleRef = loadModule();
-  const interactions = moduleRef.create({
-    byId: (id) => {
-      if (id === 'chatArea') return chatArea;
-      if (id === 'clarificationToastHost') return toastHost;
-      if (id === 'chatInput') return { focus: () => {} };
-      return null;
-    },
-    logClientEvent: () => {},
-    copiedResetMs: 10,
-    addMessage: (role, text, metadata) => calls.addMessage.push({ role, text, metadata }),
-    showClarificationToast: (metadata) => calls.showClarificationToast.push(metadata),
-    clearClarificationToast: () => { calls.clearClarificationToast += 1; },
-    setSendingState: (value) => calls.setSendingState.push(Boolean(value)),
-    requestAssistantReply: async (query, _progress, runtimeOptions) => {
-      calls.requestAssistantReply.push({ query, runtimeOptions });
-      return { answer: '응답', metadata: { clarification: { required: false } } };
-    },
-    openEvidenceMail: async () => {},
-  });
-  interactions.bindMessageActions();
-
-  const button = {
-    dataset: {
-      action: 'scope-select',
-      scope: 'current_mail',
-      scopeLabel: '현재 메일',
-      originalQuery: '문제가 되는 메일주소가 뭐야?',
-    },
-    disabled: false,
-    classList: { contains: () => false },
-    closest: () => null,
-  };
-  toastClickHandler({
-    target: { closest: () => button },
-  });
-  await Promise.resolve();
-  await Promise.resolve();
-
-  assert.equal(calls.clearClarificationToast, 1);
-  assert.equal(calls.requestAssistantReply.length, 1);
-  assert.equal(calls.requestAssistantReply[0].query, '문제가 되는 메일주소가 뭐야?');
-  assert.equal(calls.requestAssistantReply[0].runtimeOptions.scope, 'current_mail');
-  assert.equal(calls.addMessage.some((item) => item.role === 'user' && item.text.includes('질문 범위 선택')), true);
-  assert.equal(calls.addMessage.some((item) => item.role === 'assistant' && item.text === '응답'), true);
-  assert.equal(calls.showClarificationToast.length, 1);
 });

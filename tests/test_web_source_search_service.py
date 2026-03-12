@@ -17,10 +17,10 @@ class WebSourceSearchServiceTest(unittest.TestCase):
 
     def test_should_search_web_sources_by_keyword(self) -> None:
         """
-        기술/검색 키워드가 포함된 질의는 웹 검색 트리거되어야 한다.
+        명시 외부근거 요청 토큰이 있을 때만 웹 검색이 트리거되어야 한다.
         """
-        self.assertTrue(should_search_web_sources("최신 AI 트렌드 검색해줘"))
-        self.assertTrue(should_search_web_sources("SSL 오류 원인 알려줘"))
+        self.assertTrue(should_search_web_sources("인터넷으로 검색해서 출처 포함해줘"))
+        self.assertFalse(should_search_web_sources("SSL 오류 원인 알려줘"))
         self.assertFalse(should_search_web_sources("현재메일 요약해줘", intent_task_type="summary"))
         self.assertTrue(
             should_search_web_sources(
@@ -54,7 +54,7 @@ class WebSourceSearchServiceTest(unittest.TestCase):
                 tool_payload={"action": "current_mail"},
             )
         )
-        self.assertTrue(
+        self.assertFalse(
             should_search_web_sources(
                 "원인과 대응 정리해줘",
                 intent_task_type="analysis",

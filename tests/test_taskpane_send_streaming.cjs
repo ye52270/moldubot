@@ -12,7 +12,6 @@ function loadSendModule() {
 test('taskpane send renders final assistant message without streaming preview dependency', async () => {
   const sendModule = loadSendModule();
   const calls = [];
-  const toastCalls = [];
   const inputNode = {
     value: '현재메일 요약',
     focus() {},
@@ -25,8 +24,6 @@ test('taskpane send renders final assistant message without streaming preview de
     },
     messageUi: {
       addMessage: (role, text) => calls.push(['addMessage', role, text]),
-      clearClarificationToast: () => toastCalls.push('clear'),
-      showClarificationToast: () => toastCalls.push('show'),
       addElapsedDivider: () => calls.push(['addElapsedDivider']),
       setProgressStatus: () => {},
       clearProgressStatus: () => {},
@@ -75,7 +72,6 @@ test('taskpane send renders final assistant message without streaming preview de
 
   assert.equal(calls.some((item) => item[0] === 'addMessage' && item[1] === 'assistant' && item[2] === '최종 응답'), true);
   assert.equal(calls.some((item) => item[0] === 'addElapsedDivider'), true);
-  assert.deepEqual(toastCalls, ['clear', 'show']);
 });
 
 test('taskpane send applies state next-action filter before rendering assistant metadata', async () => {
@@ -185,8 +181,6 @@ test('taskpane send updates streaming assistant preview and finalizes message', 
       updateStreamingAssistantMessage: (text) => calls.push(['update', text]),
       finalizeStreamingAssistantMessage: (text) => calls.push(['finalize', text]),
       cancelStreamingAssistantMessage: () => calls.push(['cancel']),
-      clearClarificationToast: () => {},
-      showClarificationToast: () => {},
       addElapsedDivider: () => calls.push(['elapsed']),
       setProgressStatus: () => {},
       clearProgressStatus: () => {},
@@ -258,8 +252,6 @@ test('taskpane send hides leading shortcut tokens in user bubble but keeps raw r
     },
     messageUi: {
       addMessage: (role, text) => calls.push([role, text]),
-      clearClarificationToast: () => {},
-      showClarificationToast: () => {},
       addElapsedDivider: () => {},
       setProgressStatus: () => {},
       clearProgressStatus: () => {},

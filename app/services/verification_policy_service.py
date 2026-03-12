@@ -3,22 +3,16 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 WEB_TRIGGER_KEYWORDS: tuple[str, ...] = (
-    "트렌드",
-    "trend",
-    "최신",
-    "뉴스",
-    "검색",
-    "찾아",
-    "이슈",
-    "문제",
-    "오류",
-    "장애",
-    "원인",
-    "해결",
-    "기술",
-    "보안",
-    "ssl",
-    "api",
+    "인터넷으로검색",
+    "인터넷검색",
+    "웹검색",
+    "외부자료",
+    "외부근거",
+    "외부출처",
+    "공식문서",
+    "레퍼런스",
+    "출처포함",
+    "링크와함께",
 )
 VERIFICATION_REQUEST_KEYWORDS: tuple[str, ...] = (
     "검증",
@@ -35,18 +29,22 @@ EXPLICIT_EXTERNAL_REQUEST_KEYWORDS: tuple[str, ...] = (
     "외부",
     "웹",
     "web",
-    "최신",
-    "뉴스",
-    "트렌드",
-    "기술검토",
-    "기술 검토",
+    "인터넷",
+    "검색",
+    "참고",
     "레퍼런스",
     "reference",
     "공식문서",
     "공식 문서",
+    "외부자료",
+    "출처",
 )
-UNCERTAINTY_TOKENS: tuple[str, ...] = ("추정", "가능성", "확인 필요", "불확실", "단정하기 어렵")
-LOW_CONFIDENCE_THRESHOLD = 0.72
+BLOCK_EXTERNAL_REQUEST_KEYWORDS: tuple[str, ...] = (
+    "외부검색없이",
+    "외부검색하지마",
+    "내부메일만",
+    "메일본문만",
+)
 
 
 @dataclass(slots=True)
@@ -85,37 +83,38 @@ def decide_web_verification(
     Returns:
         검증 정책 판단 결과
     """
-    query = str(user_message or "").strip().lower()
+    del intent_task_type, intent_confidence, model_answer
+    query = _normalize_for_token_policy(user_message=user_message)
     if not query:
         return VerificationDecision(enabled=False, reasons=["empty_query"])
 
     reasons: list[str] = []
     current_mail_scope = _is_current_mail_scope(resolved_scope=resolved_scope, tool_payload=tool_payload)
+    explicit_block = _contains_any_token(query=query, tokens=BLOCK_EXTERNAL_REQUEST_KEYWORDS)
     explicit_external = _contains_any_token(query=query, tokens=EXPLICIT_EXTERNAL_REQUEST_KEYWORDS)
     explicit_verification = _contains_any_token(query=query, tokens=VERIFICATION_REQUEST_KEYWORDS)
-    low_confidence_target = _is_low_confidence_target(
-        intent_task_type=intent_task_type,
-        intent_confidence=intent_confidence,
-        model_answer=model_answer,
-    )
     keyword_trigger = _contains_any_token(query=query, tokens=WEB_TRIGGER_KEYWORDS)
+    explicit_request = explicit_external or explicit_verification or keyword_trigger
 
+    if explicit_block:
+        reasons.append("explicit_internal_only_request")
     if explicit_external:
         reasons.append("explicit_external_request")
     if explicit_verification:
         reasons.append("explicit_verification_request")
-    if low_confidence_target:
-        reasons.append("low_confidence_or_uncertain_answer")
     if keyword_trigger:
         reasons.append("keyword_trigger")
 
+    if explicit_block:
+        return VerificationDecision(enabled=False, reasons=reasons)
+
     if current_mail_scope:
-        allowed = explicit_external or explicit_verification
+        allowed = explicit_request
         if not allowed:
             reasons.append("blocked_by_current_mail_scope")
         return VerificationDecision(enabled=allowed, reasons=reasons)
 
-    enabled = explicit_external or explicit_verification or low_confidence_target or keyword_trigger
+    enabled = explicit_request
     if not enabled:
         reasons.append("policy_not_matched")
     return VerificationDecision(enabled=enabled, reasons=reasons)
@@ -140,34 +139,6 @@ def _is_current_mail_scope(resolved_scope: str, tool_payload: dict[str, object] 
     return action == "current_mail"
 
 
-def _is_low_confidence_target(
-    intent_task_type: str,
-    intent_confidence: float | None,
-    model_answer: str,
-) -> bool:
-    """
-    low-confidence/불확실 응답에 대한 외부 검증 대상 여부를 판별한다.
-
-    Args:
-        intent_task_type: 의도 task type
-        intent_confidence: 의도 confidence
-        model_answer: 모델 응답
-
-    Returns:
-        검증 대상이면 True
-    """
-    normalized_task_type = str(intent_task_type or "").strip().lower()
-    if normalized_task_type not in {"solution", "retrieval", "analysis"}:
-        return False
-    confidence = float(intent_confidence) if isinstance(intent_confidence, (int, float)) else 1.0
-    if confidence < LOW_CONFIDENCE_THRESHOLD:
-        return True
-    answer_text = str(model_answer or "").strip().lower()
-    if not answer_text:
-        return False
-    return _contains_any_token(query=answer_text, tokens=UNCERTAINTY_TOKENS)
-
-
 def _contains_any_token(query: str, tokens: tuple[str, ...]) -> bool:
     """
     문자열에 지정 토큰 중 하나라도 포함되는지 확인한다.
@@ -183,3 +154,19 @@ def _contains_any_token(query: str, tokens: tuple[str, ...]) -> bool:
     if not normalized:
         return False
     return any(token in normalized for token in tokens)
+
+
+def _normalize_for_token_policy(user_message: str) -> str:
+    """
+    외부검색 트리거 토큰 정책 판별을 위한 입력 정규화를 수행한다.
+
+    Args:
+        user_message: 사용자 발화
+
+    Returns:
+        공백/구두점을 제거한 소문자 문자열
+    """
+    normalized = str(user_message or "").strip().lower()
+    if not normalized:
+        return ""
+    return "".join(ch for ch in normalized if ch.isalnum() or ("가" <= ch <= "힣"))

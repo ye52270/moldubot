@@ -230,31 +230,6 @@
       streamingAssistantNode = null;
     }
 
-    function getClarificationToastHost() {
-      return byId('clarificationToastHost');
-    }
-
-    function clearClarificationToast() {
-      var toastHost = getClarificationToastHost();
-      if (!toastHost) return;
-      toastHost.innerHTML = '';
-      toastHost.hidden = true;
-    }
-
-    function showClarificationToast(metadata) {
-      var toastHost = getClarificationToastHost();
-      if (!toastHost) return;
-      var clarificationHtml = metaRenderer && metaRenderer.buildScopeClarificationHtml
-        ? metaRenderer.buildScopeClarificationHtml(metadata || {})
-        : '';
-      if (!clarificationHtml) {
-        clearClarificationToast();
-        return;
-      }
-      toastHost.innerHTML = clarificationHtml;
-      toastHost.hidden = false;
-    }
-
     var statusModule = resolveModule('TaskpaneMessagesStatus', './taskpane.messages.status.js');
     var statusRenderer = createRenderer(statusModule, {
       byId: byId,
@@ -318,8 +293,6 @@
       updateStreamingAssistantMessage: updateStreamingAssistantMessage,
       finalizeStreamingAssistantMessage: finalizeStreamingAssistantMessage,
       cancelStreamingAssistantMessage: cancelStreamingAssistantMessage,
-      showClarificationToast: showClarificationToast,
-      clearClarificationToast: clearClarificationToast,
       addElapsedDivider: addElapsedDivider,
       getSelectedWeeklyOffset: delegate(reportRenderer, 'getSelectedWeeklyOffset', function () { return 1; }),
       resetSession: resetSession,

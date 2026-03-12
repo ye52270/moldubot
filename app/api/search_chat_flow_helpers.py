@@ -39,6 +39,7 @@ class PostprocessExecutionPolicy:
 def decide_postprocess_execution_policy(
     intent_output_format: str,
     tool_action: str,
+    resolved_scope: str,
 ) -> PostprocessExecutionPolicy:
     """
     output_format/tool_action 조합으로 postprocess 실행 정책을 결정한다.
@@ -46,12 +47,14 @@ def decide_postprocess_execution_policy(
     Args:
         intent_output_format: 의도 분해 output_format 값
         tool_action: 마지막 tool action 값
+        resolved_scope: 최종 scope 값
 
     Returns:
         postprocess 실행 정책 객체
     """
     normalized_output_format = str(intent_output_format or "").strip().lower()
     normalized_tool_action = str(tool_action or "").strip().lower()
+    del resolved_scope
     should_skip_expensive_steps = (
         normalized_output_format == "general"
         and normalized_tool_action != "mail_search"

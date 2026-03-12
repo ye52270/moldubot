@@ -218,35 +218,6 @@
       });
     }
 
-    async function handleScopeSelect(button) {
-      const scope = String(button && button.getAttribute('data-scope') ? button.getAttribute('data-scope') : '').trim();
-      const originalQuery = String(button && button.getAttribute('data-original-query') ? button.getAttribute('data-original-query') : '').trim();
-      if (!scope || !originalQuery) {
-        messageUi.addMessage('assistant', '범위 선택 정보를 확인하지 못했습니다. 다시 시도해 주세요.');
-        return;
-      }
-      setSendingState(true);
-      try {
-        const assistantPayload = await chatApi.requestAssistantReply(
-          originalQuery,
-          null,
-          { scope: scope, skip_intent_clarification: true }
-        );
-        const assistantReply = assistantPayload && assistantPayload.answer
-          ? assistantPayload.answer
-          : '응답을 생성하지 못했습니다.';
-        const assistantMetadata = filterNextActionsMetadata(
-          assistantPayload && assistantPayload.metadata ? assistantPayload.metadata : {}
-        );
-        messageUi.addMessage('assistant', assistantReply, assistantMetadata);
-      } catch (_error) {
-        messageUi.addMessage('assistant', '범위 선택 후 재조회 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
-      } finally {
-        setSendingState(false);
-        focusInput();
-      }
-    }
-
     function filterNextActionsMetadata(metadata) {
       if (nextActions && typeof nextActions.filterNextActionsMetadata === 'function') {
         return nextActions.filterNextActionsMetadata(metadata);
@@ -269,7 +240,6 @@
       handleFinanceSubmit: handleFinanceSubmit,
       handleHrSubmit: handleHrSubmit,
       handleWeeklyReportConfirm: handleWeeklyReportConfirm,
-      handleScopeSelect: handleScopeSelect,
       handleNextActionRun: nextActions && typeof nextActions.handleNextActionRun === 'function'
         ? nextActions.handleNextActionRun
         : function () {},

@@ -65,6 +65,24 @@ test('taskpane messages renders markdown links with escaped brackets in title', 
   assert.equal(html.includes('[SK브로드밴드] 조건부 액세스 정책 설정 안내 드립니다.'), true);
 });
 
+test('taskpane messages renders markdown links when title contains nested brackets', () => {
+  const moduleRef = loadMessagesModule();
+  const instance = moduleRef.create({
+    byId: () => null,
+    escapeHtml: (value) => String(value || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;'),
+  });
+
+  const markdown = '1. **제목**: [FW: [규모산정 요청] RE: SKB(본사) AI DC](https://outlook.live.com/owa/?ItemID=abc123&exvsurl=1&viewmodel=ReadMessageItem)';
+  const html = instance.buildMessageHtml('assistant', markdown, {});
+  assert.equal(html.includes('href="https://outlook.live.com/owa/?ItemID=abc123&amp;exvsurl=1&amp;viewmodel=ReadMessageItem"'), true);
+  assert.equal(html.includes('[FW: [규모산정 요청] RE: SKB(본사) AI DC]('), false);
+});
+
 test('taskpane messages maps moldubot_mid link to evidence open action', () => {
   const moduleRef = loadMessagesModule();
   const instance = moduleRef.create({
@@ -86,6 +104,28 @@ test('taskpane messages maps moldubot_mid link to evidence open action', () => {
   assert.equal(html.includes('data-action="open-evidence-mail"'), true);
   assert.equal(html.includes('data-message-id="mid-123=="'), true);
   assert.equal(html.includes('data-web-link="https://outlook.live.com/owa/?ItemID=abc"'), true);
+});
+
+test('taskpane messages maps ItemID-only outlook link to evidence open action', () => {
+  const moduleRef = loadMessagesModule();
+  const instance = moduleRef.create({
+    byId: () => null,
+    escapeHtml: (value) => String(value || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;'),
+  });
+
+  const html = instance.buildMessageHtml(
+    'assistant',
+    '- [메일 보기](https://outlook.live.com/owa/?ItemID=AQMk_test_id%3D%3D&exvsurl=1&viewmodel=ReadMessageItem)',
+    {}
+  );
+  assert.equal(html.includes('class="rich-link evidence-open-btn"'), true);
+  assert.equal(html.includes('data-action="open-evidence-mail"'), true);
+  assert.equal(html.includes('data-message-id="AQMk_test_id=="'), true);
 });
 
 test('taskpane messages does not render scope status chip for assistant metadata', () => {
@@ -161,6 +201,27 @@ test('taskpane messages decodes escaped newlines in assistant text', () => {
   assert.equal(html.includes('<ul class="rich-list">'), true);
 });
 
+test('taskpane messages renders markdown h3 as semantic heading tag', () => {
+  const moduleRef = loadMessagesModule();
+  const instance = moduleRef.create({
+    byId: () => null,
+    escapeHtml: (value) => String(value || ''),
+  });
+  const html = instance.buildMessageHtml('assistant', '### 주요 내용 정리', {});
+  assert.equal(html.includes('<h3 class="rich-heading">주요 내용 정리</h3>'), true);
+});
+
+test('taskpane messages trims space before colon after bold inline token', () => {
+  const moduleRef = loadMessagesModule();
+  const instance = moduleRef.create({
+    byId: () => null,
+    escapeHtml: (value) => String(value || ''),
+  });
+  const html = instance.buildMessageHtml('assistant', '- **흐름** : 단계별 공유', {});
+  assert.equal(html.includes('<strong>흐름</strong> :'), false);
+  assert.equal(html.includes('<strong>흐름</strong>: 단계별 공유'), true);
+});
+
 test('taskpane messages parses compact markdown without spaces', () => {
   const moduleRef = loadMessagesModule();
   const instance = moduleRef.create({
@@ -201,6 +262,21 @@ test('taskpane messages keeps ordered numbering across blank lines', () => {
   const titleCount = (html.match(/class=\"rich-ol-title\"/g) || []).length;
   assert.equal(orderedListCount, 1);
   assert.equal(titleCount, 3);
+});
+
+test('taskpane messages renders nested unordered bullets as hyphen sublines', () => {
+  const moduleRef = loadMessagesModule();
+  const instance = moduleRef.create({
+    byId: () => null,
+    escapeHtml: (value) => String(value || ''),
+  });
+  const input = '- 일정:\n  - 4월 일부 팀 조기 사용\n  - 6월 전체 오픈 예정';
+  const html = instance.buildMessageHtml('assistant', input, {});
+  assert.equal(html.includes('<ul class="rich-list">'), true);
+  assert.equal(html.includes('<li>일정:</li>'), true);
+  assert.equal(html.includes('class="rich-subline-item"'), true);
+  assert.equal(html.includes('class="rich-subline">- 4월 일부 팀 조기 사용</div>'), true);
+  assert.equal(html.includes('<li>4월 일부 팀 조기 사용</li>'), false);
 });
 
 test('taskpane messages skips mail metadata line in mail list body', () => {
@@ -771,6 +847,28 @@ test('taskpane messages renders current_mail plain unordered list as major summa
   assert.equal(html.includes('<ul class="rich-list">'), false);
 });
 
+test('taskpane messages renders plain list mode without major summary cards', () => {
+  const moduleRef = loadMessagesModule();
+  const instance = moduleRef.create({
+    byId: () => null,
+    escapeHtml: (value) => String(value || ''),
+  });
+  const metadata = {
+    ui_render_mode: 'plain_lists',
+    answer_format: {
+      version: 'v1',
+      format_type: 'current_mail',
+      blocks: [
+        { type: 'heading', level: 3, text: '📌 주요 내용' },
+        { type: 'ordered_list', items: ['요약 1', '요약 2'] },
+      ],
+    },
+  };
+  const html = instance.buildMessageHtml('assistant', '', metadata);
+  assert.equal(html.includes('major-summary-list'), false);
+  assert.equal(html.includes('<ol class="rich-list ordered">'), true);
+});
+
 test('taskpane messages wraps current_mail freeform bullet text into summary section card', () => {
   const moduleRef = loadMessagesModule();
   const instance = moduleRef.create({
@@ -790,6 +888,26 @@ test('taskpane messages wraps current_mail freeform bullet text into summary sec
   assert.equal(html.includes('summary-section section-major'), true);
   assert.equal(html.includes('major-summary-heading'), true);
   assert.equal(html.includes('주요 문의사항'), true);
+  assert.equal(html.includes('<ul class="rich-list">'), true);
+});
+
+test('taskpane messages plain list mode skips current_mail freeform bullet card wrapper', () => {
+  const moduleRef = loadMessagesModule();
+  const instance = moduleRef.create({
+    byId: () => null,
+    escapeHtml: (value) => String(value || ''),
+  });
+  const metadata = {
+    ui_render_mode: 'plain_lists',
+    query_type: 'current_mail',
+    scope_label: '현재 선택 메일',
+  };
+  const answer = [
+    '- 항목 A',
+    '- 항목 B',
+  ].join('\n');
+  const html = instance.buildMessageHtml('assistant', answer, metadata);
+  assert.equal(html.includes('summary-section section-major'), false);
   assert.equal(html.includes('<ul class="rich-list">'), true);
 });
 
@@ -1589,7 +1707,7 @@ test('taskpane messages renders reply draft as plain paragraphs without ordered-
   assert.equal(html.includes('2. 정책 호환성 검증'), true);
 });
 
-test('taskpane messages renders reply draft block before next actions block', () => {
+test('taskpane messages renders reply draft block without next actions block', () => {
   const moduleRef = loadMessagesModule();
   const instance = moduleRef.create({
     byId: () => null,
@@ -1616,8 +1734,7 @@ test('taskpane messages renders reply draft block before next actions block', ()
   const replyDraftIndex = html.indexOf('reply-draft-action-block');
   const nextActionsIndex = html.indexOf('next-actions-block');
   assert.equal(replyDraftIndex >= 0, true);
-  assert.equal(nextActionsIndex >= 0, true);
-  assert.equal(replyDraftIndex < nextActionsIndex, true);
+  assert.equal(nextActionsIndex, -1);
 });
 
 test('taskpane messages extracts reply body from json-like reply draft payload', () => {
@@ -1803,12 +1920,13 @@ test('taskpane messages renders actions inline and does not render context tabs'
   assert.equal(html.includes('data-action="message-tab-select"'), false);
   assert.equal(html.includes('🔍 컨텍스트'), false);
   assert.equal(html.includes('next-actions-list'), true);
+  assert.equal(html.includes('data-action="next-action-run"'), true);
   assert.equal(html.includes('context-enrichment-block'), false);
   assert.equal(html.includes('스레드 타임라인'), false);
   assert.equal(html.includes('관계자'), false);
 });
 
-test('taskpane messages renders web source icon stack and popover list', () => {
+test('taskpane messages renders web source popover from metadata with favicon stack', () => {
   const moduleRef = loadMessagesModule();
   const instance = moduleRef.create({
     byId: () => null,
@@ -1836,10 +1954,11 @@ test('taskpane messages renders web source icon stack and popover list', () => {
   };
   const html = instance.buildMessageHtml('assistant', '본문', metadata);
   assert.equal(html.includes('web-source-popover'), true);
+  assert.equal(html.includes('web-source-trigger'), true);
   assert.equal(html.includes('web-source-icon'), true);
   assert.equal(html.includes('web-source-icon-img'), true);
-  assert.equal(html.includes('출처'), true);
   assert.equal(html.includes('OpenAI Latency Optimization'), true);
+  assert.equal(html.includes('출처 2건'), true);
 });
 
 test('taskpane messages renders external info summary heading as major summary cards', () => {

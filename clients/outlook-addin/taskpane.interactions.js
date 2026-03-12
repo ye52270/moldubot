@@ -11,8 +11,6 @@
     const setSendingState = options.setSendingState;
     const requestAssistantReply = options.requestAssistantReply;
     const openEvidenceMail = options.openEvidenceMail;
-    const showClarificationToast = options.showClarificationToast;
-    const clearClarificationToast = options.clearClarificationToast;
     let popoverDismissBound = false;
     const POPOVER_SELECTOR = 'details.inline-evidence-popover[open], details.web-source-popover[open]';
 
@@ -125,44 +123,82 @@
       });
     }
 
-    function handleScopeSelect(button) {
-      if (!button) return;
-      const originalQuery = String(button.dataset.originalQuery || '').trim();
-      const scope = String(button.dataset.scope || '').trim();
-      const scopeLabel = String(button.dataset.scopeLabel || scope).trim();
-      if (!originalQuery || !scope) return;
-      button.disabled = true;
-      if (typeof clearClarificationToast === 'function') {
-        clearClarificationToast();
-      }
-      setSendingState(true);
-      addMessage('user', '질문 범위 선택: ' + scopeLabel);
-      requestAssistantReply(originalQuery, null, { scope: scope }).then(function (assistantPayload) {
-        const answer = assistantPayload && assistantPayload.answer ? assistantPayload.answer : '응답을 생성하지 못했습니다.';
-        const metadata = assistantPayload && assistantPayload.metadata ? assistantPayload.metadata : {};
-        addMessage('assistant', answer, metadata);
-        if (typeof showClarificationToast === 'function') {
-          showClarificationToast(metadata);
-        }
-      }).catch(function () {
-        addMessage('assistant', '응답을 가져오는 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
-      }).finally(function () {
-        setSendingState(false);
-        button.disabled = false;
-        const input = byId('chatInput');
-        if (input) input.focus();
-      });
-    }
-
     function findActionButtonFromEvent(event) {
       const target = event && event.target ? event.target : null;
       if (!target || !target.closest) return null;
       return target.closest(
-        '.msg-action-btn, .evidence-open-btn, [data-action="selected-mail-open"], [data-action="report-open-file"], [data-action="section-toggle"], [data-action="scope-select"]'
+        '.msg-action-btn, .evidence-open-btn, [data-action="selected-mail-open"], [data-action="report-open-file"], [data-action="section-toggle"]'
       );
     }
 
+    function openExternalUrl(url) {
+      const openUrl = resolveExternalUrl(url);
+      if (!openUrl) return false;
+      const officeUi = window
+        && window.Office
+        && window.Office.context
+        && window.Office.context.ui;
+      if (officeUi && typeof officeUi.openBrowserWindow === 'function') {
+        try {
+          officeUi.openBrowserWindow(openUrl);
+          return true;
+        } catch (_error) {
+          logClientEvent('warning', 'external_link_open_office_failed', {
+            has_url: true,
+          });
+        }
+      }
+      if (window && typeof window.open === 'function') {
+        window.open(openUrl, '_blank', 'noopener,noreferrer');
+        return true;
+      }
+      return false;
+    }
+
+    function resolveExternalUrl(url) {
+      const rawUrl = String(url || '').trim();
+      if (!rawUrl) return '';
+      try {
+        const baseHref = window && window.location && window.location.href
+          ? String(window.location.href)
+          : '';
+        if (!baseHref) return rawUrl;
+        return new URL(rawUrl, baseHref).toString();
+      } catch (_error) {
+        return rawUrl;
+      }
+    }
+
     function handleClick(event) {
+      const target = event && event.target ? event.target : null;
+      const externalLinkNode = target && target.closest
+        ? target.closest('a.major-summary-link, a.web-source-link')
+        : null;
+      const isExternalLinkNode = Boolean(
+        externalLinkNode && (
+          (typeof externalLinkNode.matches === 'function' && externalLinkNode.matches('a.major-summary-link, a.web-source-link')) ||
+          (
+            String(externalLinkNode.tagName || '').toLowerCase() === 'a' &&
+            externalLinkNode.classList &&
+            (
+              externalLinkNode.classList.contains('major-summary-link') ||
+              externalLinkNode.classList.contains('web-source-link')
+            )
+          )
+        )
+      );
+      if (isExternalLinkNode) {
+        if (event && typeof event.preventDefault === 'function') {
+          event.preventDefault();
+        }
+        const hrefAttr = typeof externalLinkNode.getAttribute === 'function'
+          ? externalLinkNode.getAttribute('href')
+          : '';
+        const href = String(hrefAttr || externalLinkNode.href || '').trim();
+        if (!href) return;
+        openExternalUrl(href);
+        return;
+      }
       const button = findActionButtonFromEvent(event);
       if (!button) return;
       if (String(button.dataset.action || '') === 'section-toggle') {
@@ -188,16 +224,12 @@
         }
         return;
       }
-      if (button.classList.contains('scope-choice-btn') || String(button.dataset.action || '') === 'scope-select') {
-        handleScopeSelect(button);
-        return;
-      }
       if (String(button.dataset.action || '') === 'report-open-file') {
         const previewUrl = String(button.dataset.previewUrl || '').trim();
         const docxUrl = String(button.dataset.docxUrl || '').trim();
         const openUrl = previewUrl || docxUrl;
         if (!openUrl) return;
-        window.open(openUrl, '_blank', 'noopener,noreferrer');
+        openExternalUrl(openUrl);
         return;
       }
       const messageNode = button.closest('.message');
@@ -244,9 +276,6 @@
           const answer = assistantPayload && assistantPayload.answer ? assistantPayload.answer : '응답을 생성하지 못했습니다.';
           const metadata = assistantPayload && assistantPayload.metadata ? assistantPayload.metadata : {};
           addMessage('assistant', answer, metadata);
-          if (typeof showClarificationToast === 'function') {
-            showClarificationToast(metadata);
-          }
         }).catch(function () {
           addMessage('assistant', '응답을 가져오는 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
         }).finally(function () {
@@ -279,10 +308,6 @@
       };
       if (chatArea) {
         chatArea.addEventListener('click', chatClickHandler);
-      }
-      const toastHost = byId('clarificationToastHost');
-      if (toastHost) {
-        toastHost.addEventListener('click', handleClick);
       }
     }
 

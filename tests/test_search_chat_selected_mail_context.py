@@ -5,7 +5,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from app.api.contracts import ChatRequest
-from app.api.followup_scope import remember_followup_search_result, reset_followup_scope_state_for_test
+from app.api.followup_scope import reset_followup_scope_state_for_test
 from app.api.routes import search_chat
 from app.services.mail_service import MailRecord
 
@@ -287,47 +287,6 @@ class SearchChatSelectedMailContextTest(unittest.TestCase):
         self.assertEqual("completed", response["status"])
         self.assertEqual("internal-error", response["metadata"]["source"])
         self.assertIn("내부 오류", response["answer"])
-
-    def test_ambiguous_followup_returns_scope_clarification(self) -> None:
-        """직전 조회 결과가 있는 모호 질의는 scope clarification을 반환해야 한다."""
-        reset_followup_scope_state_for_test()
-        remember_followup_search_result(thread_id="thread-followup", search_result_count=10)
-
-        with patch("app.api.routes.get_deep_chat_agent") as get_agent:
-            payload = ChatRequest(
-                message="이슈에 대해 알려줘",
-                thread_id="thread-followup",
-                email_id="message-1",
-                mailbox_user="user@example.com",
-            )
-            response = search_chat(payload=payload)
-
-        self.assertEqual("needs_clarification", response["status"])
-        self.assertEqual("scope-clarification", response["metadata"]["source"])
-        self.assertTrue(bool(response["metadata"]["clarification"]["required"]))
-        get_agent.assert_not_called()
-
-    def test_scope_option_bypasses_clarification_and_calls_agent(self) -> None:
-        """사용자가 scope를 선택한 재요청은 clarification 없이 agent를 호출해야 한다."""
-        reset_followup_scope_state_for_test()
-        remember_followup_search_result(thread_id="thread-followup-2", search_result_count=6)
-
-        with patch("app.api.routes.is_openai_key_configured", return_value=True):
-            with patch("app.api.routes.get_deep_chat_agent") as get_agent:
-                get_agent.return_value.respond.return_value = "범위 선택 응답"
-                payload = ChatRequest(
-                    message="이슈에 대해 알려줘",
-                    thread_id="thread-followup-2",
-                    runtime_options={"scope": "previous_results"},
-                )
-                response = search_chat(payload=payload)
-
-        self.assertEqual("deep-agent", response["metadata"]["source"])
-        called_message = get_agent.return_value.respond.call_args.kwargs["user_message"]
-        self.assertIn("직전 조회 결과 6건", called_message)
-        self.assertIn("이슈에 대해 알려줘", called_message)
-        self.assertEqual("previous_results", response["metadata"]["resolved_scope"])
-
 
 if __name__ == "__main__":
     unittest.main()

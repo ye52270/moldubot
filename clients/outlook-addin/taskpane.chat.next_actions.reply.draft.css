@@ -13,8 +13,8 @@
 }
 
 .message.assistant .msg-body.reply-mail-body-card .rich-paragraph {
-  font-size: 18px;
-  line-height: 1.74;
+  font-size: var(--text-base);
+  line-height: 1.68;
   letter-spacing: -0.005em;
   color: color-mix(in srgb, var(--color-text) 96%, #2c241b);
 }

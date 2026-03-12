@@ -23,6 +23,36 @@ test('summary cards renders major summary list', () => {
   assert.match(html, /2:B/);
 });
 
+test('summary cards links external summary title to web source url', () => {
+  const renderer = summaryCards.create({
+    escapeHtml: passthrough,
+    escapeAttr: passthrough,
+    applyInlineFormatting: passthrough,
+    evidenceUi: {
+      normalizeEvidenceToken: (v) => String(v || '').replace(/\s+/g, '').toLowerCase(),
+      buildInlineEvidencePopover: () => '',
+    },
+    renderIndexedSummaryCard: ({ index, titleHtml }) => `<li>${index}:${titleHtml}</li>`,
+  });
+  const html = renderer.buildMajorSummaryListHtml(
+    ['Microsoft Learn - LDAP Signing (learn.microsoft.com)'],
+    [],
+    {
+      web_sources: [
+        {
+          title: 'Microsoft Learn - LDAP Signing',
+          site_name: 'learn.microsoft.com',
+          url: 'https://learn.microsoft.com/test',
+        },
+      ],
+    },
+    1
+  );
+  assert.match(html, /major-summary-link/);
+  assert.match(html, /href="https:\/\/learn\.microsoft\.com\/test"/);
+  assert.match(html, /target="_blank"/);
+});
+
 test('summary cards renders tech issue list', () => {
   const renderer = summaryCards.create({
     escapeHtml: passthrough,

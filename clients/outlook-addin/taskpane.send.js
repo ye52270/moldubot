@@ -120,9 +120,6 @@
 
       const userDisplayText = stripLeadingShortcutTokensForDisplay(text);
       messageUi.addMessage('user', userDisplayText);
-      if (messageUi && typeof messageUi.clearClarificationToast === 'function') {
-        messageUi.clearClarificationToast();
-      }
       input.value = '';
       if (typeof input.dispatchEvent === 'function' && typeof Event === 'function') {
         input.dispatchEvent(new Event('input', { bubbles: true }));
@@ -210,9 +207,6 @@
           messageUi.finalizeStreamingAssistantMessage(assistantReply, assistantMetadata);
         } else {
           messageUi.addMessage('assistant', assistantReply, assistantMetadata);
-        }
-        if (messageUi && typeof messageUi.showClarificationToast === 'function') {
-          messageUi.showClarificationToast(assistantMetadata);
         }
         const serverElapsedMs = Number(assistantMetadata && assistantMetadata.elapsed_ms);
         const effectiveElapsedMs = Number.isFinite(serverElapsedMs) && serverElapsedMs > 0

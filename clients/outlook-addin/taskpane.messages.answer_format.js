@@ -103,6 +103,7 @@
       if (!summaryCardsModule || typeof summaryCardsModule.create !== 'function') return null;
       summaryCardsRenderer = summaryCardsModule.create({
         escapeHtml: escapeHtml,
+        escapeAttr: escapeAttr,
         applyInlineFormatting: applyInlineFormatting,
         buildInlineEvidencePopover: buildInlineEvidencePopover,
         evidenceUi: evidenceUi,

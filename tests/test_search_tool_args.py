@@ -77,6 +77,15 @@ class SearchToolArgsTest(unittest.TestCase):
         )
         self.assertEqual("홍길동", normalized.get("person"))
 
+    def test_person_slot_does_not_extract_non_person_keyword_with_particle(self) -> None:
+        """`일정과 관련된 메일` 질의에서 `일정과`를 person 슬롯으로 오인하면 안 된다."""
+        normalized = normalize_search_tool_args(
+            tool_name="search_meeting_schedule",
+            tool_args={"query": "M365 구축 프로젝트", "person": "", "limit": 5},
+            user_message="M365 구축 프로젝트 구축 일정과 관련된 메일을 찾아줘",
+        )
+        self.assertEqual("", normalized.get("person"))
+
 
 if __name__ == "__main__":
     unittest.main()

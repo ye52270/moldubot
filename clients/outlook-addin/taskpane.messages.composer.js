@@ -37,6 +37,8 @@
     function shouldWrapCurrentMailFreeformBullets(text, metadata) {
       var normalizedText = String(text || '').trim();
       if (!normalizedText) return false;
+      var renderMode = String(metadata && metadata.ui_render_mode ? metadata.ui_render_mode : '').trim().toLowerCase();
+      if (renderMode === 'plain_lists') return false;
       var queryType = String(metadata && metadata.query_type ? metadata.query_type : '').trim().toLowerCase();
       var scopeLabel = String(metadata && metadata.scope_label ? metadata.scope_label : '').trim();
       var isCurrentMailScope = queryType === 'current_mail' || scopeLabel.indexOf('현재 선택 메일') >= 0;
@@ -61,6 +63,58 @@
       }).join('');
     }
 
+    function buildWebSourcePopoverHtml(metadata) {
+      var data = metadata && typeof metadata === 'object' ? metadata : {};
+      var sources = Array.isArray(data.web_sources) ? data.web_sources : [];
+      if (!sources.length) return '';
+      var previewIcons = sources.slice(0, 3).map(function (item, index) {
+        var source = item && typeof item === 'object' ? item : {};
+        var faviconUrl = String(source.favicon_url || '').trim();
+        var iconText = String(source.icon_text || source.site_name || '?').trim().slice(0, 1).toUpperCase() || '?';
+        var stackIndex = String(index + 1);
+        if (faviconUrl) {
+          return (
+            '<span class="web-source-icon" style="--stack-index:' + stackIndex + '">' +
+              '<img class="web-source-icon-img" src="' + escapeHtml(faviconUrl) + '" alt="" loading="lazy" referrerpolicy="no-referrer" />' +
+            '</span>'
+          );
+        }
+        return '<span class="web-source-icon" style="--stack-index:' + stackIndex + '">' + escapeHtml(iconText) + '</span>';
+      }).join('');
+      var sourceRows = sources.slice(0, 5).map(function (item) {
+        var source = item && typeof item === 'object' ? item : {};
+        var title = String(source.title || '').trim() || '제목 없음';
+        var siteName = String(source.site_name || '').trim() || '-';
+        var snippet = String(source.snippet || '').trim();
+        var url = String(source.url || '').trim();
+        if (!url) return '';
+        var shortUrl = url.length > 90 ? (url.slice(0, 87) + '...') : url;
+        return (
+          '<li class="web-source-item">' +
+            '<a class="web-source-link" href="' + escapeHtml(url) + '" target="_blank" rel="noopener noreferrer">' +
+              '<span class="web-source-site">' + escapeHtml(siteName) + '</span>' +
+              '<span class="web-source-title">' + escapeHtml(title) + '</span>' +
+              '<span class="web-source-snippet">' + escapeHtml(shortUrl) + '</span>' +
+              (snippet ? '<span class="web-source-snippet">' + escapeHtml(snippet) + '</span>' : '') +
+            '</a>' +
+          '</li>'
+        );
+      }).filter(function (row) { return Boolean(row); }).join('');
+      if (!sourceRows) return '';
+      return (
+        '<details class="web-source-popover">' +
+          '<summary class="web-source-trigger" title="외부 출처 보기" aria-label="외부 출처 보기">' +
+            '<span class="web-source-stack">' + previewIcons + '</span>' +
+            '<span class="web-source-label">출처 ' + escapeHtml(String(sources.length)) + '건</span>' +
+          '</summary>' +
+          '<div class="web-source-panel">' +
+            '<div class="web-source-panel-title">외부 검색 출처</div>' +
+            '<ul class="web-source-list">' + sourceRows + '</ul>' +
+          '</div>' +
+        '</details>'
+      );
+    }
+
     function buildMessageHtml(role, text, metadata) {
       var safeRole = role === 'user' ? 'user' : 'assistant';
       var sentAtLabel = safeRole === 'user' ? formatMessageTime() : '';
@@ -76,16 +130,15 @@
       var assistantBodyClass = 'msg-body rich-body';
       if (isReplyDraftResult) assistantBodyClass += ' reply-mail-body-card';
       var renderedBody = isReplyDraftResult ? renderReplyDraftBody(bodyText) : renderAssistantBody(bodyText, data);
-      var assistantBodyHtml = '<div class="' + assistantBodyClass + '">' + buildCodeReviewQualityBar(data, bodyText) + renderedBody + '</div>';
+      var webSourcePopoverHtml = buildWebSourcePopoverHtml(data);
+      var assistantBodyHtml = '<div class="' + assistantBodyClass + '">' + buildCodeReviewQualityBar(data, bodyText) + renderedBody + webSourcePopoverHtml + '</div>';
       if (safeRole !== 'assistant') {
         return '<div class="message ' + safeRole + '"><div class="msg-content"><div class="msg-body">' + escapeHtml(text) + '</div>' + actionsHtml(safeRole, sentAtLabel) + '</div></div>';
       }
-      var evidenceHtml = metaRenderer && metaRenderer.buildEvidenceListHtml ? metaRenderer.buildEvidenceListHtml(data) : '';
       var hitlConfirmHtml = metaRenderer && metaRenderer.buildHitlConfirmHtml ? metaRenderer.buildHitlConfirmHtml(data) : '';
-      var nextActionsHtml = metaRenderer && metaRenderer.buildNextActionsHtml ? metaRenderer.buildNextActionsHtml(data) : '';
       var replyTonePickerHtml = metaRenderer && metaRenderer.buildReplyTonePickerHtml ? metaRenderer.buildReplyTonePickerHtml(data) : '';
       var replyDraftActionHtml = metaRenderer && metaRenderer.buildReplyDraftActionHtml ? metaRenderer.buildReplyDraftActionHtml(data) : '';
-      var webSourcesHtml = metaRenderer && metaRenderer.buildWebSourcesHtml ? metaRenderer.buildWebSourcesHtml(data) : '';
+      var nextActionsHtml = metaRenderer && metaRenderer.buildNextActionsHtml ? metaRenderer.buildNextActionsHtml(data) : '';
       var actionHtml = hitlConfirmHtml + replyTonePickerHtml + replyDraftActionHtml + nextActionsHtml;
       var rawAnswer = String(data && data.raw_answer ? data.raw_answer : '').trim();
       var rawAnswerHtml = rawAnswer ? '<div class="msg-raw-answer" hidden>' + escapeHtml(rawAnswer) + '</div>' : '';
@@ -97,7 +150,7 @@
       var rawModelContentHtml = rawModelContent
         ? '<div class="msg-raw-model-content" hidden>' + escapeHtml(rawModelContent) + '</div>'
         : '';
-      var assistantContentHtml = assistantBodyHtml + rawAnswerHtml + rawModelOutputHtml + rawModelContentHtml + evidenceHtml + webSourcesHtml + actionHtml;
+      var assistantContentHtml = assistantBodyHtml + rawAnswerHtml + rawModelOutputHtml + rawModelContentHtml + actionHtml;
       return '<div class="message ' + safeRole + '"><div class="msg-content">' + assistantContentHtml + actionsHtml(safeRole, sentAtLabel) + '</div></div>';
     }
 

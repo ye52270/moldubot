@@ -22,7 +22,11 @@ PERSON_FALLBACK_STOPWORDS = {
     "지난",
     "전체",
     "메일",
+    "일정",
+    "구축",
+    "프로젝트",
 }
+PERSON_SLOT_PARTICLE_SUFFIXES = ("은", "는", "이", "가", "을", "를", "과", "와")
 
 
 def normalize_search_tool_args(tool_name: str, tool_args: dict[str, Any], user_message: str) -> dict[str, Any]:
@@ -79,12 +83,16 @@ def _extract_person_slot(user_message: str) -> str:
     """
     anchors = extract_person_anchor_tokens(query=str(user_message or ""))
     if anchors:
-        normalized = normalize_person_identity(token=anchors[0])
+        normalized = normalize_person_identity(token=_strip_korean_particle_suffix(str(anchors[0] or "").strip()))
+        if _is_person_slot_stopword(token=normalized):
+            return ""
         return str(normalized or "").strip()
     fallback = _extract_person_slot_fallback(user_message=user_message)
     if not fallback:
         return ""
-    normalized = normalize_person_identity(token=fallback)
+    normalized = normalize_person_identity(token=_strip_korean_particle_suffix(fallback))
+    if _is_person_slot_stopword(token=normalized):
+        return ""
     return str(normalized or "").strip()
 
 
@@ -108,6 +116,41 @@ def _extract_person_slot_fallback(user_message: str) -> str:
     if candidate in PERSON_FALLBACK_STOPWORDS:
         return ""
     return candidate
+
+
+def _strip_korean_particle_suffix(token: str) -> str:
+    """
+    한국어 조사 접미사를 제거해 인물명 후보를 정규화한다.
+
+    Args:
+        token: 원본 후보 토큰
+
+    Returns:
+        조사 제거 후 후보 문자열
+    """
+    text = str(token or "").strip()
+    if len(text) < 3:
+        return text
+    for suffix in PERSON_SLOT_PARTICLE_SUFFIXES:
+        if text.endswith(suffix):
+            return text[: -len(suffix)].strip()
+    return text
+
+
+def _is_person_slot_stopword(token: str) -> bool:
+    """
+    추출된 person 슬롯이 일반 명사/검색 키워드인지 판별한다.
+
+    Args:
+        token: 정규화된 person 후보
+
+    Returns:
+        stopword면 True
+    """
+    normalized = str(token or "").strip()
+    if not normalized:
+        return True
+    return normalized in PERSON_FALLBACK_STOPWORDS
 
 
 def _extract_date_slots(user_message: str) -> tuple[str, str, bool]:

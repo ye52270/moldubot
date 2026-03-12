@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 from contextvars import ContextVar
 from functools import lru_cache
-from typing import Any, Callable, Mapping
+from typing import Any, Mapping
 
 from deepagents import create_deep_agent
 from langgraph.checkpoint.memory import InMemorySaver
@@ -15,7 +15,6 @@ from app.agents.deep_chat_agent_utils import (
     extract_interrupt_requests,
     extract_interrupt_requests_from_state,
     extract_latest_tool_payload,
-    extract_stream_token_text,
     resolve_thread_id,
 )
 from app.agents.prompts import get_agent_system_prompt, get_default_agent_system_prompt
@@ -162,44 +161,6 @@ class DeepChatAgent:
         )
         return self._build_turn_response(
             result=result,
-            thread_id=normalized_thread_id,
-            user_message=user_message,
-        )
-
-    def stream_execute_turn(
-        self,
-        user_message: str,
-        thread_id: str | None = None,
-        on_token: Callable[[str], None] | None = None,
-    ) -> dict[str, Any]:
-        """
-        사용자 입력 1턴을 단일 실행으로 처리하면서 토큰을 스트리밍한다.
-
-        Args:
-            user_message: 사용자 입력 문장
-            thread_id: LangGraph short-term memory 스레드 식별자
-            on_token: 토큰 수신 콜백(선택)
-
-        Returns:
-            실행 결과 사전
-        """
-        normalized_thread_id = resolve_thread_id(thread_id=thread_id)
-        logger.info(
-            "deep agent 스트리밍 응답 생성 시작: input_length=%s thread_id=%s",
-            len(user_message),
-            normalized_thread_id,
-        )
-        payload = {"messages": [{"role": "user", "content": user_message.strip()}]}
-        stream_config = {"configurable": {"thread_id": normalized_thread_id}}
-        for stream_item in self._graph.stream(
-            payload,
-            config=stream_config,
-            stream_mode="messages",
-        ):
-            token_text = extract_stream_token_text(stream_item=stream_item)
-            if token_text and callable(on_token):
-                on_token(token_text)
-        return self._build_turn_response_from_state(
             thread_id=normalized_thread_id,
             user_message=user_message,
         )

@@ -203,8 +203,6 @@
     logClientEvent: logClientEvent,
     copiedResetMs: COPIED_RESET_MS,
     addMessage: messageUi.addMessage,
-    showClarificationToast: messageUi.showClarificationToast,
-    clearClarificationToast: messageUi.clearClarificationToast,
     setSendingState: setSendingState,
     requestAssistantReply: chatApi.requestAssistantReply,
     openEvidenceMail: runtimeHelpers.openEvidenceMail,

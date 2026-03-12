@@ -64,13 +64,10 @@
 
     return {
       renderSelectedMailBanner: bannerRenderer.renderSelectedMailBanner || function () { return; },
-      buildEvidenceListHtml: blocksRenderer.buildEvidenceListHtml || function () { return ''; },
-      buildScopeClarificationHtml: blocksRenderer.buildScopeClarificationHtml || function () { return ''; },
       buildHitlConfirmHtml: blocksRenderer.buildHitlConfirmHtml || function () { return ''; },
-      buildNextActionsHtml: blocksRenderer.buildNextActionsHtml || function () { return ''; },
       buildReplyTonePickerHtml: blocksRenderer.buildReplyTonePickerHtml || function () { return ''; },
       buildReplyDraftActionHtml: blocksRenderer.buildReplyDraftActionHtml || function () { return ''; },
-      buildWebSourcesHtml: blocksRenderer.buildWebSourcesHtml || function () { return ''; },
+      buildNextActionsHtml: blocksRenderer.buildNextActionsHtml || function () { return ''; },
       normalizeReplyDraftBodyText: blocksRenderer.normalizeReplyDraftBodyText || function (text) { return String(text || '').trim(); },
       renderBasicInfoRows: blocksRenderer.renderBasicInfoRows || function () { return ''; },
     };

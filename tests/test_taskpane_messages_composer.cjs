@@ -32,22 +32,17 @@ test('composer builds assistant message html with metadata blocks', () => {
     actionsHtml: () => '<div class="assistant-actions"></div>',
     buildCodeReviewQualityBar: () => '<div class="quality"></div>',
     metaRenderer: {
-      buildEvidenceListHtml: () => '<div class="evidence"></div>',
-      buildScopeClarificationHtml: () => '<div class="clarification"></div>',
       buildHitlConfirmHtml: () => '<div class="hitl"></div>',
-      buildNextActionsHtml: () => '<div class="next"></div>',
       buildReplyTonePickerHtml: () => '<div class="tone"></div>',
       buildReplyDraftActionHtml: () => '<div class="draft"></div>',
-      buildWebSourcesHtml: () => '<div class="source"></div>',
       normalizeReplyDraftBodyText: (v) => passthrough(v),
     },
   });
   const html = renderer.buildMessageHtml('assistant', '내용', { reply_draft: { enabled: true } });
   assert.match(html, /message assistant/);
   assert.match(html, /quality/);
-  assert.match(html, /evidence/);
-  assert.match(html, /source/);
-  assert.doesNotMatch(html, /clarification/);
+  assert.doesNotMatch(html, /evidence/);
+  assert.doesNotMatch(html, /source/);
 });
 
 test('composer embeds hidden raw answer payload for assistant cards', () => {

@@ -153,9 +153,15 @@
           continue;
         }
         const bulletMatch = /^[-*]\s+(.+)$/.exec(trimmed);
+        const indentedBulletMatch = /^(\s+)[-*]\s+(.+)$/.exec(rawLine);
         if (bulletMatch) {
+          const bulletText = indentedBulletMatch ? indentedBulletMatch[2] : bulletMatch[1];
           if (listMode === 'ol' && orderedItemOpen) {
-            htmlChunks.push('<div class="rich-subline">- ' + utils.applyInlineFormatting(bulletMatch[1]) + '</div>');
+            htmlChunks.push('<div class="rich-subline">- ' + utils.applyInlineFormatting(bulletText) + '</div>');
+            continue;
+          }
+          if (indentedBulletMatch && listMode === 'ul') {
+            htmlChunks.push('<li class="rich-subline-item"><div class="rich-subline">- ' + utils.applyInlineFormatting(bulletText) + '</div></li>');
             continue;
           }
           if (listMode !== 'ul') {
@@ -163,7 +169,7 @@
             htmlChunks.push('<ul class="rich-list">');
             listMode = 'ul';
           }
-          htmlChunks.push('<li>' + utils.applyInlineFormatting(bulletMatch[1]) + '</li>');
+          htmlChunks.push('<li>' + utils.applyInlineFormatting(bulletText) + '</li>');
           continue;
         }
         const orderedMatch = /^(\d+)\.\s*(\S.*)$/.exec(trimmed);

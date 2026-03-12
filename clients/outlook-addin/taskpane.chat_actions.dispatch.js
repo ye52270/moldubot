@@ -180,7 +180,7 @@
         '[data-action="promise-detail-back"], ' +
         '[data-action="promise-card-cancel"], [data-action="finance-card-submit"], [data-action="finance-card-cancel"], ' +
         '[data-action="hr-card-submit"], [data-action="hr-card-cancel"], [data-action="hitl-confirm-approve"], [data-action="hitl-confirm-reject"], ' +
-        '[data-action="next-action-run"], [data-action="reply-tone-generate"], [data-action="reply-draft-open"], [data-action="scope-select"]'
+        '[data-action="next-action-run"], [data-action="reply-tone-generate"], [data-action="reply-draft-open"]'
       ) : null;
       if (!button) return;
       const action = String(button.dataset.action || '').trim();
@@ -225,7 +225,6 @@
       if (action === 'finance-card-submit') return helperActions.handleFinanceSubmit();
       if (action === 'hr-card-submit') return helperActions.handleHrSubmit();
       if (action === 'weekly-report-generate-confirm') return helperActions.handleWeeklyReportConfirm();
-      if (action === 'scope-select') return helperActions.handleScopeSelect(button);
     }
 
     function bindChatAreaActions() {

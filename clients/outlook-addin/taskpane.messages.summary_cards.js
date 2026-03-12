@@ -5,6 +5,7 @@
 (function initTaskpaneMessagesSummaryCards(global) {
   function create(options) {
     var escapeHtml = options.escapeHtml;
+    var escapeAttr = options.escapeAttr || options.escapeHtml;
     var applyInlineFormatting = options.applyInlineFormatting;
     var renderIndexedSummaryCard = options.renderIndexedSummaryCard;
     var evidenceUi = options && options.evidenceUi && typeof options.evidenceUi === 'object'
@@ -89,9 +90,10 @@
         var subtitle = String(meta.summary || '').trim();
         var subtitleDate = String(meta.date || '').trim();
         var evidenceHtml = buildInlineEvidencePopover(metadata, title, { preferredIndex: index });
+        var titleHtml = resolveMajorSummaryTitleHtml(title, metadata, index);
         return renderIndexedSummaryCard({
           index: initialIndex + index,
-          titleHtml: applyInlineFormatting(title),
+          titleHtml: titleHtml,
           subtitleDateHtml: subtitleDate ? applyInlineFormatting(subtitleDate) : '',
           subtitleHtml: subtitle ? applyInlineFormatting(subtitle) : '',
           rightAddonHtml: evidenceHtml || '',
@@ -101,6 +103,39 @@
       }).filter(function (value) { return Boolean(value); }).join('');
       if (!itemHtml) return '';
       return '<ol class="major-summary-list">' + itemHtml + '</ol>';
+    }
+
+    function resolveMajorSummaryTitleHtml(title, metadata, index) {
+      var linked = buildWebSourceTitleLinkHtml(title, metadata, index);
+      if (linked) return linked;
+      return applyInlineFormatting(title);
+    }
+
+    function buildWebSourceTitleLinkHtml(title, metadata, index) {
+      var sources = metadata && Array.isArray(metadata.web_sources) ? metadata.web_sources : [];
+      if (!sources.length) return '';
+      var source = sources[index];
+      if (!source || typeof source !== 'object') return '';
+      var url = String(source.url || '').trim();
+      if (!url) return '';
+      var sourceTitle = String(source.title || '').trim();
+      var siteName = String(source.site_name || '').trim();
+      if (!_isLikelyExternalSummaryTitle(title, sourceTitle, siteName)) return '';
+      return (
+        '<a class="major-summary-link" href="' + escapeAttr(url) + '" target="_blank" rel="noopener noreferrer">' +
+          applyInlineFormatting(title) +
+        '</a>'
+      );
+    }
+
+    function _isLikelyExternalSummaryTitle(title, sourceTitle, siteName) {
+      var normalizedTitle = normalizeEvidenceToken(title);
+      if (!normalizedTitle) return false;
+      var normalizedSourceTitle = normalizeEvidenceToken(sourceTitle);
+      var normalizedSiteName = normalizeEvidenceToken(siteName);
+      if (normalizedSiteName && normalizedTitle.indexOf(normalizedSiteName) >= 0) return true;
+      if (normalizedSourceTitle && normalizedTitle.indexOf(normalizedSourceTitle.slice(0, 14)) >= 0) return true;
+      return /\([^)]+\.[^)]+\)/.test(String(title || ''));
     }
 
     function resolveTechIssueCluster(metadata, issueText, preferredIndex) {
