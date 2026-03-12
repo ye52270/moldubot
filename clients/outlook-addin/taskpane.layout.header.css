@@ -4,7 +4,7 @@
 
 .chat-toolbar {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
   gap: 8px;
   padding: 12px 14px 0;
@@ -150,6 +150,7 @@
 .toolbar-icon-btn {
   width: 32px;
   height: 32px;
+  margin-left: auto;
 }
 
 .toolbar-icon-btn,

@@ -17,3 +17,9 @@ test('report widget css no longer contains legacy streaming message selector', (
   assert.equal(source.includes('.streaming-message .msg-body'), false);
   assert.equal(source.includes('.streaming-message .msg-body::after'), false);
 });
+
+test('header toolbar aligns settings/new-session controls to the right', () => {
+  const source = readOutlookFile('taskpane.layout.header.css');
+  assert.equal(source.includes('justify-content: flex-start;'), true);
+  assert.equal(source.includes('margin-left: auto;'), true);
+});

@@ -1,6 +1,53 @@
 # Task
 
 ## 현재 작업
+mail_search 단순화: 1월/포맷 토큰 대응 로직 제거
+
+## Plan (2026-03-12 simplify mail_search by removing january-specific logic)
+- [x] 1단계: 최근 추가한 `current_mail_pipeline`/`search_tool_args`/`mail_search_service`의 1월·포맷 토큰 대응 코드 제거
+- [x] 2단계: 해당 회귀 테스트(추가분) 정리 및 기존 동작 검증 테스트 실행
+- [x] 3단계: Action Log 업데이트
+
+## Action Log (2026-03-12 simplify mail_search by removing january-specific logic)
+- [11:17] 작업 시작: 사용자 요청에 따라 1월 메일 조회 관련 추가 분기/토큰 규칙 제거 착수
+- [11:19] 완료: `current_mail_pipeline`/`search_tool_args`/`mail_search_service`의 1월·포맷 대응 분기 및 보조 함수 제거
+- [11:19] 완료: 관련 추가 테스트 3건 삭제(`test_current_mail_pipeline`, `test_search_tool_args`, `test_mail_search_service`)
+- [11:19] 완료: `.venv/bin/python -m unittest tests.test_mail_search_service tests.test_current_mail_pipeline tests.test_search_tool_args` 35건 통과
+
+## 현재 작업
+기간 지정 메일 검색이 current_mail로 오인되는 스코프/슬롯 회귀 수정
+
+## Plan (2026-03-12 mail-search scope and person-slot regression fix)
+- [x] 1단계: current_mail sticky가 메일 검색 질의를 덮어쓰지 않도록 판별 테스트 추가(TDD)
+- [x] 2단계: `search_tool_args` person fallback이 기간어를 인물로 오인하지 않도록 테스트 추가(TDD)
+- [x] 3단계: 스코프/슬롯 판별 로직 수정 후 타깃 테스트 실행
+- [x] 4단계: `mail_search` 고특이도 하드게이트/후보 토큰 정책 과차단 보정
+
+## Action Log (2026-03-12 mail-search scope and person-slot regression fix)
+- [11:08] 작업 시작: `1월달 메일 ... 표 형식` 질의가 current_mail 차단 + person=월달로 오인되는 회귀 수정 착수
+- [11:09] 완료: `resolve_current_mail_mode`에 메일검색 질의 우선 global 판별 추가(sticky current_mail 강제 차단 방지)
+- [11:09] 완료: `search_tool_args` person stopword 정책에 기간어(월달/이번달/지난주 등) 필터 추가
+- [11:09] 완료: `.venv/bin/python -m unittest tests.test_current_mail_pipeline tests.test_search_tool_args` 24건 통과
+- [11:09] 완료: `.venv/bin/python -m unittest tests.test_search_chat_flow_fast_lane tests.test_search_chat_flow_helpers_policy` 8건 통과
+- [11:13] 이슈 발생: `1월달 메일 ... 발신자|주요 내용` 질의가 `mail_search 고특이도 하드게이트`/SQL 후보 토큰(`메일을`,`형식으로`)에 의해 0건 과차단
+- [11:15] 완료: `mail_search_service`에 출력 포맷 토큰(조사 포함) 제외 정책 + 날짜 스코프 질의의 월/포맷 토큰 SQL 후보 제외 정책 반영
+- [11:15] 완료: `tests.test_mail_search_service` 회귀 테스트 추가 및 타깃 46건 통과
+
+## 현재 작업
+상단 툴바 설정 버튼(톱니) 우측 정렬 조정
+
+## Plan (2026-03-12 header settings button align right)
+- [x] 1단계: 헤더 레이아웃 CSS 회귀 테스트 추가(TDD)
+- [x] 2단계: `chat-toolbar`/`toolbar-icon-btn` 정렬 규칙 수정
+- [x] 3단계: 관련 CJS 테스트 실행 및 Action Log 업데이트
+
+## Action Log (2026-03-12 header settings button align right)
+- [11:06] 작업 시작: 상단 설정 버튼이 중앙에 위치하는 UI 정렬 이슈 수정 착수
+- [11:07] 완료: `chat-toolbar`를 `flex-start`로 변경하고 설정 버튼(`toolbar-icon-btn`)에 `margin-left:auto` 적용해 우측 정렬로 보정
+- [11:07] 완료: 캐시 반영을 위해 `taskpane.layout.header.css` import/query 및 `taskpane.html` CSS 버전 갱신
+- [11:07] 완료: `node --test tests/test_taskpane_dead_style_cleanup.cjs tests/test_taskpane_bootstrap.cjs` 5건 통과
+
+## 현재 작업
 `/주간보고` 첨부 카드 `미리보기` 버튼 무반응 버그 수정
 
 ## Plan (2026-03-12 preview button no-op fix)
