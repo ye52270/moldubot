@@ -9,7 +9,6 @@ from app.core.llm_runtime import is_model_provider_configured, resolve_env_model
 from app.middleware.agent_middlewares import (
     guard_model_output,
     guard_tool_error,
-    inject_intent_decomposition_context,
     log_after_agent,
     log_before_agent,
     postprocess_model_answer,
@@ -28,7 +27,6 @@ def build_agent_middlewares() -> list[Any]:
     """
     middlewares: list[Any] = [
         log_before_agent,
-        inject_intent_decomposition_context,
         guard_model_output,
         _build_human_in_the_loop_middleware(),
         postprocess_model_answer,
@@ -72,15 +70,15 @@ def _build_human_in_the_loop_middleware() -> HumanInTheLoopMiddleware:
     """
     interrupt_on: dict[str, bool | InterruptOnConfig] = {
         "book_meeting_room": {
-            "allowed_decisions": ["approve", "reject"],
+            "allowed_decisions": ["approve", "edit", "reject"],
             "description": _format_hitl_description,
         },
         "create_outlook_todo": {
-            "allowed_decisions": ["approve", "reject"],
+            "allowed_decisions": ["approve", "edit", "reject"],
             "description": _format_hitl_description,
         },
         "create_outlook_calendar_event": {
-            "allowed_decisions": ["approve", "reject"],
+            "allowed_decisions": ["approve", "edit", "reject"],
             "description": _format_hitl_description,
         },
     }

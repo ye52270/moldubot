@@ -2,6 +2,17 @@ from __future__ import annotations
 
 from typing import Final
 
+FREEFORM_SUGGESTED_ACTION_TAG: Final[str] = (
+    "Follow-up action metadata (OPTIONAL):\n"
+    "- If useful follow-up actions exist, append exactly one final line:\n"
+    "  [[suggested_action_ids:action_id_1,action_id_2]]\n"
+    "- Allowed action_ids: draft_reply, analyze_code_snippet, create_todo, create_calendar_event, "
+    "book_meeting_room, web_search, search_related_mails\n"
+    "- Use 1~3 IDs, no duplicates.\n"
+    "- If no useful follow-up actions, omit this line.\n"
+    "- Do not add explanations around the metadata line.\n"
+)
+
 JSON_OUTPUT_CONTRACT: Final[str] = (
     "Output contract (MANDATORY):\n"
     "- Return exactly one JSON object. No markdown fence, no prose outside JSON.\n"
@@ -183,6 +194,7 @@ QUALITY_FREEFORM_GROUNDED_SYSTEM_PROMPT: Final[str] = (
     "- Start with one-paragraph 핵심 맥락 정리.\n"
     "- Then organize practical work items by 흐름/우선순위/리스크.\n"
     "- Avoid terse line-summary format unless the user explicitly asks `N줄 요약`.\n"
+    f"{FREEFORM_SUGGESTED_ACTION_TAG}"
 )
 
 QUALITY_TRANSLATION_GROUNDED_SYSTEM_PROMPT: Final[str] = (
@@ -200,6 +212,7 @@ QUALITY_TRANSLATION_GROUNDED_SYSTEM_PROMPT: Final[str] = (
     "Answer style:\n"
     "- Optional short header is allowed, but main output must be full translated body paragraphs.\n"
     "- Avoid concluding action checklist unless user asks for actions.\n"
+    f"{FREEFORM_SUGGESTED_ACTION_TAG}"
 )
 
 CODE_REVIEW_EXPERT_SYSTEM_PROMPT: Final[str] = (

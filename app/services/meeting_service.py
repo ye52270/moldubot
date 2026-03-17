@@ -72,6 +72,7 @@ class MeetingRoomService:
         Returns:
             조회된 회의실 목록
         """
+        _ = attendee_count
         rooms = load_meeting_rooms(path=self._rooms_path)
         result: list[dict[str, Any]] = []
         for room in rooms:

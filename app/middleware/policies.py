@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from functools import lru_cache
 from typing import Sequence
 
 from langchain_core.messages import BaseMessage, HumanMessage
@@ -18,7 +19,6 @@ from app.core.logging_config import get_logger
 from app.services.current_mail_intent_policy import (
     is_current_mail_direct_fact_request,
     is_current_mail_translation_request,
-    resolve_current_mail_issue_sections,
 )
 from app.services.intent_decomposition_service import (
     build_intent_namespace_kwargs,
@@ -109,34 +109,10 @@ def compose_intent_augmented_text(user_message: str) -> str:
     Returns:
         구조분해 컨텍스트 + 원본 입력 문자열
     """
-    scope_label, original_user_message = _split_scope_instruction(user_message=user_message)
-    decomposition = _parse_intent_with_namespace(
-        user_message=original_user_message,
-        scope_label=scope_label,
+    original_user_message, decomposition_json, context_text, routing_instruction = _compose_intent_context_payload(
+        user_message=user_message
     )
-    decomposition = _sanitize_current_mail_steps(
-        decomposition=decomposition,
-        user_message=original_user_message,
-        scope_label=scope_label,
-    )
-    decomposition = _apply_task_type_policy_override(
-        decomposition=decomposition,
-        user_message=original_user_message,
-        scope_label=scope_label,
-    )
-    decomposition = _apply_output_format_policy_override(
-        decomposition=decomposition,
-        user_message=original_user_message,
-        scope_label=scope_label,
-    )
-    decomposition_json = decomposition.model_dump_json(ensure_ascii=False)
     logger.info("미들웨어 의도 구조분해 결과(JSON): %s", decomposition_json)
-    context_text = decomposition_to_context_text(decomposition=decomposition)
-    routing_instruction = _build_routing_instruction(
-        decomposition=decomposition,
-        original_user_message=original_user_message,
-        scope_label=scope_label,
-    )
     return f"{context_text}\n{routing_instruction}\n\n원본 사용자 입력:\n{original_user_message.strip()}"
 
 
@@ -150,34 +126,10 @@ def compose_intent_system_context(user_message: str) -> str:
     Returns:
         system 메시지로 주입할 의도 컨텍스트 문자열
     """
-    scope_label, original_user_message = _split_scope_instruction(user_message=user_message)
-    decomposition = _parse_intent_with_namespace(
-        user_message=original_user_message,
-        scope_label=scope_label,
+    original_user_message, decomposition_json, context_text, routing_instruction = _compose_intent_context_payload(
+        user_message=user_message
     )
-    decomposition = _sanitize_current_mail_steps(
-        decomposition=decomposition,
-        user_message=original_user_message,
-        scope_label=scope_label,
-    )
-    decomposition = _apply_task_type_policy_override(
-        decomposition=decomposition,
-        user_message=original_user_message,
-        scope_label=scope_label,
-    )
-    decomposition = _apply_output_format_policy_override(
-        decomposition=decomposition,
-        user_message=original_user_message,
-        scope_label=scope_label,
-    )
-    decomposition_json = decomposition.model_dump_json(ensure_ascii=False)
     logger.info("미들웨어 의도 구조분해 결과(JSON): %s", decomposition_json)
-    context_text = decomposition_to_context_text(decomposition=decomposition)
-    routing_instruction = _build_routing_instruction(
-        decomposition=decomposition,
-        original_user_message=original_user_message,
-        scope_label=scope_label,
-    )
     return (
         f"{INTENT_SYSTEM_CONTEXT_PREFIX}\n"
         f"{context_text}\n"
@@ -186,147 +138,42 @@ def compose_intent_system_context(user_message: str) -> str:
     )
 
 
-def _sanitize_current_mail_steps(
-    decomposition: IntentDecomposition,
-    user_message: str,
-    scope_label: str = "",
-) -> IntentDecomposition:
+@lru_cache(maxsize=256)
+def _compose_intent_context_payload(user_message: str) -> tuple[str, str, str, str]:
     """
-    현재메일 고정 질의에서 불필요한 `search_mails` step을 제거한다.
+    동일 입력의 의도 컨텍스트 조합 결과를 캐시해 재파싱을 줄인다.
 
     Args:
-        decomposition: 의도 구조분해 결과
-        user_message: scope prefix 제거된 사용자 질의
+        user_message: 원본 사용자 입력
 
     Returns:
-        step 정규화가 반영된 의도 구조분해 결과
+        (원본 사용자 입력, decomposition_json, context_text, routing_instruction)
     """
-    has_scope_current_mail = is_current_mail_scope_label(scope_label=scope_label)
-    has_anchor_signal = has_scope_current_mail or ExecutionStep.READ_CURRENT_MAIL in decomposition.steps
-    if not has_anchor_signal:
-        return decomposition
-
-    if ExecutionStep.SEARCH_MAILS not in decomposition.steps:
-        return decomposition
-    if _should_keep_search_step_for_current_mail(
+    scope_label, original_user_message = _split_scope_instruction(user_message=user_message)
+    decomposition = _parse_intent_with_namespace(
+        user_message=original_user_message,
+        scope_label=scope_label,
+    )
+    decomposition = _apply_current_mail_policy_overrides(
         decomposition=decomposition,
-        user_message=user_message,
-        has_scope_current_mail=has_scope_current_mail,
-    ):
-        return decomposition
-
-    filtered_steps = [step for step in decomposition.steps if step != ExecutionStep.SEARCH_MAILS]
-    if has_scope_current_mail and ExecutionStep.READ_CURRENT_MAIL not in filtered_steps:
-        filtered_steps = [ExecutionStep.READ_CURRENT_MAIL, *filtered_steps]
-    logger.info(
-        "intent.step_sanitized: removed=search_mails reason=current_mail_focused_query before=%s after=%s",
-        [step.value for step in decomposition.steps],
-        [step.value for step in filtered_steps],
+        original_user_message=original_user_message,
+        scope_label=scope_label,
     )
-    return decomposition.model_copy(update={"steps": filtered_steps})
-
-
-def _apply_task_type_policy_override(
-    decomposition: IntentDecomposition,
-    user_message: str,
-    scope_label: str,
-) -> IntentDecomposition:
-    """
-    current_mail scope에서 구조 신호 기반 task_type 과분석을 보정한다.
-
-    Args:
-        decomposition: 의도 구조분해 결과
-        user_message: scope prefix 제거된 사용자 질의
-        scope_label: 질의 범위 라벨
-
-    Returns:
-        task_type 보정이 반영된 의도 구조분해 결과
-    """
-    del user_message
-    has_current_mail_scope = is_current_mail_scope_label(scope_label=scope_label)
-    if not has_current_mail_scope:
-        return decomposition
-    if decomposition.task_type != IntentTaskType.ANALYSIS:
-        return decomposition
-    step_set = set(decomposition.steps)
-    if ExecutionStep.SUMMARIZE_MAIL in step_set:
-        return decomposition
-    if ExecutionStep.SEARCH_MAILS in step_set:
-        return decomposition
-    if not step_set.intersection({ExecutionStep.EXTRACT_KEY_FACTS, ExecutionStep.READ_CURRENT_MAIL}):
-        return decomposition
-    logger.info(
-        "intent.task_type_override: %s -> %s, reason=current_mail_structural_extraction",
-        decomposition.task_type.value,
-        IntentTaskType.EXTRACTION.value,
-    )
-    return decomposition.model_copy(
-        update={
-            "task_type": IntentTaskType.EXTRACTION,
-            "origin": "policy_override",
-        }
-    )
-
-
-def _apply_output_format_policy_override(
-    decomposition: IntentDecomposition,
-    user_message: str,
-    scope_label: str,
-) -> IntentDecomposition:
-    """
-    정책 기반 output_format override를 적용하고 변경 근거를 로깅한다.
-
-    Args:
-        decomposition: 의도 구조분해 결과
-        user_message: scope prefix 제거된 사용자 질의
-        scope_label: 질의 범위 라벨
-
-    Returns:
-        output_format 보정이 반영된 의도 구조분해 결과
-    """
-    original_format = decomposition.output_format
-    overridden_format = original_format
-    reason = ""
-    has_current_mail_scope = is_current_mail_scope_label(scope_label=scope_label)
-    is_direct_fact_request = is_current_mail_direct_fact_request(
-        user_message=user_message,
-        has_current_mail_context=has_current_mail_scope,
+    decomposition_json = decomposition.model_dump_json(ensure_ascii=False)
+    context_text = decomposition_to_context_text(decomposition=decomposition)
+    routing_instruction = _build_routing_instruction(
         decomposition=decomposition,
+        original_user_message=original_user_message,
+        scope_label=scope_label,
     )
-    if is_direct_fact_request and original_format == IntentOutputFormat.STRUCTURED_TEMPLATE:
-        overridden_format = IntentOutputFormat.GENERAL
-        reason = "current_mail_direct_fact_prefers_general"
-    if (
-        has_current_mail_scope
-        and decomposition.task_type == IntentTaskType.SUMMARY
-        and original_format == IntentOutputFormat.STRUCTURED_TEMPLATE
-        and not is_mail_summary_skill_query(user_message=user_message)
-    ):
-        overridden_format = IntentOutputFormat.GENERAL
-        reason = "current_mail_natural_summary_prefers_general"
-    if (
-        has_current_mail_scope
-        and decomposition.task_type == IntentTaskType.EXTRACTION
-        and original_format == IntentOutputFormat.STRUCTURED_TEMPLATE
-    ):
-        overridden_format = IntentOutputFormat.GENERAL
-        reason = "current_mail_extraction_prefers_general"
+    return (original_user_message, decomposition_json, context_text, routing_instruction)
 
-    if overridden_format == original_format:
-        return decomposition
 
-    logger.info(
-        "output_format override: %s → %s, reason=%s",
-        original_format.value,
-        overridden_format.value,
-        reason or "policy_rule",
-    )
-    return decomposition.model_copy(
-        update={
-            "output_format": overridden_format,
-            "origin": "policy_override",
-        }
-    )
+def clear_intent_context_payload_cache() -> None:
+    """
+    테스트/운영 제어를 위해 intent 컨텍스트 조합 캐시를 초기화한다.
+    """
+    _compose_intent_context_payload.cache_clear()
 
 
 def _build_routing_instruction(
@@ -374,15 +221,7 @@ def _build_routing_instruction(
         lines.append("- 핵심 bullet/조치 섹션으로 재구성하지 말고 문단 단위 번역을 유지한다.")
     if decomposition.task_type == IntentTaskType.ANALYSIS:
         if not is_direct_fact_request:
-            issue_sections = resolve_current_mail_issue_sections(user_message=original_user_message)
-            if issue_sections == ("cause",):
-                lines.append("- 원인만 간결하게 정리한다. 영향/대응은 요청 시에만 제시한다.")
-            elif issue_sections == ("cause", "response"):
-                lines.append("- 원인/대응 순서로 간결하게 정리한다. 영향은 생략한다.")
-            elif issue_sections == ("cause", "impact"):
-                lines.append("- 원인/영향 순서로 간결하게 정리한다. 대응은 생략한다.")
-            else:
-                lines.append("- 원인/영향/대응 순서로 간결하게 정리한다.")
+            lines.append("- 원인/영향/대응 순서로 간결하게 정리한다.")
     if decomposition.task_type == IntentTaskType.SOLUTION:
         lines.append("- 가능한 원인/점검 순서/즉시 조치 순서로 제시한다.")
     is_meeting_room_hil_payload = is_meeting_room_hil_payload_request(decomposition=decomposition)
@@ -479,32 +318,153 @@ def _parse_intent_with_namespace(user_message: str, scope_label: str) -> IntentD
     ) or create_default_decomposition(user_message=user_message)
 
 
-def _should_keep_search_step_for_current_mail(
+def _apply_current_mail_policy_overrides(
     decomposition: IntentDecomposition,
-    user_message: str,
-    has_scope_current_mail: bool,
-) -> bool:
+    original_user_message: str,
+    scope_label: str,
+) -> IntentDecomposition:
     """
-    current_mail 문맥에서 `search_mails` step을 유지할지 정책으로 판단한다.
+    현재메일 범위 질의에서 필요한 최소 정책 보정을 적용한다.
 
     Args:
-        decomposition: 의도 구조분해 결과
-        user_message: 사용자 질의 원문
-        has_scope_current_mail: scope가 current_mail인지 여부
+        decomposition: 파싱된 의도 구조분해
+        original_user_message: scope prefix 제거 사용자 질의
+        scope_label: 범위 라벨 문자열
 
     Returns:
-        유지하면 True, 제거하면 False
+        보정이 반영된 의도 구조분해
     """
-    if decomposition.task_type != IntentTaskType.RETRIEVAL:
-        return False
-    if has_scope_current_mail and ExecutionStep.READ_CURRENT_MAIL not in decomposition.steps:
-        return False
-    is_direct_fact_request = is_current_mail_direct_fact_request(
-        user_message=user_message,
-        has_current_mail_context=has_scope_current_mail,
-        decomposition=decomposition,
+    current_mail_focused = _is_current_mail_focused_query(
+        user_message=original_user_message,
+        scope_label=scope_label,
     )
-    return not is_direct_fact_request
+    if not current_mail_focused:
+        return decomposition
+
+    updated = decomposition
+    changed = False
+
+    if _should_drop_search_step_in_current_mail(
+        user_message=original_user_message,
+        decomposition=updated,
+    ):
+        pruned_steps = [step for step in updated.steps if step != ExecutionStep.SEARCH_MAILS]
+        if pruned_steps != list(updated.steps):
+            updated = updated.model_copy(update={"steps": pruned_steps})
+            changed = True
+
+    if (
+        updated.task_type == IntentTaskType.RETRIEVAL
+        and not updated.steps
+    ):
+        updated = updated.model_copy(update={"steps": [ExecutionStep.READ_CURRENT_MAIL]})
+        changed = True
+
+    if _should_override_task_type_to_extraction(
+        user_message=original_user_message,
+        decomposition=updated,
+    ):
+        updated = updated.model_copy(update={"task_type": IntentTaskType.EXTRACTION})
+        changed = True
+
+    if _should_override_output_format_to_general(
+        user_message=original_user_message,
+        decomposition=updated,
+    ):
+        updated = updated.model_copy(update={"output_format": IntentOutputFormat.GENERAL})
+        changed = True
+
+    if changed and updated.origin != "policy_override":
+        updated = updated.model_copy(update={"origin": "policy_override"})
+    return updated
+
+
+def _is_current_mail_focused_query(user_message: str, scope_label: str) -> bool:
+    """
+    현재메일 고정 문맥 질의인지 판별한다.
+
+    Args:
+        user_message: scope prefix 제거 사용자 질의
+        scope_label: 범위 라벨 문자열
+
+    Returns:
+        현재메일 고정 질의면 True
+    """
+    if is_current_mail_scope_label(scope_label=scope_label):
+        return True
+    compact = str(user_message or "").replace(" ", "")
+    anchors = ("현재메일", "현재선택메일", "이이메일", "이메일에서", "이메일의")
+    return any(token in compact for token in anchors)
+
+
+def _should_drop_search_step_in_current_mail(
+    user_message: str,
+    decomposition: IntentDecomposition,
+) -> bool:
+    """
+    현재메일 문맥에서 불필요한 search_mails step 제거 여부를 판단한다.
+
+    Args:
+        user_message: 사용자 질의
+        decomposition: 구조분해 결과
+
+    Returns:
+        search_mails 제거 대상이면 True
+    """
+    if ExecutionStep.SEARCH_MAILS not in decomposition.steps:
+        return False
+    compact = str(user_message or "").replace(" ", "")
+    keep_search_tokens = ("다른메일", "관련된다른", "검색", "조회", "찾아")
+    if any(token in compact for token in keep_search_tokens):
+        return False
+    return True
+
+
+def _should_override_output_format_to_general(
+    user_message: str,
+    decomposition: IntentDecomposition,
+) -> bool:
+    """
+    현재메일 자연어 질의의 structured_template을 general로 보정할지 판단한다.
+
+    Args:
+        user_message: 사용자 질의
+        decomposition: 구조분해 결과
+
+    Returns:
+        output_format general 보정 대상이면 True
+    """
+    if decomposition.output_format != IntentOutputFormat.STRUCTURED_TEMPLATE:
+        return False
+    if is_mail_summary_skill_query(user_message=user_message):
+        return False
+    return True
+
+
+def _should_override_task_type_to_extraction(
+    user_message: str,
+    decomposition: IntentDecomposition,
+) -> bool:
+    """
+    구조 추출형 현재메일 질의를 analysis -> extraction으로 보정할지 판단한다.
+
+    Args:
+        user_message: 사용자 질의
+        decomposition: 구조분해 결과
+
+    Returns:
+        task_type extraction 보정 대상이면 True
+    """
+    if decomposition.task_type != IntentTaskType.ANALYSIS:
+        return False
+    compact = str(user_message or "").replace(" ", "")
+    analysis_tokens = ("원인", "이유", "왜", "문제", "이슈", "영향", "대응", "해결", "방안")
+    if any(token in compact for token in analysis_tokens):
+        return False
+    steps = list(decomposition.steps)
+    has_extract = ExecutionStep.EXTRACT_KEY_FACTS in steps
+    has_summary = ExecutionStep.SUMMARIZE_MAIL in steps
+    return has_extract and not has_summary
 
 
 def should_inject_intent_context(user_message: str) -> bool:

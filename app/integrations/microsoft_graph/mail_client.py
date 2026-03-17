@@ -6,15 +6,19 @@ import re
 import shutil
 import tempfile
 import time
-import html
-from dataclasses import dataclass
 from typing import Any
 
 import msal
 import requests
-from bs4 import BeautifulSoup
 
 from app.core.logging_config import get_logger
+from app.integrations.microsoft_graph.mail_client_parsing import (
+    extract_aadsts_metadata as _extract_aadsts_metadata,
+)
+from app.integrations.microsoft_graph.mail_client_parsing import (
+    parse_graph_mail_payload as _parse_graph_mail_payload,
+)
+from app.integrations.microsoft_graph.mail_client_types import GraphMailMessage
 
 GRAPH_SCOPE = [
     "https://graph.microsoft.com/Mail.Read",
@@ -28,21 +32,6 @@ MESSAGE_SELECT_FIELDS = (
 
 logger = get_logger(__name__)
 UNKNOWN_VALUE = "-"
-
-
-@dataclass
-class GraphMailMessage:
-    """
-    Graph 단건 메일 조회 결과 모델.
-    """
-
-    message_id: str
-    subject: str
-    from_address: str
-    received_date: str
-    body_text: str
-    internet_message_id: str
-    web_link: str
 
 
 class GraphMailClient:
@@ -259,6 +248,47 @@ class GraphMailClient:
 
         return _parse_graph_mail_payload(payload=response.json())
 
+    def list_recent_messages(self, limit: int = 20) -> list[GraphMailMessage]:
+        """
+        최근 수신 메일 목록을 최신순으로 조회한다.
+
+        Args:
+            limit: 조회 최대 건수
+
+        Returns:
+            정규화된 최근 메일 목록
+        """
+        if not self.is_configured():
+            logger.warning("GraphMailClient 설정 누락으로 최근 메일 조회를 건너뜁니다.")
+            return []
+        access_token = self._acquire_access_token()
+        if not access_token:
+            return []
+        response = self._request_recent_messages(access_token=access_token, limit=limit)
+        if response is None:
+            return []
+        if response.status_code == 401:
+            logger.info("Graph 최근 메일 조회 401 -> 토큰 초기화 후 재시도")
+            self._access_token = ""
+            refreshed_token = self._acquire_access_token(force_refresh=True)
+            if not refreshed_token:
+                return []
+            response = self._request_recent_messages(access_token=refreshed_token, limit=limit)
+            if response is None:
+                return []
+        if response.status_code != 200:
+            error_meta = _extract_graph_error_metadata(response=response)
+            logger.warning(
+                "Graph 최근 메일 조회 실패: status=%s graph_error_code=%s request_id=%s",
+                response.status_code,
+                error_meta["error_code"],
+                error_meta["request_id"],
+            )
+            return []
+        payload = response.json()
+        values = payload.get("value", []) if isinstance(payload, dict) else []
+        return [_parse_graph_mail_payload(item) for item in values if isinstance(item, dict)]
+
     def acquire_access_token(self, force_refresh: bool = False) -> str:
         """
         Graph Delegated access token을 반환한다.
@@ -311,112 +341,37 @@ class GraphMailClient:
             )
             return None
 
+    def _request_recent_messages(
+        self,
+        access_token: str,
+        limit: int,
+    ) -> requests.Response | None:
+        """
+        `/me/messages` 최근 메일 목록 조회를 수행한다.
 
-def _parse_graph_mail_payload(payload: dict[str, Any]) -> GraphMailMessage:
-    """
-    Graph 응답 payload를 GraphMailMessage로 정규화한다.
+        Args:
+            access_token: Graph Delegated Bearer 토큰
+            limit: 조회 최대 건수
 
-    Args:
-        payload: Graph 메시지 응답
-
-    Returns:
-        정규화된 메시지 모델
-    """
-    from_payload = payload.get("from", {})
-    email_address = from_payload.get("emailAddress", {}) if isinstance(from_payload, dict) else {}
-    body_payload = payload.get("body", {})
-    body_content = ""
-    body_content_type = ""
-    if isinstance(body_payload, dict):
-        body_content = str(body_payload.get("content") or "")
-        body_content_type = str(body_payload.get("contentType") or "")
-    body_preview = str(payload.get("bodyPreview") or "")
-    body_text = _extract_body_text(content=body_content, content_type=body_content_type, body_preview=body_preview)
-    return GraphMailMessage(
-        message_id=str(payload.get("id") or ""),
-        subject=str(payload.get("subject") or ""),
-        from_address=str(email_address.get("address") or ""),
-        received_date=str(payload.get("receivedDateTime") or ""),
-        body_text=body_text,
-        internet_message_id=str(payload.get("internetMessageId") or ""),
-        web_link=str(payload.get("webLink") or ""),
-    )
-
-
-def _extract_body_text(content: str, content_type: str, body_preview: str) -> str:
-    """
-    Graph body payload를 contentType 기준으로 텍스트 본문으로 정규화한다.
-
-    Args:
-        content: `body.content` 문자열
-        content_type: `body.contentType` 값 (`html`/`text`)
-        body_preview: Graph `bodyPreview` 문자열
-
-    Returns:
-        정규화된 본문 텍스트
-    """
-    normalized_content = str(content or "").strip()
-    if not normalized_content:
-        return str(body_preview or "").strip()
-    if str(content_type or "").strip().lower() == "html":
-        return _html_to_text(content=normalized_content)
-    return _normalize_plain_body_text(content=normalized_content)
-
-
-def _html_to_text(content: str) -> str:
-    """
-    HTML 본문을 텍스트로 정규화한다.
-
-    Args:
-        content: HTML 원문 문자열
-
-    Returns:
-        태그 제거/공백 정리된 텍스트
-    """
-    soup = BeautifulSoup(str(content or ""), "html.parser")
-    for removable in soup.find_all(["style", "script", "noscript"]):
-        removable.decompose()
-    text = soup.get_text(separator="\n")
-    text = html.unescape(text)
-    text = re.sub(r"[ \t]+", " ", text)
-    text = re.sub(r"\n{3,}", "\n\n", text)
-    return text.strip()
-
-
-def _normalize_plain_body_text(content: str) -> str:
-    """
-    text 본문을 줄바꿈/공백 기준으로 정규화한다.
-
-    Args:
-        content: text 본문 문자열
-
-    Returns:
-        정규화된 text 본문
-    """
-    text = str(content or "").replace("\r", "\n")
-    text = re.sub(r"[ \t]+", " ", text)
-    text = re.sub(r"\n{3,}", "\n\n", text)
-    return text.strip()
-
-
-def _extract_aadsts_metadata(error_description: str) -> dict[str, str]:
-    """
-    AADSTS 에러 문자열에서 추적 메타를 파싱한다.
-
-    Args:
-        error_description: MSAL 에러 설명 문자열
-
-    Returns:
-        trace/correlation/timestamp 메타 정보
-    """
-    trace_id_match = re.search(r"Trace ID:\s*([a-f0-9-]+)", error_description, flags=re.IGNORECASE)
-    correlation_id_match = re.search(r"Correlation ID:\s*([a-f0-9-]+)", error_description, flags=re.IGNORECASE)
-    timestamp_match = re.search(r"Timestamp:\s*([0-9TZ:\-\.]+)", error_description)
-    return {
-        "trace_id": trace_id_match.group(1) if trace_id_match else UNKNOWN_VALUE,
-        "correlation_id": correlation_id_match.group(1) if correlation_id_match else UNKNOWN_VALUE,
-        "timestamp": timestamp_match.group(1) if timestamp_match else UNKNOWN_VALUE,
-    }
+        Returns:
+            Graph HTTP 응답. 네트워크 실패 시 None
+        """
+        normalized_limit = max(1, min(int(limit), 100))
+        url = (
+            f"{GRAPH_BASE_URL}/me/messages"
+            f"?$select={MESSAGE_SELECT_FIELDS}"
+            f"&$orderby=receivedDateTime desc"
+            f"&$top={normalized_limit}"
+        )
+        headers = {
+            "Authorization": f"Bearer {access_token}",
+            "Prefer": 'outlook.body-content-type="html"',
+        }
+        try:
+            return requests.get(url, headers=headers, timeout=10)
+        except requests.RequestException as exc:
+            logger.warning("Graph 최근 메일 조회 네트워크 실패: error=%s", str(exc))
+            return None
 
 
 def _extract_graph_error_metadata(response: requests.Response) -> dict[str, str]:
@@ -470,22 +425,3 @@ def _short_value(value: str, max_len: int = 48) -> str:
     if len(normalized) <= max_len:
         return normalized
     return f"{normalized[:max_len]}..."
-
-
-def _tail_value(value: str, tail_len: int = 6) -> str:
-    """
-    문자열의 뒷부분만 노출한다.
-
-    Args:
-        value: 원본 문자열
-        tail_len: 노출할 길이
-
-    Returns:
-        뒷부분 문자열
-    """
-    normalized = str(value or "").strip()
-    if not normalized:
-        return UNKNOWN_VALUE
-    if len(normalized) <= tail_len:
-        return normalized
-    return normalized[-tail_len:]

@@ -229,5 +229,93 @@
       "receipt.png"
     ],
     "thread_id": ""
+  },
+  {
+    "saved_at": "2026-03-13T09:09:32.461084+00:00",
+    "project_number": "30132215-D014",
+    "expense_category": "식비",
+    "amount": 10000,
+    "description": "테스트 정산",
+    "evidence_files": [
+      "receipt.png"
+    ],
+    "thread_id": ""
+  },
+  {
+    "saved_at": "2026-03-13T09:10:47.317400+00:00",
+    "project_number": "30132215-D014",
+    "expense_category": "식비",
+    "amount": 10000,
+    "description": "테스트 정산",
+    "evidence_files": [
+      "receipt.png"
+    ],
+    "thread_id": ""
+  },
+  {
+    "saved_at": "2026-03-13T13:41:45.155895+00:00",
+    "project_number": "30132215-D014",
+    "expense_category": "식비",
+    "amount": 10000,
+    "description": "테스트 정산",
+    "evidence_files": [
+      "receipt.png"
+    ],
+    "thread_id": ""
+  },
+  {
+    "saved_at": "2026-03-13T13:45:02.162378+00:00",
+    "project_number": "30132215-D014",
+    "expense_category": "식비",
+    "amount": 10000,
+    "description": "테스트 정산",
+    "evidence_files": [
+      "receipt.png"
+    ],
+    "thread_id": ""
+  },
+  {
+    "saved_at": "2026-03-13T13:46:03.622238+00:00",
+    "project_number": "30132215-D014",
+    "expense_category": "식비",
+    "amount": 10000,
+    "description": "테스트 정산",
+    "evidence_files": [
+      "receipt.png"
+    ],
+    "thread_id": ""
+  },
+  {
+    "saved_at": "2026-03-13T13:57:27.259546+00:00",
+    "project_number": "30132215-D014",
+    "expense_category": "식비",
+    "amount": 10000,
+    "description": "테스트 정산",
+    "evidence_files": [
+      "receipt.png"
+    ],
+    "thread_id": ""
+  },
+  {
+    "saved_at": "2026-03-13T13:59:59.665100+00:00",
+    "project_number": "30132215-D014",
+    "expense_category": "식비",
+    "amount": 10000,
+    "description": "테스트 정산",
+    "evidence_files": [
+      "receipt.png"
+    ],
+    "thread_id": ""
+  },
+  {
+    "saved_at": "2026-03-13T14:00:35.943929+00:00",
+    "project_number": "30132215-D014",
+    "expense_category": "식비",
+    "amount": 10000,
+    "description": "테스트 정산",
+    "evidence_files": [
+      "receipt.png"
+    ],
+    "thread_id": ""
   }
 ]

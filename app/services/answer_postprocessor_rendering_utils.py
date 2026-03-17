@@ -61,7 +61,14 @@ def render_major_points(major_points: list[str]) -> list[str]:
     """
     rendered: list[str] = []
     for index, point in enumerate(major_points, start=1):
-        headline, detail = split_headline_and_detail(line=point)
+        raw_point = str(point or "").strip()
+        if any(delimiter in raw_point for delimiter in (" — ", " - ", ": ")):
+            headline, detail = split_headline_and_detail(line=raw_point)
+        else:
+            headline, detail = raw_point, ""
+        if headline.strip() == "근거" and detail:
+            rendered.append(f"{index}. 근거: {detail}")
+            continue
         rendered.append(f"{index}. {headline}")
         if not detail:
             continue

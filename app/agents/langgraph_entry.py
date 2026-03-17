@@ -3,7 +3,6 @@ from __future__ import annotations
 import os
 
 from deepagents import create_deep_agent
-from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph.state import CompiledStateGraph
 
 from app.agents.agent_runtime_config import resolve_agent_skills_paths
@@ -13,6 +12,7 @@ from app.agents.deep_chat_agent import (
     DEFAULT_SYSTEM_PROMPT,
 )
 from app.agents.prompts import get_agent_system_prompt
+from app.agents.runtime_components import build_agent_backend, build_agent_checkpointer
 from app.agents.subagents import get_agent_subagents
 from app.agents.tools import get_agent_tools
 from app.core.llm_runtime import is_model_provider_configured, resolve_env_model
@@ -20,7 +20,6 @@ from app.core.logging_config import get_logger
 from app.middleware.registry import build_agent_middlewares
 
 logger = get_logger(__name__)
-_STUDIO_CHECKPOINTER = InMemorySaver()
 
 
 def _warn_if_provider_key_missing(model_name: str) -> None:
@@ -55,14 +54,16 @@ def build_graph() -> CompiledStateGraph:
         prompt_variant or DEFAULT_PROMPT_VARIANT,
         bool(prompt_override),
     )
+    skills_paths = resolve_agent_skills_paths()
     return create_deep_agent(
         model=model_name,
         tools=get_agent_tools(),
         system_prompt=system_prompt,
         middleware=build_agent_middlewares(),
         subagents=get_agent_subagents(),
-        skills=resolve_agent_skills_paths() or None,
-        checkpointer=_STUDIO_CHECKPOINTER,
+        skills=skills_paths or None,
+        backend=build_agent_backend(skills_paths=skills_paths),
+        checkpointer=build_agent_checkpointer(cache_namespace="langgraph_studio"),
         name="moldubot-chat-agent",
     )
 

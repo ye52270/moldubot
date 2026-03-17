@@ -9,6 +9,10 @@ _INTENT_BLOB_MARKERS: tuple[str, ...] = (
     "output_format",
     "focus_topics",
 )
+_SUGGESTED_ACTION_TAG_PATTERN = re.compile(
+    r"(?:\n|\r\n)?\[\[\s*suggested_action_ids\s*:\s*.*?\s*\]\]\s*$",
+    flags=re.IGNORECASE | re.DOTALL,
+)
 
 
 def sanitize_visible_answer_text(text: str) -> str:
@@ -24,6 +28,7 @@ def sanitize_visible_answer_text(text: str) -> str:
     source = str(text or "")
     if not source:
         return ""
+    source = _strip_suggested_action_tag(text=source)
     left_trimmed = source.lstrip()
     if not left_trimmed.startswith("{"):
         return source
@@ -48,6 +53,22 @@ def sanitize_visible_answer_text(text: str) -> str:
         tail = left_trimmed[matched.end() :].lstrip()
         return tail if tail else ""
     return source
+
+
+def _strip_suggested_action_tag(text: str) -> str:
+    """
+    freeform 응답 말미의 suggested_action_ids 메타 태그를 제거한다.
+
+    Args:
+        text: 사용자 노출 전 원본 응답
+
+    Returns:
+        메타 태그 제거 후 문자열
+    """
+    source = str(text or "")
+    if not source:
+        return ""
+    return _SUGGESTED_ACTION_TAG_PATTERN.sub("", source).rstrip()
 
 
 def iter_answer_stream_chunks(text: str) -> list[str]:

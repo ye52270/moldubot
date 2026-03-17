@@ -1,9 +1,7 @@
 from __future__ import annotations
 
-import ast
 import json
 import re
-import unicodedata
 from typing import Any
 
 from app.core.logging_config import get_logger
@@ -13,16 +11,17 @@ from app.services.answer_postprocessor_summary import (
     is_explicit_line_summary_request,
     resolve_summary_line_target,
     sanitize_summary_lines,
-    split_headline_and_detail,
 )
 from app.services.mail_text_utils import select_salient_summary_sentences
 
 logger = get_logger("app.services.answer_postprocessor")
-LOG_EVIDENCE_MAX_CHARS = 56
-LOG_EVIDENCE_POINT_MAX_CHARS = 128
 
 
-def parse_llm_response_contract(raw_answer: Any, log_failures: bool = True) -> LLMResponseContract | None:
+def parse_llm_response_contract(
+    raw_answer: Any,
+    log_failures: bool = True,
+    allow_json_repair: bool = True,
+) -> LLMResponseContract | None:
     """
     모델 원문에서 JSON 객체를 추출해 계약 모델로 파싱한다.
 
@@ -39,12 +38,6 @@ def parse_llm_response_contract(raw_answer: Any, log_failures: bool = True) -> L
             logger.warning("answer_postprocess.json_parse_failed: reason=empty_answer answer_length=0")
         return None
     sanitized = _strip_json_code_fence(text=stripped)
-    direct_payload = _try_load_direct_payload(text=sanitized)
-    if isinstance(direct_payload, dict):
-        try:
-            return LLMResponseContract.model_validate(direct_payload)
-        except Exception:
-            pass
     json_candidates = _extract_json_object_candidates(text=sanitized)
     if not json_candidates:
         if log_failures:
@@ -53,39 +46,33 @@ def parse_llm_response_contract(raw_answer: Any, log_failures: bool = True) -> L
                 len(stripped),
             )
         return None
-    contract = _parse_contract_from_candidates(
-        json_candidates=json_candidates,
-        answer_length=len(stripped),
-        log_failures=log_failures,
-    )
-    if contract is not None:
-        return contract
+    decode_failed = False
+    for candidate in json_candidates:
+        loaded, had_decode_error = _load_json_candidate_simple(
+            candidate=candidate,
+            allow_json_repair=allow_json_repair,
+        )
+        decode_failed = decode_failed or had_decode_error
+        if not isinstance(loaded, dict):
+            continue
+        if not any(key in loaded for key in ("format_type", "reply_draft", "answer", "summary_lines")):
+            continue
+        try:
+            return LLMResponseContract.model_validate(loaded)
+        except Exception:
+            continue
     if log_failures:
+        if decode_failed:
+            logger.warning(
+                "answer_postprocess.json_parse_failed: reason=json_decode_error answer_length=%s",
+                len(stripped),
+            )
+            return None
         logger.warning(
             "answer_postprocess.json_parse_failed: reason=schema_validation_error answer_length=%s",
             len(stripped),
         )
     return None
-
-
-def _try_load_direct_payload(text: str) -> dict[str, Any] | None:
-    """
-    후보 추출 전에 본문 전체를 JSON 객체로 직접 파싱한다.
-
-    Args:
-        text: 코드펜스 제거 후 텍스트
-
-    Returns:
-        파싱된 dict 또는 None
-    """
-    normalized = str(text or "").strip()
-    if not normalized.startswith("{"):
-        return None
-    try:
-        loaded = _load_json_candidate(candidate=normalized)
-    except json.JSONDecodeError:
-        return None
-    return loaded if isinstance(loaded, dict) else None
 
 
 def _extract_text_for_contract_parse(raw_answer: Any) -> str:
@@ -99,9 +86,7 @@ def _extract_text_for_contract_parse(raw_answer: Any) -> str:
         JSON 파싱 대상 텍스트
     """
     if isinstance(raw_answer, str):
-        text = str(raw_answer)
-        recovered = _recover_text_from_python_literal_string(raw_text=text)
-        return recovered if recovered else text
+        return str(raw_answer)
     if isinstance(raw_answer, dict):
         return _extract_text_from_content_block(block=raw_answer)
     if isinstance(raw_answer, list):
@@ -113,34 +98,6 @@ def _extract_text_for_contract_parse(raw_answer: Any) -> str:
         ]
         return "\n".join(texts).strip()
     return str(raw_answer or "")
-
-
-def _recover_text_from_python_literal_string(raw_text: str) -> str:
-    """
-    파이썬 literal 문자열(`{'type': 'text', 'text': '...'}`)에서 text 블록을 복원한다.
-
-    Args:
-        raw_text: 문자열화된 원본 content
-
-    Returns:
-        복원된 text 블록. 복원 실패 시 빈 문자열
-    """
-    normalized = str(raw_text or "").strip()
-    if not normalized:
-        return ""
-    has_content_shape = ("'type':" in normalized or '"type":' in normalized) and (
-        "'text':" in normalized or '"text":' in normalized
-    )
-    if not has_content_shape:
-        return ""
-    try:
-        parsed = ast.literal_eval(normalized)
-    except (SyntaxError, ValueError):
-        return ""
-    extracted = _extract_text_for_contract_parse(raw_answer=parsed)
-    if not extracted or extracted.strip() == normalized:
-        return ""
-    return extracted
 
 
 def _extract_text_from_content_block(block: Any) -> str:
@@ -231,7 +188,7 @@ def _extract_json_object_candidates(text: str) -> list[str]:
     Returns:
         JSON 객체 문자열 목록. 찾지 못하면 빈 목록
     """
-    source = str(text or "")
+    source = str(text or "").strip()
     if not source:
         return []
     candidates: list[str] = []
@@ -265,219 +222,32 @@ def _extract_json_object_candidates(text: str) -> list[str]:
                 start_index = -1
     return [candidate for candidate in candidates if candidate]
 
-
-def _parse_contract_from_candidates(
-    json_candidates: list[str],
-    answer_length: int,
-    log_failures: bool = True,
-) -> LLMResponseContract | None:
+def _load_json_candidate_simple(
+    candidate: str,
+    allow_json_repair: bool,
+) -> tuple[dict[str, Any] | list[Any] | Any, bool]:
     """
-    JSON 후보 목록에서 응답 계약(`format_type`)을 우선으로 파싱한다.
-
-    Args:
-        json_candidates: JSON 객체 후보 목록
-        answer_length: 원본 응답 길이(로그용)
-
-    Returns:
-        파싱 성공 시 계약 객체, 실패 시 None
-    """
-    parsed_payloads: list[dict[str, Any]] = []
-    decode_error_count = 0
-    for candidate in json_candidates:
-        try:
-            loaded = _load_json_candidate(candidate=candidate)
-        except json.JSONDecodeError as exc:
-            decode_error_count += 1
-            logger.info(
-                "answer_postprocess.json_decode_detail: pos=%s msg=%s candidate_len=%s preview=%s",
-                getattr(exc, "pos", -1),
-                str(exc),
-                len(candidate),
-                _build_candidate_preview(candidate=candidate),
-            )
-            continue
-        if isinstance(loaded, dict):
-            parsed_payloads.append(loaded)
-    if not parsed_payloads:
-        if log_failures:
-            logger.warning(
-                "answer_postprocess.json_parse_failed: reason=json_decode_error answer_length=%s",
-                answer_length,
-            )
-        return None
-    preferred_payloads = [payload for payload in parsed_payloads if "format_type" in payload]
-    ordered_payloads = preferred_payloads + [payload for payload in parsed_payloads if payload not in preferred_payloads]
-    for payload in ordered_payloads:
-        try:
-            return LLMResponseContract.model_validate(payload)
-        except Exception:
-            continue
-    if decode_error_count > 0 and log_failures:
-        logger.warning(
-            "answer_postprocess.json_parse_partial_failure: decode_errors=%s answer_length=%s",
-            decode_error_count,
-            answer_length,
-        )
-    return None
-
-
-def _load_json_candidate(candidate: str) -> dict[str, Any] | list[Any] | Any:
-    """
-    JSON 후보 문자열을 관용적으로 파싱한다.
+    JSON 후보 문자열을 단순 규칙으로 파싱한다.
 
     Args:
         candidate: JSON 문자열 후보
 
     Returns:
-        파싱된 JSON 객체
-
-    Raises:
-        json.JSONDecodeError: 파싱 실패 시
+        파싱된 JSON 객체 또는 None
     """
-    cleaned = _sanitize_json_candidate(candidate=candidate)
+    cleaned = str(candidate or "").replace("\ufeff", "").strip()
+    if not cleaned:
+        return (None, False)
     try:
-        return json.loads(cleaned)
+        return (json.loads(cleaned), False)
     except json.JSONDecodeError:
-        repaired = _repair_common_json_issues(text=cleaned)
-        try:
-            return json.loads(repaired)
-        except json.JSONDecodeError:
-            unwrapped = _unwrap_double_braces(text=repaired)
+        if allow_json_repair:
+            repaired = re.sub(r",(\s*[}\]])", r"\1", cleaned)
             try:
-                return json.loads(unwrapped)
+                return (json.loads(repaired), False)
             except json.JSONDecodeError:
-                retried = _decode_escaped_json_candidate(text=unwrapped)
-                return json.loads(retried)
-
-
-def _sanitize_json_candidate(candidate: str) -> str:
-    """
-    JSON 파싱 전 제어문자/BOM을 정리한다.
-
-    Args:
-        candidate: 원본 후보 문자열
-
-    Returns:
-        정리된 문자열
-    """
-    text = str(candidate or "").replace("\ufeff", "")
-    text = re.sub(r"[\x00-\x08\x0B\x0C\x0E-\x1F]", "", text)
-    return _remove_invisible_unicode_controls(text=text)
-
-
-def _remove_invisible_unicode_controls(text: str) -> str:
-    """
-    JSON 파싱을 깨뜨릴 수 있는 보이지 않는 유니코드 제어문자를 제거한다.
-
-    Args:
-        text: 입력 문자열
-
-    Returns:
-        제어문자가 제거된 문자열
-    """
-    kept_chars: list[str] = []
-    for char in str(text or ""):
-        category = unicodedata.category(char)
-        if category in ("Cf", "Cs", "Co", "Cn"):
-            continue
-        kept_chars.append(char)
-    return "".join(kept_chars)
-
-
-def _repair_common_json_issues(text: str) -> str:
-    """
-    흔한 JSON 오류(후행 콤마)를 보정한다.
-
-    Args:
-        text: 정리된 JSON 후보 문자열
-
-    Returns:
-        보정된 문자열
-    """
-    repaired = re.sub(r",(\s*[}\]])", r"\1", str(text or ""))
-    return _escape_invalid_backslashes(text=repaired)
-
-
-def _escape_invalid_backslashes(text: str) -> str:
-    """
-    JSON 문자열 내 유효하지 않은 백슬래시 이스케이프를 보정한다.
-
-    Args:
-        text: JSON 후보 문자열
-
-    Returns:
-        보정된 문자열
-    """
-    source = str(text or "")
-    if "\\" not in source:
-        return source
-    return re.sub(r'\\(?!["\\/bfnrtu])', r"\\\\", source)
-
-
-def _decode_escaped_json_candidate(text: str) -> str:
-    """
-    이스케이프된 JSON 텍스트(`{\\n \"k\":...}` 등)를 1회 복원한다.
-
-    Args:
-        text: JSON 후보 문자열
-
-    Returns:
-        복원된 JSON 후보 문자열
-    """
-    candidate = str(text or "").strip()
-    if not candidate:
-        return candidate
-    if candidate.startswith('"') and candidate.endswith('"'):
-        try:
-            decoded = json.loads(candidate)
-        except json.JSONDecodeError:
-            decoded = ""
-        if isinstance(decoded, str):
-            candidate = decoded.strip()
-    if "\\n" not in candidate and '\\"' not in candidate and "\\t" not in candidate:
-        return candidate
-    return (
-        candidate.replace("\\n", "\n")
-        .replace("\\r", "\r")
-        .replace("\\t", "\t")
-        .replace('\\"', '"')
-    )
-
-
-def _unwrap_double_braces(text: str) -> str:
-    """
-    응답이 `{{...}}` 형태로 감싸진 경우 외곽 중괄호 1쌍을 제거한다.
-
-    Args:
-        text: JSON 후보 문자열
-
-    Returns:
-        언랩된 문자열(조건 미충족 시 원본)
-    """
-    candidate = str(text or "").strip()
-    if not (candidate.startswith("{{") and candidate.endswith("}}")):
-        return candidate
-    inner = candidate[1:-1].strip()
-    if inner.startswith("{") and inner.endswith("}"):
-        return inner
-    return candidate
-
-
-def _build_candidate_preview(candidate: str, limit: int = 120) -> str:
-    """
-    JSON decode 실패 로그용 후보 문자열 프리뷰를 생성한다.
-
-    Args:
-        candidate: JSON 후보 문자열
-        limit: 미리보기 최대 길이
-
-    Returns:
-        이스케이프 포함 축약 문자열
-    """
-    text = repr(str(candidate or ""))
-    if len(text) <= limit:
-        return text
-    return text[:limit] + "...(truncated)"
+                pass
+        return (None, True)
 
 
 def _fill_basic_summary_fields(contract: LLMResponseContract, mail_context: dict[str, Any]) -> None:
@@ -589,169 +359,21 @@ def _fill_standard_summary_major_points(
         return
     existing = sanitize_summary_lines(lines=list(contract.major_points))
     if len(existing) >= max(1, min_points):
-        contract.major_points = _enrich_major_points_with_log_evidence(
-            major_points=existing,
-            mail_context=mail_context,
-        )
+        evidence_line = _build_structured_log_evidence_line(mail_context=mail_context)
+        if evidence_line and all("근거:" not in item for item in existing):
+            existing = [*existing[:5], evidence_line]
+        contract.major_points = existing
         return
     supplements = _build_standard_summary_supplements(
         mail_context=mail_context,
         line_target=max(3, min_points),
     )
+    evidence_line = _build_structured_log_evidence_line(mail_context=mail_context)
+    if evidence_line:
+        supplements.append(evidence_line)
     merged = _merge_unique_lines(primary=existing, supplements=supplements, limit=6)
     if merged:
-        contract.major_points = _enrich_major_points_with_log_evidence(
-            major_points=merged,
-            mail_context=mail_context,
-        )
-
-
-def _enrich_major_points_with_log_evidence(
-    major_points: list[str],
-    mail_context: dict[str, Any],
-) -> list[str]:
-    """
-    구조화된 에러 로그가 있을 때 주요 내용 세부에 근거 문구를 보강한다.
-
-    Args:
-        major_points: 현재 주요 내용 목록
-        mail_context: 메일 컨텍스트
-
-    Returns:
-        로그 근거가 반영된 주요 내용 목록
-    """
-    evidence_lines = _extract_structured_log_evidence_lines(mail_context=mail_context)
-    if not evidence_lines:
-        return major_points
-    enriched: list[str] = []
-    evidence_index = 0
-    for point in major_points:
-        text = str(point or "").strip()
-        if not text:
-            continue
-        if evidence_index >= len(evidence_lines):
-            enriched.append(text)
-            continue
-        if not _should_attach_log_evidence(point=text):
-            enriched.append(text)
-            continue
-        headline, detail = split_headline_and_detail(line=text)
-        base_detail = detail or "추가 로그 확인 필요"
-        evidence = evidence_lines[evidence_index]
-        evidence_index += 1
-        candidate = f"{headline} — {base_detail} (근거: {evidence})"
-        if len(candidate) > LOG_EVIDENCE_POINT_MAX_CHARS:
-            clipped = evidence[:30].rstrip()
-            candidate = f"{headline} — {base_detail} (근거: {clipped})"
-        enriched.append(candidate)
-    return enriched
-
-
-def _should_attach_log_evidence(point: str) -> bool:
-    """
-    주요 내용 문장에 로그 근거를 덧붙일지 판별한다.
-
-    Args:
-        point: 주요 내용 문장
-
-    Returns:
-        보강 대상이면 True
-    """
-    normalized = str(point or "").strip()
-    if not normalized:
-        return False
-    if "근거:" in normalized:
-        return False
-    detail = split_headline_and_detail(line=normalized)[1]
-    target_text = detail or normalized
-    generic_tokens = ("확인 필요", "점검 필요", "요청 필요", "가능성", "미상", "추가 확인")
-    return any(token in target_text for token in generic_tokens)
-
-
-def _extract_structured_log_evidence_lines(mail_context: dict[str, Any]) -> list[str]:
-    """
-    본문 발췌에서 구조화된 에러 로그 문구를 추출한다.
-
-    Args:
-        mail_context: 메일 컨텍스트
-
-    Returns:
-        정규화된 로그 근거 문구 목록
-    """
-    body_excerpt = str(mail_context.get("body_excerpt") or "").strip()
-    if not body_excerpt:
-        return []
-    candidates: list[str] = []
-    for raw_line in body_excerpt.splitlines():
-        line = str(raw_line or "").strip()
-        if not line:
-            continue
-        if not _looks_like_structured_log_line(line=line):
-            continue
-        compact = _compact_log_evidence_line(line=line)
-        if compact and compact not in candidates:
-            candidates.append(compact)
-        if len(candidates) >= 3:
-            break
-    return candidates
-
-
-def _looks_like_structured_log_line(line: str) -> bool:
-    """
-    라인이 에러 로그 형태인지 판별한다.
-
-    Args:
-        line: 검사 대상 라인
-
-    Returns:
-        구조화된 로그 라인이면 True
-    """
-    lowered = str(line or "").strip().lower()
-    if not lowered:
-        return False
-    has_error_token = any(token in lowered for token in ("error", "exception", "failed", "traceback", "ldap"))
-    if not has_error_token:
-        return False
-    has_structure = bool(
-        re.search(r"\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}", lowered)
-        or ("[" in lowered and "]" in lowered)
-        or ("{" in lowered and "}" in lowered)
-    )
-    return has_structure
-
-
-def _compact_log_evidence_line(line: str) -> str:
-    """
-    장문 로그 1줄을 카드용 짧은 근거 문구로 축약한다.
-
-    Args:
-        line: 원본 로그 라인
-
-    Returns:
-        축약된 근거 문구
-    """
-    normalized = re.sub(r"\s+", " ", str(line or "")).strip()
-    normalized = re.sub(r"\[B@[0-9A-Za-z]+", "[id]", normalized)
-    class_match = re.search(r"\[([A-Za-z0-9_.]+)\]\s*(.*)$", normalized)
-    class_name = ""
-    message = normalized
-    if class_match:
-        class_name = class_match.group(1).split(".")[-1].strip()
-        message = class_match.group(2).strip()
-    else:
-        error_match = re.search(r"(ERROR|WARN|INFO)\s+(.*)$", normalized, flags=re.IGNORECASE)
-        if error_match:
-            message = str(error_match.group(2) or "").strip()
-    message = message.replace("The following record does not have a groupname", "groupname 누락")
-    cn_match = re.search(r"cn[:=]\s*([A-Za-z0-9._-]+)", normalized, flags=re.IGNORECASE)
-    if cn_match:
-        cn_value = cn_match.group(1)
-        if cn_value not in message:
-            message = f"{message} (cn={cn_value})"
-    message = re.sub(r"\{[^}]+\}", "", message).strip()
-    if class_name:
-        message = f"{class_name} {message}".strip()
-    return message[:LOG_EVIDENCE_MAX_CHARS].rstrip()
+        contract.major_points = merged
 
 
 def _build_standard_summary_supplements(mail_context: dict[str, Any], line_target: int) -> list[str]:
@@ -770,6 +392,32 @@ def _build_standard_summary_supplements(mail_context: dict[str, Any], line_targe
         return []
     candidates = sanitize_summary_lines(lines=extract_summary_lines(answer=summary_text))
     return candidates[: max(1, line_target)]
+
+
+def _build_structured_log_evidence_line(mail_context: dict[str, Any]) -> str:
+    """
+    본문 로그 발췌에서 구조화 근거 라인 1개를 추출한다.
+
+    Args:
+        mail_context: 메일 컨텍스트
+
+    Returns:
+        근거 라인 문자열. 추출 실패 시 빈 문자열
+    """
+    body_excerpt = str(mail_context.get("body_excerpt") or "").strip()
+    if not body_excerpt:
+        return ""
+    for line in body_excerpt.splitlines():
+        normalized = str(line or "").strip()
+        if not normalized:
+            continue
+        lowered = normalized.lower()
+        if "ldapgroupattributesmapper" in lowered and "groupname" in lowered:
+            return "근거: LDAPGroupAttributesMapper 로그에서 groupname 누락 오류가 확인됨"
+        if "ERROR" in normalized or "Exception" in normalized or "LDAPGroupAttributesMapper" in normalized:
+            compact = " ".join(normalized.split())
+            return f"근거: {compact[:100]}"
+    return ""
 
 
 def _merge_unique_lines(primary: list[str], supplements: list[str], limit: int) -> list[str]:

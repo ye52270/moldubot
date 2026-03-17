@@ -9,17 +9,19 @@ from typing import Any
 
 from app.core.logging_config import get_logger
 from app.services.mail_service_utils import (
-    build_mail_context_payload,
     build_mail_record_from_row,
     build_upsert_insert_query,
     build_upsert_update_query,
 )
-from app.services.mail_summary_queue_service import MailSummaryQueueService
-from app.services.mail_text_utils import (
-    extract_recipients_from_body,
-    select_salient_summary_sentences,
-    trim_sentence,
+from app.services.mail_service_db import fetch_latest_mail_row, fetch_mail_row_by_message_id, has_table_column
+from app.services.mail_service_actions import (
+    build_context_only_post_action_payload,
+    build_current_mail_post_action_payload,
+    extract_key_facts_from_mail,
+    extract_recipients_from_mail,
 )
+from app.services.mail_summary_queue_service import MailSummaryQueueService
+from app.services.mail_text_utils import select_salient_summary_sentences
 
 logger = get_logger(__name__)
 SUMMARY_SYNC_ON_UPSERT_ENV = "MOLDUBOT_SUMMARY_SYNC_ON_UPSERT"
@@ -341,32 +343,18 @@ class MailService:
             return ["본문이 비어 있어 요약할 수 없습니다."]
         return summary_lines
 
-    def run_post_action(self, action: str, summary_line_target: int) -> dict[str, Any]:
+    def run_post_action(self, action: str) -> dict[str, Any]:
         """
         메일 조회 후속작업을 단일 경로로 실행한다.
 
         Args:
             action: 후속작업 종류(`current_mail`, `summary`, `report`, `key_facts`, `recipients`, `summary_with_key_facts`)
-            summary_line_target: 요약 라인 목표
-
         Returns:
             실행 결과 사전
         """
         normalized_action = str(action or "").strip().lower()
         if normalized_action == "current_mail":
-            mail = self.get_current_mail()
-            if mail is None:
-                return {"action": "current_mail", "status": "failed", "reason": "현재 메일을 찾지 못했습니다."}
-            return {
-                "action": "current_mail",
-                "status": "completed",
-                "message_id": mail.message_id,
-                "subject": mail.subject,
-                "from_address": mail.from_address,
-                "received_date": mail.received_date,
-                "body_preview": mail.body_text[:400],
-                "mail_context": build_mail_context_payload(mail=mail),
-            }
+            return build_current_mail_post_action_payload(mail=self.get_current_mail())
         return self._build_context_only_post_action_payload(action=normalized_action)
 
     def extract_key_facts(self, limit: int = 5) -> list[str]:
@@ -379,16 +367,7 @@ class MailService:
         Returns:
             핵심 포인트 문자열 목록
         """
-        mail = self.get_current_mail()
-        if mail is None:
-            return ["현재 메일이 없습니다."]
-        fact_lines = select_salient_summary_sentences(text=mail.body_text, line_target=max(1, limit * 2))
-        if not fact_lines:
-            return ["핵심 추출 대상 본문이 없습니다."]
-        markers = ("요청", "일정", "회의", "마감", "필요", "확인", "공유", "중요")
-        prioritized = [item for item in fact_lines if any(mark in item for mark in markers)]
-        base = prioritized or fact_lines
-        return [trim_sentence(sentence=item) for item in base[: max(1, limit)]]
+        return extract_key_facts_from_mail(mail=self.get_current_mail(), limit=limit)
 
     def extract_recipients(self, limit: int = 10) -> list[str]:
         """
@@ -400,71 +379,30 @@ class MailService:
         Returns:
             수신자 문자열 목록
         """
-        mail = self.get_current_mail()
-        if mail is None:
-            return ["현재 메일이 없습니다."]
-        recipients = extract_recipients_from_body(text=mail.body_text)
-        if not recipients:
-            return ["수신자 정보를 본문에서 찾지 못했습니다."]
-        return recipients[: max(1, limit)]
+        return extract_recipients_from_mail(mail=self.get_current_mail(), limit=limit)
 
     def _fetch_latest_mail_row(self) -> dict[str, Any] | None:
-        """
-        DB에서 최신 메일 1건을 사전 형태로 조회한다.
-
-        Returns:
-            메일 행 사전 또는 None
-        """
-        if not self._db_path.exists():
-            logger.error("메일 DB 파일이 없습니다: %s", self._db_path)
-            return None
-
-        query = (
-            "SELECT message_id, subject, from_address, received_date, "
-            "COALESCE(body_clean, body_full, body_preview, '') AS body_text, "
-            "COALESCE(body_full, body_clean, body_preview, '') AS code_body_text, "
-            "COALESCE(body_full, '') AS body_full_text, "
-            f"{self._summary_select_clause()}, "
-            f"{self._web_link_select_clause()} "
-            "FROM emails ORDER BY received_date DESC LIMIT 1"
+        """DB에서 최신 메일 1건을 사전 형태로 조회한다."""
+        row = fetch_latest_mail_row(
+            db_path=self._db_path,
+            summary_select_clause=self._summary_select_clause(),
+            web_link_select_clause=self._web_link_select_clause(),
         )
-        conn = sqlite3.connect(str(self._db_path))
-        conn.row_factory = sqlite3.Row
-        try:
-            row = conn.execute(query).fetchone()
-            return dict(row) if row is not None else None
-        finally:
-            conn.close()
+        if row is None and not self._db_path.exists():
+            logger.error("메일 DB 파일이 없습니다: %s", self._db_path)
+        return row
 
     def _fetch_mail_row_by_message_id(self, message_id: str) -> dict[str, Any] | None:
-        """
-        DB에서 `message_id`로 메일 1건을 조회한다.
-
-        Args:
-            message_id: 메시지 식별자
-
-        Returns:
-            메일 행 사전 또는 None
-        """
-        if not self._db_path.exists():
-            logger.error("메일 DB 파일이 없습니다: %s", self._db_path)
-            return None
-        query = (
-            "SELECT message_id, subject, from_address, received_date, "
-            "COALESCE(body_clean, body_full, body_preview, '') AS body_text, "
-            "COALESCE(body_full, body_clean, body_preview, '') AS code_body_text, "
-            "COALESCE(body_full, '') AS body_full_text, "
-            f"{self._summary_select_clause()}, "
-            f"{self._web_link_select_clause()} "
-            "FROM emails WHERE message_id = ? LIMIT 1"
+        """DB에서 `message_id`로 메일 1건을 조회한다."""
+        row = fetch_mail_row_by_message_id(
+            db_path=self._db_path,
+            message_id=message_id,
+            summary_select_clause=self._summary_select_clause(),
+            web_link_select_clause=self._web_link_select_clause(),
         )
-        conn = sqlite3.connect(str(self._db_path))
-        conn.row_factory = sqlite3.Row
-        try:
-            row = conn.execute(query, (message_id,)).fetchone()
-            return dict(row) if row is not None else None
-        finally:
-            conn.close()
+        if row is None and not self._db_path.exists():
+            logger.error("메일 DB 파일이 없습니다: %s", self._db_path)
+        return row
 
     def _summary_select_clause(self) -> str:
         """
@@ -491,14 +429,9 @@ class MailService:
             self._has_summary_column_cache = False
             return False
 
-        conn = sqlite3.connect(str(self._db_path))
-        try:
-            rows = conn.execute("PRAGMA table_info(emails)").fetchall()
-            has_column = any(str(row[1]).lower() == "summary" for row in rows)
-            self._has_summary_column_cache = has_column
-            return has_column
-        finally:
-            conn.close()
+        has_column = has_table_column(db_path=self._db_path, table="emails", column="summary")
+        self._has_summary_column_cache = has_column
+        return has_column
 
     def supports_summary_storage(self) -> bool:
         """
@@ -519,12 +452,7 @@ class MailService:
         Returns:
             context-only 실행 결과 사전
         """
-        mail = self.get_current_mail()
-        return {
-            "action": action or "summary",
-            "status": "context_only",
-            "mail_context": build_mail_context_payload(mail=mail),
-        }
+        return build_context_only_post_action_payload(action=action, mail=self.get_current_mail())
 
     def _web_link_select_clause(self) -> str:
         """
@@ -550,14 +478,9 @@ class MailService:
         if not self._db_path.exists():
             self._has_web_link_column_cache = False
             return False
-        conn = sqlite3.connect(str(self._db_path))
-        try:
-            rows = conn.execute("PRAGMA table_info(emails)").fetchall()
-            has_column = any(str(row[1]).lower() == "web_link" for row in rows)
-            self._has_web_link_column_cache = has_column
-            return has_column
-        finally:
-            conn.close()
+        has_column = has_table_column(db_path=self._db_path, table="emails", column="web_link")
+        self._has_web_link_column_cache = has_column
+        return has_column
 
 
 def _is_enabled(value: str) -> bool:

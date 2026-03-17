@@ -40,10 +40,10 @@ def should_apply_template_driven_contract(
         return (False, "manager_single_paragraph_exception")
     if is_current_mail_issue_action_request(user_message=text):
         return (False, "issue_action_split_exception")
-    if is_current_mail_cause_analysis_request(user_message=text):
-        return (False, "cause_analysis_policy_override")
     if is_current_mail_solution_request(user_message=text):
         return (False, "solution_policy_override")
+    if is_current_mail_cause_analysis_request(user_message=text):
+        return (False, "cause_analysis_policy_override")
     if not isinstance(section_contract, Mapping):
         return (False, "missing_section_contract")
     return (True, "enabled")

@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import json
 import os
-import tempfile
 import unittest
 from unittest.mock import patch
 
@@ -15,8 +13,11 @@ from app.agents.intent_schema import (
     IntentOutputFormat,
     IntentTaskType,
 )
-from app.middleware.policies import compose_intent_augmented_text, should_inject_intent_context
-from app.services.intent_taxonomy_config import reset_intent_taxonomy_cache
+from app.middleware.policies import (
+    clear_intent_context_payload_cache,
+    compose_intent_augmented_text,
+    should_inject_intent_context,
+)
 
 
 class MiddlewarePoliciesTest(unittest.TestCase):
@@ -28,7 +29,7 @@ class MiddlewarePoliciesTest(unittest.TestCase):
         """환경 변수/캐시를 테스트 간 초기화한다."""
         os.environ.pop("INTENT_TAXONOMY_CONFIG_PATH", None)
         os.environ.pop("MOLDUBOT_ENABLE_MAIL_SUBAGENTS", None)
-        reset_intent_taxonomy_cache()
+        clear_intent_context_payload_cache()
 
     def test_should_skip_intent_context_for_simple_mail_search(self) -> None:
         """
@@ -439,41 +440,23 @@ class MiddlewarePoliciesTest(unittest.TestCase):
         """
         수신자 ToDo 요약 판별은 taxonomy 토큰 대신 decomposition 신호를 우선 사용해야 한다.
         """
-        with tempfile.TemporaryDirectory() as temp_dir:
-            config_path = os.path.join(temp_dir, "intent_taxonomy.json")
-            with open(config_path, "w", encoding="utf-8") as file:
-                json.dump(
-                    {
-                        "recipient_todo_policy": {
-                            "recipient_tokens": ["assignee"],
-                            "todo_tokens": ["action"],
-                            "due_tokens": ["due"],
-                            "registration_tokens": ["create"],
-                        }
-                    },
-                    file,
-                    ensure_ascii=False,
-                )
-            os.environ["INTENT_TAXONOMY_CONFIG_PATH"] = config_path
-            reset_intent_taxonomy_cache()
-
-            decomposition = IntentDecomposition(
-                original_query="현재 메일 assignee action과 due를 정리해줘",
-                steps=[
-                    ExecutionStep.READ_CURRENT_MAIL,
-                    ExecutionStep.SUMMARIZE_MAIL,
-                    ExecutionStep.EXTRACT_RECIPIENTS,
-                ],
-                summary_line_target=5,
-                date_filter=DateFilter(mode=DateFilterMode.NONE),
-                missing_slots=[],
-                task_type=IntentTaskType.EXTRACTION,
-                output_format=IntentOutputFormat.GENERAL,
-                confidence=0.8,
-            )
-            parser = type("StubParser", (), {"parse": lambda self, user_message: decomposition})()
-            with patch("app.middleware.policies.get_intent_parser", return_value=parser):
-                text = compose_intent_augmented_text(decomposition.original_query)
+        decomposition = IntentDecomposition(
+            original_query="현재 메일 assignee action과 due를 정리해줘",
+            steps=[
+                ExecutionStep.READ_CURRENT_MAIL,
+                ExecutionStep.SUMMARIZE_MAIL,
+                ExecutionStep.EXTRACT_RECIPIENTS,
+            ],
+            summary_line_target=5,
+            date_filter=DateFilter(mode=DateFilterMode.NONE),
+            missing_slots=[],
+            task_type=IntentTaskType.EXTRACTION,
+            output_format=IntentOutputFormat.GENERAL,
+            confidence=0.8,
+        )
+        parser = type("StubParser", (), {"parse": lambda self, user_message: decomposition})()
+        with patch("app.middleware.policies.get_intent_parser", return_value=parser):
+            text = compose_intent_augmented_text(decomposition.original_query)
 
         self.assertIn("create_outlook_todo", text)
         self.assertIn("호출하지 않는다", text)

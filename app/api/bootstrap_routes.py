@@ -8,28 +8,16 @@ from app.agents.deep_chat_agent import get_deep_chat_agent
 from app.api.bootstrap_legacy_routes import router as legacy_router
 from app.api.bootstrap_meeting_calendar_routes import router as meeting_calendar_router
 from app.api.bootstrap_ops_routes import router as ops_router
-from app.api.contracts import ConfirmRequest, IntentResolveRequest, SearchByIdRequest
-from app.core.metrics import get_chat_metrics_tracker
+from app.api.contracts import ConfirmRequest
+from app.services.next_action_contract_extractor import resolve_next_actions_from_model_content
 from app.services.next_action_recommender import recommend_next_actions
 
 router = APIRouter()
-chat_metrics = get_chat_metrics_tracker()
 CONFIRM_ACTION_TO_QUERY: dict[str, str] = {
     "create_outlook_todo": "현재메일 기반으로 조치 필요 사항을 ToDo로 등록해줘",
     "book_meeting_room": "현재메일 기준으로 회의실 예약해줘",
     "create_outlook_calendar_event": "현재메일 제안 내용으로 일정 생성해줘",
 }
-
-
-@router.get("/search/chat/metrics")
-def search_chat_metrics() -> dict[str, Any]:
-    """
-    `/search/chat` 운영 메트릭 스냅샷을 반환한다.
-
-    Returns:
-        성공률/지연/폴백 비율을 포함한 메트릭 사전
-    """
-    return chat_metrics.snapshot()
 
 
 @router.post("/search/chat/confirm")
@@ -45,12 +33,20 @@ def search_chat_confirm(payload: ConfirmRequest) -> dict[str, Any]:
     """
     prompt_variant = str(payload.prompt_variant or "").strip()
     agent = get_deep_chat_agent(prompt_variant=prompt_variant or None)
+    decision_type = _resolve_confirm_decision_type(payload=payload)
     result = agent.resume_pending_actions(
         thread_id=payload.thread_id,
         approved=payload.approved,
         confirm_token=payload.confirm_token,
+        decision_type=decision_type,
+        edited_action=payload.edited_action,
     )
     tool_payload = agent.get_last_tool_payload() if hasattr(agent, "get_last_tool_payload") else {}
+    raw_model_content = (
+        agent.get_last_raw_model_content()
+        if hasattr(agent, "get_last_raw_model_content")
+        else ""
+    )
     status = str(result.get("status") or "").strip()
     thread_id = str(result.get("thread_id") or payload.thread_id or "").strip()
     answer = str(result.get("answer") or "").strip()
@@ -66,7 +62,8 @@ def search_chat_confirm(payload: ConfirmRequest) -> dict[str, Any]:
             "metadata": {
                 "confirm": {
                     "required": True,
-                    "approved": bool(payload.approved),
+                    "approved": decision_type == "approve",
+                    "decision_type": decision_type,
                     "confirm_token": str(first_interrupt.get("interrupt_id") or ""),
                     "prompt_variant": prompt_variant,
                     "actions": first_actions if isinstance(first_actions, list) else [],
@@ -75,28 +72,46 @@ def search_chat_confirm(payload: ConfirmRequest) -> dict[str, Any]:
         }
     booking_event = _extract_booking_event_metadata(tool_payload=tool_payload)
     todo_task = _extract_todo_task_metadata(tool_payload=tool_payload)
+    treated_as_approved = decision_type in {"approve", "edit"}
     confirm_status, confirm_answer = _resolve_confirm_status_and_answer(
         agent_status=status,
-        approved=bool(payload.approved),
+        approved=treated_as_approved,
         answer=answer,
         tool_payload=tool_payload,
     )
     next_actions = _resolve_confirm_next_actions(
-        approved=bool(payload.approved) and confirm_status == "completed",
+        approved=treated_as_approved and confirm_status == "completed",
         tool_payload=tool_payload,
         answer=answer,
+        raw_model_content=raw_model_content,
     )
     return {
         "status": confirm_status,
         "thread_id": thread_id,
         "answer": confirm_answer,
         "metadata": {
-            "confirm": {"approved": bool(payload.approved)},
+            "confirm": {"approved": decision_type == "approve", "decision_type": decision_type},
             "booking_event": booking_event,
             "todo_task": todo_task,
             "next_actions": next_actions,
         },
     }
+
+
+def _resolve_confirm_decision_type(payload: ConfirmRequest) -> str:
+    """
+    confirm 요청의 decision type을 정규화한다.
+
+    Args:
+        payload: confirm 요청 본문
+
+    Returns:
+        `approve|edit|reject` 중 하나
+    """
+    normalized = str(payload.decision_type or "").strip().lower()
+    if normalized in {"approve", "edit", "reject"}:
+        return normalized
+    return "approve" if bool(payload.approved) else "reject"
 
 
 def _resolve_confirm_status_and_answer(
@@ -135,56 +150,6 @@ def _resolve_confirm_status_and_answer(
         resolved_status,
         str(answer or "").strip() or tool_reason or "승인 처리 중 오류가 발생했습니다.",
     )
-
-
-@router.post("/intents/resolve")
-def intents_resolve(payload: IntentResolveRequest) -> dict[str, Any]:
-    """
-    단순 키워드 기반 상위 라우팅 의도를 반환한다.
-
-    Args:
-        payload: 의도 판별 요청
-
-    Returns:
-        라우팅 의도 결과
-    """
-    text = str(payload.message or "").lower()
-    if "회의실" in text or "회의" in text:
-        intent = "room_booking"
-    elif "근태" in text:
-        intent = "hr_apply"
-    elif "비용" in text or "정산" in text:
-        intent = "finance"
-    elif "실행예산" in text or "promise" in text:
-        intent = "promise"
-    else:
-        intent = "chat"
-    return {
-        "intent": intent,
-        "primary_intent": intent,
-        "confidence": 0.7,
-        "router_version": "bootstrap-v1",
-    }
-
-
-@router.post("/search/id")
-def search_by_id(payload: SearchByIdRequest) -> dict[str, Any]:
-    """
-    전달받은 message_id를 그대로 에코 반환한다.
-
-    Args:
-        payload: 식별자 조회 요청
-
-    Returns:
-        식별자 매핑 결과
-    """
-    raw = str(payload.id or "").strip()
-    return {
-        "found": bool(raw),
-        "message_id": raw,
-        "open_message_id": raw,
-        "resolved_by": "passthrough",
-    }
 
 
 def _extract_booking_event_metadata(tool_payload: object) -> dict[str, str]:
@@ -247,7 +212,12 @@ def _extract_todo_task_metadata(tool_payload: object) -> dict[str, str]:
     }
 
 
-def _resolve_confirm_next_actions(approved: bool, tool_payload: object, answer: str) -> list[dict[str, str]]:
+def _resolve_confirm_next_actions(
+    approved: bool,
+    tool_payload: object,
+    answer: str,
+    raw_model_content: object,
+) -> list[dict[str, str]]:
     """
     confirm 완료 응답용 후속 next action 목록을 계산한다.
 
@@ -255,6 +225,7 @@ def _resolve_confirm_next_actions(approved: bool, tool_payload: object, answer: 
         approved: 사용자 승인 여부
         tool_payload: 최신 tool payload
         answer: agent 답변 텍스트
+        raw_model_content: agent raw model content
 
     Returns:
         추천 next action 목록(없으면 빈 리스트)
@@ -262,7 +233,14 @@ def _resolve_confirm_next_actions(approved: bool, tool_payload: object, answer: 
     if not approved:
         return []
     payload = tool_payload if isinstance(tool_payload, dict) else {}
-    action = str(payload.get("action") or "").strip().lower()
+    normalized_payload = _normalize_confirm_action_payload(payload=payload)
+    contract_actions = _resolve_next_actions_from_contract(
+        raw_model_content=raw_model_content,
+        tool_payload=normalized_payload,
+    )
+    if contract_actions:
+        return contract_actions
+    action = str(normalized_payload.get("action") or "").strip().lower()
     base_query = CONFIRM_ACTION_TO_QUERY.get(action, "")
     if not base_query:
         return []
@@ -270,10 +248,53 @@ def _resolve_confirm_next_actions(approved: bool, tool_payload: object, answer: 
     return recommend_next_actions(
         user_message=base_query,
         answer=resolved_answer,
-        tool_payload=payload,
+        tool_payload=normalized_payload,
         intent_task_type="action",
         intent_output_format="",
+        selector_mode_override="score",
+        allow_embeddings=False,
     )
+
+
+def _resolve_next_actions_from_contract(
+    raw_model_content: object,
+    tool_payload: dict[str, Any],
+) -> list[dict[str, str]]:
+    """
+    confirm 응답 모델 계약에서 suggested_action_ids를 복원한다.
+
+    Args:
+        raw_model_content: 모델 원문 content
+        tool_payload: 최신 tool payload
+
+    Returns:
+        UI 표시용 next action 목록
+    """
+    return resolve_next_actions_from_model_content(
+        raw_model_content=raw_model_content,
+        tool_payload=tool_payload,
+    )
+
+
+def _normalize_confirm_action_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    """
+    confirm 후속작업 계산용 payload를 정규화한다.
+
+    Args:
+        payload: 원본 tool payload
+
+    Returns:
+        current_mail 가용성이 보강된 payload
+    """
+    action = str(payload.get("action") or "").strip().lower()
+    if action not in CONFIRM_ACTION_TO_QUERY:
+        return payload
+    mail_context = payload.get("mail_context")
+    if isinstance(mail_context, dict) and str(mail_context.get("message_id") or "").strip():
+        return payload
+    normalized = dict(payload)
+    normalized["mail_context"] = {"message_id": "confirm_context"}
+    return normalized
 
 
 router.include_router(meeting_calendar_router)

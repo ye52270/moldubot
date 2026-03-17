@@ -75,7 +75,7 @@ class MailPostActionTest(unittest.TestCase):
         """
         with tempfile.TemporaryDirectory() as tmp_dir:
             service = self._build_and_prime_service(Path(tmp_dir))
-            payload = service.run_post_action(action="key_facts", summary_line_target=3)
+            payload = service.run_post_action(action="key_facts")
         self.assertEqual("key_facts", payload["action"])
         self.assertEqual("context_only", payload["status"])
         self.assertIn("mail_context", payload)
@@ -87,7 +87,7 @@ class MailPostActionTest(unittest.TestCase):
         """
         with tempfile.TemporaryDirectory() as tmp_dir:
             service = self._build_and_prime_service(Path(tmp_dir))
-            payload = service.run_post_action(action="current_mail", summary_line_target=3)
+            payload = service.run_post_action(action="current_mail")
         self.assertEqual("current_mail", payload["action"])
         self.assertEqual("completed", payload["status"])
         self.assertIn("subject", payload)
@@ -99,7 +99,7 @@ class MailPostActionTest(unittest.TestCase):
         """
         with tempfile.TemporaryDirectory() as tmp_dir:
             service = self._build_and_prime_service(Path(tmp_dir))
-            payload = service.run_post_action(action="recipients", summary_line_target=3)
+            payload = service.run_post_action(action="recipients")
         self.assertEqual("recipients", payload["action"])
         self.assertEqual("context_only", payload["status"])
         self.assertIn("mail_context", payload)
@@ -111,7 +111,7 @@ class MailPostActionTest(unittest.TestCase):
         """
         with tempfile.TemporaryDirectory() as tmp_dir:
             service = self._build_and_prime_service(Path(tmp_dir))
-            payload = service.run_post_action(action="summary_with_key_facts", summary_line_target=2)
+            payload = service.run_post_action(action="summary_with_key_facts")
         self.assertEqual("summary_with_key_facts", payload["action"])
         self.assertEqual("context_only", payload["status"])
         self.assertNotIn("summary_lines", payload)
@@ -125,7 +125,7 @@ class MailPostActionTest(unittest.TestCase):
         """
         with tempfile.TemporaryDirectory() as tmp_dir:
             service = self._build_and_prime_service(Path(tmp_dir))
-            payload = service.run_post_action(action="summary", summary_line_target=3)
+            payload = service.run_post_action(action="summary")
         self.assertEqual("summary", payload["action"])
         self.assertEqual("context_only", payload["status"])
         self.assertIn("mail_context", payload)
@@ -141,7 +141,7 @@ class MailPostActionTest(unittest.TestCase):
         """
         with tempfile.TemporaryDirectory() as tmp_dir:
             service = self._build_and_prime_service(Path(tmp_dir))
-            payload = service.run_post_action(action="report", summary_line_target=3)
+            payload = service.run_post_action(action="report")
         self.assertEqual("report", payload["action"])
         self.assertEqual("context_only", payload["status"])
         self.assertIn("mail_context", payload)
@@ -152,7 +152,7 @@ class MailPostActionTest(unittest.TestCase):
         """
         with tempfile.TemporaryDirectory() as tmp_dir:
             service = self._build_service(Path(tmp_dir))
-            payload = service.run_post_action(action="summary", summary_line_target=3)
+            payload = service.run_post_action(action="summary")
         self.assertEqual("summary", payload["action"])
         self.assertEqual("context_only", payload["status"])
         self.assertEqual({}, payload["mail_context"])

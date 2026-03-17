@@ -158,5 +158,40 @@ class DeepChatAgentToolPayloadTest(unittest.TestCase):
         )
         self.assertEqual([], decisions)
 
+    def test_build_resume_decisions_supports_edit_action(self) -> None:
+        """edit 결정이면 edited_action을 decision payload에 포함해야 한다."""
+        agent = DeepChatAgent.__new__(DeepChatAgent)
+
+        class _Interrupt:
+            def __init__(self, interrupt_id: str) -> None:
+                self.id = interrupt_id
+                self.value = {"action_requests": [{"name": "create_outlook_calendar_event"}]}
+
+        class _State:
+            interrupts = [_Interrupt("interrupt-a")]
+
+        class _Graph:
+            @staticmethod
+            def get_state(config: object) -> object:
+                del config
+                return _State()
+
+        agent._graph = _Graph()
+        edited_action = {
+            "name": "create_outlook_calendar_event",
+            "args": {"subject": "수정된 일정"},
+        }
+        decisions = agent._build_resume_decisions(
+            thread_id="thread-3",
+            approved=False,
+            confirm_token="interrupt-a",
+            decision_type="edit",
+            edited_action=edited_action,
+        )
+        self.assertEqual(
+            [{"type": "edit", "edited_action": edited_action}],
+            decisions,
+        )
+
 if __name__ == "__main__":
     unittest.main()

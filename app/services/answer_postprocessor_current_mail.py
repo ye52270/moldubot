@@ -424,6 +424,7 @@ def _should_force_grounded_safe_response(
     Returns:
         안전 템플릿 강제 대상이면 True
     """
+    _ = user_message
     source_text = f"{summary_text}\n{body_excerpt}".strip()
     source_tokens = set(extract_overlap_tokens(text=source_text))
     answer_tokens = set(extract_overlap_tokens(text=answer))

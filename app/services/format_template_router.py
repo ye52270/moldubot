@@ -37,6 +37,7 @@ def render_template_driven_mail_search(
         (route, rendered) 튜플.
         route는 `recent_sorted|no_result|deterministic|overview|skip`
     """
+    _ = answer
     action = str(tool_payload.get("action") or "").strip().lower()
     template_id = str(section_contract.get("template_id") or "").strip().lower()
     if action != "mail_search":
@@ -44,7 +45,6 @@ def render_template_driven_mail_search(
     if template_id and template_id not in MAIL_SEARCH_TEMPLATE_IDS:
         return ("skip", "")
     if looks_like_json_contract_text(text=answer):
-        # format_type 계약 응답은 contract 렌더 경로를 우선 적용한다.
         return ("skip", "")
 
     recent_sorted_rendered = render_recent_sorted_mail_response(

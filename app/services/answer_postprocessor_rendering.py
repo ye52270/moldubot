@@ -26,6 +26,13 @@ def render_contract_answer(user_message: str, contract: LLMResponseContract) -> 
     Returns:
         최종 렌더링 문자열
     """
+    format_type = str(contract.format_type or "").strip().lower()
+    if (
+        format_type in ("standard_summary", "detailed_summary")
+        and not is_summary_request(user_message=user_message)
+        and _has_current_mail_anchor(user_message=user_message)
+    ):
+        return render_summary_contract(user_message=user_message, contract=contract)
     if is_summary_request(user_message=user_message):
         return render_summary_contract(user_message=user_message, contract=contract)
     if is_report_request(user_message=user_message):
@@ -97,6 +104,20 @@ def render_general_contract(user_message: str, contract: LLMResponseContract) ->
     if contract.key_points:
         return normalize_multiline_text(text="\n".join(f"- {item}" for item in contract.key_points))
     return ""
+
+
+def _has_current_mail_anchor(user_message: str) -> bool:
+    """
+    사용자 질의가 현재메일 문맥인지 텍스트 기반으로 판별한다.
+
+    Args:
+        user_message: 사용자 질의
+
+    Returns:
+        현재메일 문맥이면 True
+    """
+    compact = str(user_message or "").replace(" ", "")
+    return any(token in compact for token in ("현재메일", "현재선택메일", "현재선택된메일", "이이메일"))
 
 
 def _has_general_multi_source_content(contract: LLMResponseContract) -> bool:

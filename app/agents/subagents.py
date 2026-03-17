@@ -5,6 +5,7 @@ from typing import Any
 
 from deepagents.middleware.subagents import SubAgent
 
+from app.agents.agent_runtime_config import resolve_agent_skills_paths
 from app.agents.prompts import (
     CODE_REVIEW_EXPERT_SYSTEM_PROMPT,
     MAIL_RETRIEVAL_SUMMARY_SUBAGENT_SYSTEM_PROMPT,
@@ -20,12 +21,14 @@ def get_agent_subagents() -> list[SubAgent]:
     Returns:
         서브에이전트 사양 목록
     """
+    skills_paths = resolve_agent_skills_paths() or None
     subagents: list[SubAgent] = []
     code_review_subagent: SubAgent = {
         "name": "code-review-agent",
         "description": "현재메일 코드 스니펫의 보안/품질/유지보수 리스크를 전문가 수준으로 리뷰한다.",
         "system_prompt": CODE_REVIEW_EXPERT_SYSTEM_PROMPT,
         "tools": [_ensure_tool_callable(run_mail_post_action)],
+        "skills": skills_paths,
     }
     subagents.append(code_review_subagent)
     if not _is_mail_subagents_enabled():
@@ -39,6 +42,7 @@ def get_agent_subagents() -> list[SubAgent]:
             _ensure_tool_callable(search_meeting_schedule),
             _ensure_tool_callable(current_date),
         ],
+        "skills": skills_paths,
     }
     mail_tech_issue_subagent: SubAgent = {
         "name": "mail-tech-issue-agent",
@@ -49,6 +53,7 @@ def get_agent_subagents() -> list[SubAgent]:
             _ensure_tool_callable(search_meeting_schedule),
             _ensure_tool_callable(current_date),
         ],
+        "skills": skills_paths,
     }
     subagents.extend([mail_retrieval_summary_subagent, mail_tech_issue_subagent])
     return subagents

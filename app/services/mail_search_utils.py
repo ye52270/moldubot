@@ -4,8 +4,12 @@ import hashlib
 import math
 import re
 import time
+from typing import TYPE_CHECKING
 
 from app.services.mail_text_utils import extract_sender_display_name
+
+if TYPE_CHECKING:
+    from app.services.mail_search_service import MailSearchResult
 
 EMBEDDING_DIM = 256
 RRF_K = 50

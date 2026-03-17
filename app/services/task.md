@@ -226,3 +226,11 @@
 - 2026-03-05 (after): `_extract_inline_markup_block`를 추가해 한 줄 인라인 JSP/HTML(`><`, `%><%`) 코드에 줄바꿈을 복원한 뒤 스니펫으로 추출하도록 개선.
 - 2026-03-05 (before): 코드 분석 섹션에 JSON 원문이 노출되는 문제와 JSP 하이라이트 미적용 문제를 해결하기 위해 후처리 필터/프론트 language alias 보정 작업 시작.
 - 2026-03-05 (after): `_build_analysis_lines`에서 JSON 계약 조각(`format_type/summary_lines/major_points`) 필터를 추가해 코드 분석 섹션에 JSON 원문이 노출되지 않도록 보강.
+- [2026-03-17 15:04] 작업 시작: `MailVectorIndexService`가 Python/Chroma 런타임 비호환 사유를 상태 객체로 노출하고 운영 점검에 재사용 가능하게 정리.
+- [2026-03-17 15:13] 완료: `MailVectorIndexService`에 `MailVectorIndexStatus`/`get_status()`를 추가하고 Python 3.14 비호환을 `python_3_14_unsupported`로 명시 노출하도록 정리.
+- [2026-03-17 15:19] 작업 시작: Graph 최근 메일을 로컬 DB/summary queue로 동기화하는 공통 서비스 추가 착수.
+- [2026-03-17 15:28] 완료: `MailSyncService`를 추가해 최근 Graph 메일 목록을 로컬 DB에 upsert하고 summary queue에 적재하는 pull sync 집계 경로를 구현.
+- [2026-03-17 15:45] 작업 시작: `MailSummaryQueueService.enqueue_backfill()`이 summary 누락 + 기존 completed row를 재큐잉하지 못하는 문제를 공통 정책으로 수정 착수.
+- [2026-03-17 15:57] 완료: summary 누락 메일은 기존 completed queue row가 있어도 `pending`으로 재큐잉하도록 수정하고, 실제 backfill 17건을 fallback summary로 복구 완료.
+- [2026-03-17 16:03] 작업 시작: Chroma 런타임 차단 시 sqlite 기반 fallback 벡터 인덱스로 저장을 지속하도록 `MailVectorIndexService` 개선 착수.
+- [2026-03-17 16:17] 완료: `MailVectorIndexService`가 `chromadb` 비가용 시 `sqlite_fallback` backend로 전환되도록 수정하고, 상태 객체에 backend/runtime_blocker를 노출하도록 정리.

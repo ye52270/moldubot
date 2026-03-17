@@ -26,6 +26,36 @@ class MailSummaryQueueServiceTest(unittest.TestCase):
         self.assertEqual(1, result.enqueued)
         self.assertEqual(1, result.scanned)
 
+    def test_enqueue_backfill_requeues_missing_summary_even_when_queue_row_exists(self) -> None:
+        """
+        summary가 비어 있으면 기존 completed queue row가 있어도 pending으로 재큐잉해야 한다.
+        """
+        db_path = self._build_db()
+        service = MailSummaryQueueService(db_path=db_path)
+        service.enqueue_message(message_id="m-empty", requested_by="test")
+        conn = sqlite3.connect(str(db_path))
+        try:
+            conn.execute(
+                "UPDATE mail_summary_queue SET status = 'completed', last_error = '' WHERE message_id = ?",
+                ("m-empty",),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+        result = service.enqueue_backfill(limit=0, include_existing=False)
+        self.assertEqual(1, result.enqueued)
+        conn = sqlite3.connect(str(db_path))
+        try:
+            row = conn.execute(
+                "SELECT status FROM mail_summary_queue WHERE message_id = ?",
+                ("m-empty",),
+            ).fetchone()
+        finally:
+            conn.close()
+        self.assertIsNotNone(row)
+        assert row is not None
+        self.assertEqual("pending", str(row[0]))
+
     @patch.dict(os.environ, {"MOLDUBOT_MAIL_VECTOR_INDEX_ENABLED": "0"}, clear=False)
     def test_worker_process_once_updates_summary_and_category(self) -> None:
         """

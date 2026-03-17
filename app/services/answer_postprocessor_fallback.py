@@ -88,8 +88,10 @@ def render_fallback_answer(
         return "generic_json_object_text", generic_json_object_rendered
 
     if is_summary_request(user_message=user_message):
-        if is_current_mail_summary_request(user_message=user_message) and not is_mail_summary_skill_query(
-            user_message=user_message
+        if (
+            is_current_mail_summary_request(user_message=user_message)
+            and not is_mail_summary_skill_query(user_message=user_message)
+            and '"format_type"' not in answer
         ):
             return "summary_freeform_text", answer
         if '"format_type"' in answer:
@@ -138,17 +140,17 @@ def _recover_current_mail_summary_from_tool_payload(
     """
     if not is_current_mail_summary_request(user_message=user_message):
         return ""
+    if is_mail_summary_skill_query(user_message=user_message):
+        return ""
     if '"format_type"' not in str(answer or ""):
         return ""
-    mail_context = tool_payload.get("mail_context")
-    if not isinstance(mail_context, dict) or not mail_context:
-        return ""
-    contract = LLMResponseContract(format_type="standard_summary")
-    contract = augment_contract_with_tool_payload(
-        user_message=user_message,
-        contract=contract,
-        tool_payload=tool_payload,
-    )
+    contract = LLMResponseContract(format_type="summary")
+    if isinstance(tool_payload.get("mail_context"), dict):
+        contract = augment_contract_with_tool_payload(
+            user_message=user_message,
+            contract=contract,
+            tool_payload=tool_payload,
+        )
     rendered = render_contract_answer(user_message=user_message, contract=contract)
     return str(rendered or "").strip()
 

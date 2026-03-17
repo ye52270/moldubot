@@ -476,3 +476,18 @@
 - 2026-03-05 (before): 코드 분석 JSON 노출 차단 및 JSP highlight alias 보정 회귀 테스트 추가 작업 시작.
 - 2026-03-05 (after): `test_answer_postprocessor_code_review.py`에 JSON 노이즈 차단 케이스를 추가하고, `test_taskpane_messages_render.cjs`의 JSP 코드블록 기대값을 `language-xml` alias 기준으로 갱신. 관련 테스트(Python 66, Node 60) 통과.
 - 2026-03-05 (after): 프론트 렌더 회귀 테스트(`node --test tests/test_taskpane_messages_render.cjs`) 60건 통과를 재확인.
+- [09:56] 작업 시작: Deep Agents runtime/HITL edit 계약 회귀를 고정하는 테스트 추가 작업 시작.
+- [10:20] 완료: `test_langgraph_config.py`에 backend/persistent checkpointer 주입 검증을, `test_agent_subagents.py`에 custom subagent skills 검증을, `test_bootstrap_hitl_confirm.py`/`test_search_chat_hitl.py`/`test_deep_chat_agent_tool_payload.py`에 HITL edit 계약 검증을 추가.
+- [10:20] 완료: `./.venv/bin/python -m pytest -q tests/test_langgraph_config.py tests/test_agent_subagents.py tests/test_bootstrap_hitl_confirm.py tests/test_search_chat_hitl.py tests/test_deep_chat_agent_tool_payload.py` 24건 통과 확인.
+- [10:24] 완료: `test_agent_runtime_components.py`를 추가해 sqlite saver fallback/context-manager materialize 계약을 검증하고, 관련 타깃 테스트 26건 통과를 확인.
+- [14:46] 완료: `test_mail_summary_scripts.py`를 추가해 summary queue/backfill 스크립트가 repo 밖 cwd에서도 `ModuleNotFoundError: app` 없이 실행되는지 검증했고, 관련 타깃 테스트 9건 통과를 확인.
+- [15:04] 작업 시작: 메일 파이프라인 상태 스크립트와 Chroma 런타임 상태 노출 로직에 대한 회귀 테스트 추가 착수.
+- [15:13] 완료: `test_mail_pipeline_health_script.py`와 `test_mail_vector_index_service.py` 보강으로 점검 스크립트 JSON 출력과 Python 3.14 런타임 차단 상태 노출 회귀를 고정.
+- [15:19] 작업 시작: Graph 최근 메일 sync 경로에 대한 클라이언트/서비스/스크립트 회귀 테스트 추가 착수.
+- [15:28] 완료: `test_graph_mail_client.py`에 최근 메일 목록 조회/401 재시도 회귀를 추가하고, `test_mail_sync_service.py`/`test_sync_recent_graph_mail_script.py`로 pull sync 경로를 고정.
+- [15:32] 작업 시작: `bootstrap_ops_routes`에 최근 메일 sync API의 dry-run/실행 응답 계약 테스트 추가 착수.
+- [15:36] 완료: `test_bootstrap_ops_routes.py`에 최근 메일 sync API의 dry-run/실행 계약 테스트를 추가하고 관련 pytest 15건 통과를 확인.
+- [15:45] 작업 시작: summary 누락 메일의 stale completed queue row 재큐잉 회귀 테스트 추가 착수.
+- [15:57] 완료: `test_mail_summary_queue_service.py`에 stale completed queue row 재큐잉 회귀를 추가하고 관련 pytest 7건 통과를 확인.
+- [16:03] 작업 시작: Chroma 비가용 시 fallback 벡터 인덱스 저장/상태 노출/재색인 스크립트 회귀 테스트 추가 착수.
+- [16:17] 완료: `test_mail_vector_index_service.py`와 `test_backfill_mail_vector_index_script.py`로 fallback backend 저장과 재색인 스크립트 회귀를 고정하고 관련 pytest 5건 통과를 확인.

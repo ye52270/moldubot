@@ -33,8 +33,6 @@ ACTION_CLASSIFICATION_PATTERNS: tuple[str, ...] = (
     r".*진행\s*필요$",
     r".*기한[:：]\s*.+$",
 )
-
-
 class SummaryResponseContract(BaseModel):
     """
     요약 응답의 최소 계약 모델.
@@ -68,8 +66,6 @@ class SummaryResponseContract(BaseModel):
 
         self.summary_lines = normalized[: self.requested_line_target]
         return self
-
-
 class FinalAnswerContract(BaseModel):
     """
     최종 사용자 응답의 최소 계약 모델.
@@ -90,8 +86,6 @@ class FinalAnswerContract(BaseModel):
         """
         self.answer = str(self.answer or "").strip()
         return self
-
-
 class LLMResponseContract(BaseModel):
     """
     LLM 최종 출력(JSON) 계약 모델.
@@ -128,6 +122,14 @@ class LLMResponseContract(BaseModel):
             "response_body",
         ),
     )
+    suggested_action_ids: list[str] = Field(
+        default_factory=list,
+        validation_alias=AliasChoices(
+            "suggested_action_ids",
+            "suggested_actions",
+            "action_ids",
+        ),
+    )
 
     @model_validator(mode="after")
     def normalize_fields(self) -> "LLMResponseContract":
@@ -159,6 +161,7 @@ class LLMResponseContract(BaseModel):
         self.recipient_roles = _normalize_recipient_roles(values=self.recipient_roles)
         self.recipient_todos = _normalize_recipient_todos(values=self.recipient_todos)
         self.reply_draft = str(self.reply_draft or "").strip()
+        self.suggested_action_ids = _normalize_action_ids(values=self.suggested_action_ids)
         return self
 
 
@@ -470,3 +473,24 @@ def _normalize_due_date(value: object) -> str:
     if matched:
         return matched.group(1)
     return "미정"
+
+
+def _normalize_action_ids(values: list[str]) -> list[str]:
+    """
+    액션 식별자 목록을 소문자/중복 제거 형태로 정규화한다.
+
+    Args:
+        values: 원본 액션 식별자 목록
+
+    Returns:
+        정규화된 액션 식별자 목록
+    """
+    normalized: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        action_id = str(value or "").strip().lower()
+        if not action_id or action_id in seen:
+            continue
+        seen.add(action_id)
+        normalized.append(action_id)
+    return normalized

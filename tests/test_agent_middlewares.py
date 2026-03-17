@@ -3,19 +3,17 @@ from __future__ import annotations
 import unittest
 
 from app.middleware.agent_middlewares import (
-    TRACE_MAX_CONTENT_CHARS,
-    TRACE_TRUNCATION_SUFFIX,
     _extract_original_user_message_from_injected_text,
     _extract_text_from_model_content,
     _normalize_search_tool_call_args,
     _normalize_raw_model_content,
-    _normalize_trace_content,
 )
 from langchain_core.messages import HumanMessage
 
 
 class AgentMiddlewaresTextExtractionTest(unittest.TestCase):
     """모델 content block에서 텍스트 추출 규칙을 검증한다."""
+    RAW_LIMIT_FOR_TEST = 1200
 
     def test_extract_text_from_block_list(self) -> None:
         """list content에서는 text 블록만 추출해 줄바꿈 결합해야 한다."""
@@ -41,17 +39,10 @@ class AgentMiddlewaresTextExtractionTest(unittest.TestCase):
 
     def test_normalize_raw_model_content_keeps_full_text(self) -> None:
         """raw_model_content 저장 경로는 문자열을 절단하지 않아야 한다."""
-        long_text = "x" * (TRACE_MAX_CONTENT_CHARS + 100)
+        long_text = "x" * (self.RAW_LIMIT_FOR_TEST + 100)
         raw = _normalize_raw_model_content(content={"type": "text", "text": long_text})
         self.assertIsInstance(raw, dict)
         self.assertEqual(long_text, raw["text"])
-
-    def test_normalize_trace_content_truncates_long_text_for_logs(self) -> None:
-        """trace 로그 경로는 긴 문자열을 절단해야 한다."""
-        long_text = "x" * (TRACE_MAX_CONTENT_CHARS + 100)
-        traced = _normalize_trace_content(content={"type": "text", "text": long_text})
-        self.assertIsInstance(traced, dict)
-        self.assertTrue(str(traced["text"]).endswith(TRACE_TRUNCATION_SUFFIX))
 
     def test_extract_original_user_message_from_scope_prefixed_text(self) -> None:
         """scope prefix만 있는 주입 텍스트에서도 원본 사용자 입력을 복원해야 한다."""

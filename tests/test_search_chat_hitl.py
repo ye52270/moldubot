@@ -24,7 +24,7 @@ class SearchChatHitlTest(unittest.TestCase):
                             "name": "create_outlook_todo",
                             "args": {"title": "API 오류 확인", "due_date": "2026-03-05"},
                             "description": "ToDo 등록 승인 요청",
-                            "allowed_decisions": ["approve", "reject"],
+                            "allowed_decisions": ["approve", "edit", "reject"],
                         }
                     ],
                 }
@@ -42,6 +42,10 @@ class SearchChatHitlTest(unittest.TestCase):
         self.assertTrue(response["metadata"]["confirm"]["required"])
         self.assertEqual("interrupt-1", response["metadata"]["confirm"]["confirm_token"])
         self.assertEqual("create_outlook_todo", response["metadata"]["confirm"]["actions"][0]["name"])
+        self.assertEqual(
+            ["approve", "edit", "reject"],
+            response["metadata"]["confirm"]["actions"][0]["allowed_decisions"],
+        )
 
 
 if __name__ == "__main__":

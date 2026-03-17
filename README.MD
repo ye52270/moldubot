@@ -74,6 +74,7 @@
 ### 4.4 운영/평가
 - `POST /addin/client-logs`
 - `POST /addin/export/weekly-report`
+- `POST /ops/mail-sync/recent`
 - `POST /qa/chat-eval/run`
 - `GET /qa/chat-eval/latest`
 - `GET /qa/chat-eval/cases`
@@ -98,13 +99,22 @@
 - `MOLDUBOT_LOG_LEVEL`: 로깅 레벨
 - `PROMPT_TRACE_ENABLED`: 프롬프트 트레이스 로그 on/off
 - `MOLDUBOT_PUBLIC_BASE_URL`: Add-in manifest 공개 URL 치환용
+- `MOLDUBOT_MAIL_VECTOR_INDEX_ENABLED`: 메일 벡터 인덱스 on/off (기본 `1`)
+- `MOLDUBOT_MAIL_VECTOR_DIR`: 벡터 인덱스 저장 경로 (기본 `data/chroma_db`)
+- `MOLDUBOT_SUMMARY_SYNC_ON_UPSERT`: 메일 upsert 직후 summary queue 동기 처리 여부 (기본 `1`)
 
-## 6. 로컬 실행
+## 6. 런타임 기준
+- 운영 권장 Python 버전은 `3.13.x`입니다.
+- `Python 3.14`에서는 `chromadb`가 깨져서 Chroma backend를 직접 사용할 수 없습니다.
+- 현재 프로젝트는 `3.14`에서도 sqlite fallback 벡터 인덱스로 동작하지만, Chroma까지 정상 사용하려면 `.venv313` 기준으로 실행하는 편이 맞습니다.
+
+## 7. 로컬 실행
 ```bash
 cd /Users/jaeyoung/Desktop/moldubot
-source venv/bin/activate
+python3.13 -m venv .venv313
+source .venv313/bin/activate
 pip install -r requirements.txt
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
 확인 URL:
@@ -112,9 +122,45 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 - `http://127.0.0.1:8000/addin/taskpane.html`
 - `http://127.0.0.1:8000/addin/manifest.xml`
 
-## 7. 테스트
+## 8. 메일 수집/요약/임베딩 운영 명령
+최근 메일을 Graph에서 끌어와 DB/summary queue로 동기화:
 ```bash
-source venv/bin/activate
+.venv313/bin/python scripts/sync_recent_graph_mail.py --limit 20
+```
+
+운영 API로 dry-run 확인:
+```bash
+curl -s -X POST "http://127.0.0.1:8000/ops/mail-sync/recent?limit=20&dry_run=true"
+```
+
+운영 API로 실제 sync 실행:
+```bash
+curl -s -X POST "http://127.0.0.1:8000/ops/mail-sync/recent?limit=20"
+```
+
+메일/queue/vector 상태 점검:
+```bash
+.venv313/bin/python scripts/check_mail_pipeline_health.py
+```
+
+summary 누락분 재큐잉:
+```bash
+.venv313/bin/python scripts/backfill_email_summary.py --db-path data/sqlite/emails.db
+```
+
+summary queue 처리:
+```bash
+.venv313/bin/python scripts/process_mail_summary_queue.py --db-path data/sqlite/emails.db --max-jobs 20
+```
+
+기존 메일 전체를 벡터 인덱스로 재색인:
+```bash
+.venv313/bin/python scripts/backfill_mail_vector_index.py --db-path data/sqlite/emails.db
+```
+
+## 9. 테스트
+```bash
+source .venv313/bin/activate
 pytest -q
 ```
 
@@ -125,18 +171,23 @@ pytest -q tests/test_report_routes.py
 pytest -q tests/test_bootstrap_meeting_routes.py
 ```
 
-## 8. 개발 규칙 메모
+## 10. 현재 운영 상태 메모
+- `emails.db` 기준 메일 `103`건, summary 누락 `0`건, summary queue `completed 103`건 기준으로 복구 완료
+- `.venv313` 기준 health 상태에서 `vector_index.backend = chromadb` 확인
+- `Python 3.14` 경로는 fallback backend로만 사용할 것
+
+## 11. 개발 규칙 메모
 - 작업 시작 전 루트 `task.md`에 Plan/Action Log를 먼저 업데이트
 - `print()` 대신 공통 `logging` 사용 (`app/core/logging_config.py`)
 - 중복 로직은 공통 함수/모듈로 추출
 - 변경 시 회귀 테스트를 함께 수행
 
-## 9. 최근 수정 (2026-03-09)
-- `답변하기` 회신 본문 추출 안정화:
-  - 회신 본문 alias 확장: `reply_draft`, `draft_answer`, `additional_body`, `reply_body`, `response_body`
-  - 회신 의도 문구가 아닌 경우에도 JSON에 회신 본문 키가 있으면 본문 우선 복구
-  - 계약 파싱 성공 시 회신 본문 필드가 있으면 JSON 원문 대신 본문만 렌더
-- 회신 본문 줄바꿈 개선:
-  - 본문 내 문자열 `\\n`, `\\r\\n` 리터럴을 실제 개행으로 변환
-- 테스트 보강:
-  - `tests/test_answer_postprocessor_reply_draft.py`에 `reply_body`, `response_body`, escaped newline 케이스 추가
+## 12. 최근 수정 (2026-03-17)
+- Graph 최근 메일 pull sync 경로 추가:
+  - `GraphMailClient.list_recent_messages`
+  - `MailSyncService`
+  - `scripts/sync_recent_graph_mail.py`
+  - `POST /ops/mail-sync/recent`
+- summary 누락 + stale completed queue row 재큐잉 정책 복구
+- `Python 3.14` Chroma 비호환 대응 sqlite fallback backend 추가
+- `Python 3.13.12` 기반 `.venv313` 환경에서 Chroma backend 복구 및 재색인 완료

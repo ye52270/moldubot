@@ -46,6 +46,21 @@ class AgentSubagentsTest(unittest.TestCase):
         self.assertIn("search_mails", retrieval_tool_names)
         self.assertIn("search_meeting_schedule", retrieval_tool_names)
 
+    def test_custom_subagents_receive_skills_when_configured(self) -> None:
+        """custom subagent는 메인 skills를 상속하지 않으므로 명시적으로 skills를 가져야 한다."""
+        with patch.dict(
+            os.environ,
+            {
+                "MOLDUBOT_ENABLE_MAIL_SUBAGENTS": "1",
+                "MOLDUBOT_AGENT_SKILLS_PATHS": "/skills/core,/skills/mail",
+            },
+            clear=False,
+        ):
+            subagents = get_agent_subagents()
+
+        for subagent in subagents:
+            self.assertEqual(["/skills/core", "/skills/mail"], subagent.get("skills"))
+
 
 if __name__ == "__main__":
     unittest.main()

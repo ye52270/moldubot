@@ -4,11 +4,7 @@ import re
 from typing import Any
 
 from app.agents.intent_schema import ExecutionStep, IntentDecomposition, IntentOutputFormat, IntentTaskType
-
-
 MAX_BLOCKS = 64
-
-
 def build_answer_format_metadata(
     user_message: str,
     answer: str,
@@ -27,9 +23,9 @@ def build_answer_format_metadata(
     Returns:
         version/format_type/blocks를 포함한 포맷 메타데이터
     """
+    _ = user_message
     normalized_answer = _normalize_text(text=answer)
     format_type = _infer_format_type(
-        user_message=user_message,
         answer=normalized_answer,
         status=status,
         decomposition=decomposition,
@@ -40,8 +36,6 @@ def build_answer_format_metadata(
         "format_type": format_type,
         "blocks": blocks,
     }
-
-
 def _normalize_text(text: str) -> str:
     """
     개행/공백을 정규화한다.
@@ -76,7 +70,6 @@ def _insert_structural_newlines(text: str) -> str:
 
 
 def _infer_format_type(
-    user_message: str,
     answer: str,
     status: str,
     decomposition: IntentDecomposition | None = None,
@@ -85,7 +78,6 @@ def _infer_format_type(
     사용자 질의와 응답 텍스트 패턴으로 format_type을 추론한다.
 
     Args:
-        user_message: 사용자 입력
         answer: 정규화된 응답 텍스트
         status: API 응답 상태
         decomposition: 구조화 의도 결과
@@ -247,27 +239,6 @@ def _find_next_action_list_block(blocks: list[dict[str, Any]], start_index: int)
             break
         index += 1
     return None
-
-
-def _find_replace_index_for_action_list(trimmed: list[dict[str, Any]], action_heading_index: int) -> int:
-    """
-    조치 목록 보강을 위해 교체할 블록 인덱스를 계산한다.
-
-    Args:
-        trimmed: 길이 제한이 적용된 블록 목록
-        action_heading_index: 조치 헤딩 인덱스
-
-    Returns:
-        교체 인덱스. 없으면 -1
-    """
-    for index in range(len(trimmed) - 1, -1, -1):
-        if index == action_heading_index:
-            continue
-        block = trimmed[index]
-        if str(block.get("type") or "").strip() == "heading" and _is_action_heading_text(text=str(block.get("text") or "")):
-            continue
-        return index
-    return -1
 
 
 def _find_replace_index_before_heading(trimmed: list[dict[str, Any]], action_heading_index: int) -> int:

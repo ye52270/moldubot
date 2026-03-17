@@ -137,3 +137,6 @@
 - [12:04] 완료: `report_agent.py`에 주간보고 불릿 2줄 규칙(핵심 + `- 설명`)을 프롬프트에 추가하고, 모델 미준수 대비 `<li>` 자동 보강(`_ensure_weekly_bullet_sublines`)을 적용.
 - [12:29] 작업 시작: 회의실 마스터 데이터 이관에 맞춰 agent meeting tool 경로(`MEETING_ROOMS_PATH`) 동기화 작업 시작.
 - [12:35] 완료: `tools.py`의 회의실 데이터 경로를 `data/meeting/meeting_rooms.json`으로 변경해 API/서비스와 단일 소스를 공유하도록 정리.
+- [09:56] 작업 시작: Deep Agents 운영 안정화를 위해 skills backend/checkpointer/subagent skills 정합화 작업 시작.
+- [10:20] 완료: `runtime_components.py`를 추가해 checkpointer/backend 구성을 공통화하고, `deep_chat_agent.py`/`langgraph_entry.py`/`subagents.py`에 persistent checkpointer 옵션, FilesystemBackend, custom subagent skills 명시 주입을 반영.
+- [10:24] 완료: `runtime_components.py`가 `langgraph.checkpoint.sqlite.SqliteSaver` context manager 형태도 안전하게 materialize하도록 보강해 실제 sqlite saver 사용 경로를 마무리.

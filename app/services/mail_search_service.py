@@ -4,9 +4,9 @@ import sqlite3
 import time
 from dataclasses import dataclass
 from pathlib import Path
-import re
 
 from app.core.logging_config import get_logger
+from app.services.mail_search_service_relevance import should_reject_top_result_for_high_specific_query
 from app.services.mail_search_utils import (
     build_aggregated_summary,
     elapsed_ms,
@@ -188,7 +188,7 @@ class MailSearchService:
             return scoped_rows
         filtered = [row for row in scoped_rows if keyword_match_count(row=row, keywords=keywords) >= min_hits]
         if filtered:
-            if _should_reject_top_result_for_high_specific_query(
+            if should_reject_top_result_for_high_specific_query(
                 query_keywords=keywords,
                 top_row=filtered[0],
             ):
@@ -459,68 +459,3 @@ def _row_to_result(row: sqlite3.Row) -> MailSearchResult:
         web_link=str(row["web_link"] or ""),
     )
 
-
-def _should_reject_top_result_for_high_specific_query(
-    query_keywords: list[str],
-    top_row: MailSearchResult,
-) -> bool:
-    """
-    고특이도 질의에서 상위 1건의 키워드 일치가 낮으면 결과를 거부한다.
-
-    Args:
-        query_keywords: 질의 핵심 키워드 목록
-        top_row: 필터링 이후 상위 메일
-
-    Returns:
-        거부 조건이면 True
-    """
-    keyword_count = len(query_keywords)
-    if keyword_count < 5:
-        return False
-    top_hits = keyword_match_count(row=top_row, keywords=query_keywords)
-    required_hits = 4 if keyword_count >= 6 else 3
-    if top_hits >= required_hits:
-        return False
-    if _has_identifier_anchor_match(query_keywords=query_keywords, top_row=top_row):
-        return False
-    return True
-
-
-def _has_identifier_anchor_match(query_keywords: list[str], top_row: MailSearchResult) -> bool:
-    """
-    질의 내 식별자 성격 토큰(영문/숫자 포함)이 상위 메일에 존재하는지 확인한다.
-
-    Args:
-        query_keywords: 질의 핵심 키워드 목록
-        top_row: 필터링 이후 상위 메일
-
-    Returns:
-        식별자 토큰이 제목/요약/본문에 포함되면 True
-    """
-    anchor_tokens = [token for token in query_keywords if _is_identifier_token(token)]
-    if not anchor_tokens:
-        return False
-    haystack = " ".join(
-        [
-            str(top_row.subject or ""),
-            str(top_row.summary_text or ""),
-            str(top_row.body_text or ""),
-        ]
-    ).lower()
-    return any(token in haystack for token in anchor_tokens)
-
-
-def _is_identifier_token(token: str) -> bool:
-    """
-    식별자 성격 토큰(영문/숫자 포함)인지 판별한다.
-
-    Args:
-        token: 질의 토큰
-
-    Returns:
-        식별자 성격 토큰이면 True
-    """
-    normalized = str(token or "").strip().lower()
-    if len(normalized) < 2:
-        return False
-    return bool(re.search(r"[a-z0-9]", normalized))

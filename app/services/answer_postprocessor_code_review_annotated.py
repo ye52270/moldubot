@@ -51,7 +51,7 @@ def render_current_mail_code_review_annotated_response(
         return "코드 스니펫이 없습니다."
     language = _detect_language(code=code)
     analysis_lines = _normalize_analysis_lines(
-        lines=_build_analysis_lines(answer=answer, code=code, language=language)
+        lines=_build_analysis_lines(answer=answer, language=language)
     )
     segments = _build_code_segments(code=code)
     blocks = ["## 코드 분석", "", *[f"- {line}" for line in analysis_lines], "", "## 주석 리뷰 (핵심 구간)", ""]

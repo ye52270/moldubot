@@ -17,7 +17,7 @@ class AgentToolsPostActionCacheTest(unittest.TestCase):
 
     def test_run_mail_post_action_reuses_cached_result_for_same_mail_and_action(self) -> None:
         """
-        동일 메일/액션/줄수 조합은 캐시되어 run_post_action 재호출을 생략해야 한다.
+        동일 메일/액션 조합은 캐시되어 run_post_action 재호출을 생략해야 한다.
         """
         fake_mail = SimpleNamespace(message_id="mail-1")
         fake_payload = {"action": "summary", "status": "context_only", "mail_context": {"subject": "테스트"}}
@@ -30,7 +30,7 @@ class AgentToolsPostActionCacheTest(unittest.TestCase):
 
         self.assertEqual("context_only", first["status"])
         self.assertEqual(first, second)
-        mail_service.run_post_action.assert_called_once_with(action="summary", summary_line_target=5)
+        mail_service.run_post_action.assert_called_once_with(action="summary")
 
     def test_run_mail_post_action_does_not_reuse_cache_when_mail_changes(self) -> None:
         """

@@ -41,30 +41,6 @@ class MailContextRequest(BaseModel):
     mailbox_user: str = Field(default="")
 
 
-class IntentResolveRequest(BaseModel):
-    """
-    `/intents/resolve` 요청 바디 스키마.
-
-    Attributes:
-        message: 사용자 입력 문장
-        context: 라우팅 보조 컨텍스트
-    """
-
-    message: str = ""
-    context: dict[str, Any] | None = None
-
-
-class SearchByIdRequest(BaseModel):
-    """
-    `/search/id` 요청 바디 스키마.
-
-    Attributes:
-        id: 메시지 식별자
-    """
-
-    id: str = Field(default="")
-
-
 class ConfirmRequest(BaseModel):
     """
     `/search/chat/confirm` 요청 바디 스키마.
@@ -72,13 +48,17 @@ class ConfirmRequest(BaseModel):
     Attributes:
         thread_id: 승인 대상 스레드 식별자
         approved: 승인 여부
+        decision_type: 승인 결정 유형(`approve|edit|reject`)
         confirm_token: 승인 토큰
+        edited_action: edit 시 적용할 tool/action payload
         prompt_variant: 승인 대상 에이전트 프롬프트 variant
     """
 
     thread_id: str = Field(default="")
     approved: bool = False
+    decision_type: str | None = None
     confirm_token: str | None = None
+    edited_action: dict[str, Any] | None = None
     prompt_variant: str | None = None
 
 

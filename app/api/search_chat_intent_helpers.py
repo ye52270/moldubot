@@ -27,18 +27,6 @@ from app.services.current_mail_intent_policy import (
 INTENT_CLARIFICATION_CONFIDENCE_THRESHOLD = 0.6
 
 
-def is_non_action_query_for_interrupt_retry(
-    decomposition: IntentDecomposition,
-    user_message: str,
-) -> bool:
-    """인터럽트 자동 정리 후 재시도 가능한 비-실행 질의인지 판별한다."""
-    action_steps = {ExecutionStep.BOOK_MEETING_ROOM, ExecutionStep.BOOK_CALENDAR_EVENT}
-    has_action_step = any(step in action_steps for step in decomposition.steps)
-    if decomposition.task_type == IntentTaskType.ACTION or has_action_step:
-        return False
-    return True
-
-
 def parse_intent_decomposition_safely(
     user_message: str,
     parser_factory: Any = None,
@@ -102,6 +90,7 @@ def build_intent_clarification(
     selected_mail_available: bool = False,
 ) -> dict[str, Any] | None:
     """low-confidence 의도에 대해 확인 질문 메타데이터를 구성한다."""
+    _ = user_message
     if decomposition is None:
         return None
     if bool(runtime_options.get("skip_intent_clarification")):

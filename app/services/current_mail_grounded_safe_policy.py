@@ -86,6 +86,7 @@ def render_current_mail_grounded_safe_message(user_message: str, summary_text: s
     Returns:
         의도 기반 안전응답
     """
+    _ = user_message
     safe_summary = str(summary_text or "").strip()[:240]
     return (
         f"현재 메일 근거에서 확인되는 내용: {safe_summary}\n"

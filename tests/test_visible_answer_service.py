@@ -19,6 +19,11 @@ class VisibleAnswerServiceTest(unittest.TestCase):
         self.assertEqual(''.join(chunks), '첫 문장 입니다. 다음 문장')
         self.assertGreaterEqual(len(chunks), 2)
 
+    def test_sanitize_visible_answer_text_removes_suggested_action_tag_suffix(self) -> None:
+        """freeform 메타 태그는 사용자 노출 텍스트에서 제거되어야 한다."""
+        source = "번역 결과입니다.\n[[suggested_action_ids:create_todo,web_search]]"
+        self.assertEqual("번역 결과입니다.", sanitize_visible_answer_text(source))
+
 
 if __name__ == '__main__':
     unittest.main()

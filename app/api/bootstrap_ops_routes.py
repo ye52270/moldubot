@@ -14,6 +14,7 @@ from fastapi.responses import Response, StreamingResponse
 from app.api.contracts import ChatEvalPipelineRunRequest, ChatEvalRunRequest, WeeklyReportExportRequest
 from app.api.data_access import CLIENT_LOG_PATH, write_ndjson
 from app.core.logging_config import get_logger
+from app.integrations.microsoft_graph.mail_client import GraphMailClient
 from app.services.chat_eval_service import (
     DEFAULT_JUDGE_MODEL,
     list_chat_eval_cases,
@@ -26,6 +27,7 @@ from app.services.chat_eval_pipeline_service import (
     render_pipeline_report_markdown,
     run_chat_eval_pipeline,
 )
+from app.services.mail_sync_service import MailSyncService
 
 router = APIRouter()
 logger = get_logger(__name__)
@@ -175,6 +177,41 @@ def addin_export_weekly_report(payload: WeeklyReportExportRequest) -> StreamingR
         media_type=media_type,
         headers={"Content-Disposition": f'attachment; filename="{safe_name}{ext}"'},
     )
+
+
+@router.post("/ops/mail-sync/recent")
+def mail_sync_recent(
+    limit: int = Query(default=20, ge=1, le=100),
+    dry_run: bool = Query(default=False),
+) -> dict[str, Any]:
+    """
+    최근 Graph 메일 pull sync를 관리용으로 실행한다.
+
+    Args:
+        limit: 최근 조회 최대 건수
+        dry_run: True면 설정 상태만 반환
+
+    Returns:
+        sync 실행 결과 또는 dry-run 상태
+    """
+    graph_client = GraphMailClient()
+    if dry_run:
+        return {
+            "status": "dry-run",
+            "limit": int(limit),
+            "dry_run": True,
+            "graph_configured": graph_client.is_configured(),
+        }
+    result = MailSyncService(
+        db_path=ROOT_DIR / "data" / "sqlite" / "emails.db",
+        graph_client=graph_client,
+    ).sync_recent_messages(limit=limit)
+    return {
+        "status": "completed",
+        "limit": int(limit),
+        "dry_run": False,
+        "result": result.as_dict(),
+    }
 
 
 @router.post("/qa/chat-eval/run")

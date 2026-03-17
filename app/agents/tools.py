@@ -2,9 +2,7 @@ from __future__ import annotations
 
 from contextvars import ContextVar
 from copy import deepcopy
-from datetime import datetime
 from pathlib import Path
-import re
 from typing import Any
 
 from langchain.tools import tool
@@ -14,7 +12,6 @@ from app.integrations.microsoft_graph.todo_client import GraphTodoClient
 from app.agents.tools_search_helpers import (
     apply_scope_to_query,
     build_scope_blocked_payload,
-    is_tech_issue_query_text,
     search_mails_with_query_fanout,
     should_fanout_tech_issue_query,
 )
@@ -142,21 +139,18 @@ def _build_scope_blocked_payload(reason: str, query: str) -> dict[str, Any]:
     return build_scope_blocked_payload(reason=reason, query=query)
 
 
-def _build_post_action_cache_key(mail: MailRecord, action: str, summary_line_target: int) -> str:
+def _build_post_action_cache_key(mail: MailRecord, action: str) -> str:
     """
     후속작업 캐시 키를 생성한다.
 
     Args:
         mail: 현재 메일 컨텍스트
         action: 후속 액션명
-        summary_line_target: 요약 줄수 목표
-
     Returns:
         캐시 키 문자열
     """
     normalized_action = str(action or "").strip().lower() or "summary"
-    normalized_target = max(1, int(summary_line_target or 5))
-    return f"{mail.message_id}:{normalized_action}:{normalized_target}"
+    return f"{mail.message_id}:{normalized_action}"
 
 
 def _normalize_outlook_todo_title(title: str, detail: str) -> str:
@@ -220,11 +214,12 @@ def run_mail_post_action(action: str = "summary", summary_line_target: int = 5) 
 
     Args:
         action: `current_mail`, `summary`, `report`, `key_facts`, `recipients`, `summary_with_key_facts`
-        summary_line_target: 요약 줄 수 목표
+        summary_line_target: 하위호환용 인자(현재 미사용)
 
     Returns:
         후속작업 실행 결과 사전(`current_mail` 외 액션은 context-only)
     """
+    _ = summary_line_target
     mail = _MAIL_SERVICE.get_current_mail()
     if mail is None:
         return {"status": "failed", "reason": "현재 메일을 찾지 못했습니다."}
@@ -232,7 +227,6 @@ def run_mail_post_action(action: str = "summary", summary_line_target: int = 5) 
     cache_key = _build_post_action_cache_key(
         mail=mail,
         action=action,
-        summary_line_target=summary_line_target,
     )
     cache_store = _POST_ACTION_CACHE_CTX.get()
     cached = cache_store.get(cache_key) if isinstance(cache_store, dict) else None
@@ -242,7 +236,6 @@ def run_mail_post_action(action: str = "summary", summary_line_target: int = 5) 
 
     payload = _MAIL_SERVICE.run_post_action(
         action=action,
-        summary_line_target=summary_line_target,
     )
     result = {"status": "completed", **payload}
     next_cache = dict(cache_store) if isinstance(cache_store, dict) else {}

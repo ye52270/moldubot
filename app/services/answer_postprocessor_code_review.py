@@ -70,7 +70,7 @@ def render_current_mail_code_review_response(
     if not code:
         return "코드 스니펫이 없습니다."
     language = _detect_language(code=code)
-    analysis_lines = _build_analysis_lines(answer=answer, code=code, language=language)
+    analysis_lines = _build_analysis_lines(answer=answer, language=language)
     review_lines = _build_review_lines(code=code, language=language)
     blocks = [
         "## 코드 분석",
@@ -392,13 +392,12 @@ def _guess_language_with_pygments(code: str) -> str:
     return alias
 
 
-def _build_analysis_lines(answer: str, code: str, language: str) -> list[str]:
+def _build_analysis_lines(answer: str, language: str) -> list[str]:
     """
     코드 분석 섹션 라인을 구성한다.
 
     Args:
         answer: 모델 원문 응답
-        code: 코드 스니펫
         language: 추정 언어
 
     Returns:

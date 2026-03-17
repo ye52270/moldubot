@@ -130,21 +130,16 @@ class MailContextService:
         )
         return refreshed if refreshed is not None else mail
 
-    def run_post_action(self, action: str, summary_line_target: int) -> dict[str, Any]:
+    def run_post_action(self, action: str) -> dict[str, Any]:
         """
         현재 메일 컨텍스트 기준 후속 작업을 공통 경로로 실행한다.
 
         Args:
             action: 후속작업 종류
-            summary_line_target: 요약 라인 목표
-
         Returns:
             후속작업 실행 결과 사전
         """
-        return self._mail_service.run_post_action(
-            action=action,
-            summary_line_target=summary_line_target,
-        )
+        return self._mail_service.run_post_action(action=action)
 
 
 def build_mail_context_service(db_path: Path) -> MailContextService:

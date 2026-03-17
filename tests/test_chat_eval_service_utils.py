@@ -25,25 +25,22 @@ class ChatEvalServiceUtilsTest(unittest.TestCase):
         self.assertTrue(parsed["pass"])
         self.assertEqual(5, parsed["score"])
 
-    def test_judge_retries_once_when_first_response_invalid(self) -> None:
-        """첫 응답이 비JSON이면 1회 재시도 후 성공해야 한다."""
+    def test_judge_returns_parse_failure_when_response_invalid(self) -> None:
+        """비JSON 응답이면 parse 실패를 반환해야 한다."""
         judge = build_default_judge_caller(judge_model="gpt-5-mini")
-        responses = [
-            "",
-            '{"pass": false, "score": 3, "reason": "partial", "checks": {"intent_match": true, "format_match": false, "grounded": true}}',
-        ]
-        with patch("app.services.chat_eval_service_utils.invoke_text_messages", side_effect=responses):
+        with patch("app.services.chat_eval_service_utils.invoke_text_messages", return_value=""):
             parsed, _elapsed = judge("q", "a", "e", "s", {})
         self.assertFalse(parsed["pass"])
-        self.assertEqual(3, parsed["score"])
+        self.assertEqual(1, parsed["score"])
+        self.assertIn("judge_parse_error", parsed["reason"])
 
-    def test_judge_returns_failure_when_all_attempts_invalid(self) -> None:
-        """재시도 포함 모두 실패하면 judge_llm_error를 반환해야 한다."""
+    def test_judge_returns_failure_when_response_is_not_json(self) -> None:
+        """비JSON 응답이면 judge_parse_error를 반환해야 한다."""
         judge = build_default_judge_caller(judge_model="gpt-5-mini")
         with patch("app.services.chat_eval_service_utils.invoke_text_messages", return_value="not-json"):
             parsed, _elapsed = judge("q", "a", "e", "s", {})
         self.assertFalse(parsed["pass"])
-        self.assertIn("judge_llm_error", parsed["reason"])
+        self.assertIn("judge_parse_error", parsed["reason"])
 
     def test_extract_evidence_top_k_uses_fallback_snippet_fields(self) -> None:
         """snippet이 비어 있으면 summary/body 필드 순서로 fallback해야 한다."""

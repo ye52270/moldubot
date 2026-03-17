@@ -79,21 +79,19 @@ def should_render_standard_summary(user_message: str, contract: LLMResponseContr
     text = str(user_message or "")
     is_mail_summary_skill = is_mail_summary_skill_query(user_message=text)
     is_current_mail_summary = is_current_mail_summary_request(user_message=text)
-    if not is_mail_summary_skill:
+    if not (is_mail_summary_skill or is_current_mail_summary or contract.format_type in ("standard_summary", "detailed_summary")):
         return False
     if is_current_mail_summary and is_explicit_line_summary_request(user_message=text):
         return False
-    if contract.format_type in ("standard_summary", "detailed_summary"):
-        return is_current_mail_summary
-    if not is_current_mail_summary:
+    if is_current_mail_summary and not is_mail_summary_skill and contract.format_type == "standard_summary":
         return False
     if "조회" in text or "검색" in text:
         return False
-    if contract.format_type != "summary":
-        return False
-    if not is_summary_request(user_message=text):
-        return False
-    return not is_explicit_line_summary_request(user_message=text)
+    if contract.format_type in ("standard_summary", "detailed_summary"):
+        return True
+    if contract.format_type == "summary":
+        return is_summary_request(user_message=text)
+    return False
 
 
 def render_standard_summary_contract(contract: LLMResponseContract) -> str:

@@ -68,7 +68,7 @@ def decide_postprocess_execution_policy(
 def build_search_scope_contract(
     user_message: str,
     resolved_scope: str,
-    intent_decomposition: IntentDecomposition,
+    intent_decomposition: IntentDecomposition | None,
     is_current_mail_mode: bool,
 ) -> dict[str, str]:
     """
@@ -87,8 +87,9 @@ def build_search_scope_contract(
     if not mode:
         mode = "current_mail" if is_current_mail_mode else "global_search"
     anchor_query = ""
-    focus_topics = set(intent_decomposition.focus_topics or [])
-    if intent_decomposition.task_type == IntentTaskType.RETRIEVAL and (
+    decomposition = intent_decomposition
+    focus_topics = set(decomposition.focus_topics or []) if decomposition is not None else set()
+    if decomposition is not None and decomposition.task_type == IntentTaskType.RETRIEVAL and (
         IntentFocusTopic.SCHEDULE in focus_topics or IntentFocusTopic.TECH_ISSUE in focus_topics
     ):
         anchor_query = _extract_scope_anchor_query(user_message=user_message)

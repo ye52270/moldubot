@@ -18,3 +18,5 @@
 - 2026-03-01 (after): `mail_client.py`를 PublicClientApplication + Delegated(`/me/messages`) 기반으로 전환(토큰 캐시 파일 로드/저장, silent→interactive 획득, 401 1회 재시도). 개인 outlook.com 계정 시나리오를 기본 경로로 반영하고 테스트를 동기화.
 - 2026-03-02 (before): 회의실 예약 시 개인 Outlook 캘린더에 일정을 생성하기 위해 Graph `/me/events` 전용 클라이언트 추가 작업 시작.
 - 2026-03-02 (after): `calendar_client.py`를 추가해 Delegated 토큰 기반 `/me/events` 생성(Asia/Seoul, 401 재시도)을 구현하고, `GraphMailClient`에 토큰 획득/초기화 공개 메서드(`acquire_access_token`, `reset_access_token`)를 추가해 인증 경로를 재사용.
+- [2026-03-17 15:19] 작업 시작: `GraphMailClient`에 최근 메일 목록 조회 API를 추가해 webhook 없이도 pull 기반 sync가 가능하도록 확장.
+- [2026-03-17 15:28] 완료: `mail_client_parsing.py`/`mail_client_types.py`로 파싱 책임을 분리하고 `GraphMailClient.list_recent_messages()`와 401 재시도 경로를 추가.

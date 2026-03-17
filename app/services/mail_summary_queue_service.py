@@ -125,22 +125,82 @@ class MailSummaryQueueService:
                 message_id = str(row["message_id"] or "").strip()
                 if not message_id:
                     continue
-                cursor = conn.execute(
-                    "INSERT OR IGNORE INTO mail_summary_queue (message_id, status, requested_by) VALUES (?, ?, ?)",
-                    (message_id, QUEUE_STATUS_PENDING, "backfill"),
+                cursor = self._enqueue_backfill_message(
+                    conn=conn,
+                    message_id=message_id,
+                    include_existing=include_existing,
                 )
-                if cursor.rowcount == 0 and include_existing:
-                    cursor = conn.execute(
-                        "UPDATE mail_summary_queue SET status = ?, last_error = '', updated_at = CURRENT_TIMESTAMP "
-                        "WHERE message_id = ?",
-                        (QUEUE_STATUS_PENDING, message_id),
-                    )
                 if cursor.rowcount > 0:
                     enqueued += 1
                 else:
                     skipped_existing += 1
             conn.commit()
         return MailSummaryQueueBackfillResult(scanned=scanned, enqueued=enqueued, skipped_existing=skipped_existing)
+
+    def _enqueue_backfill_message(
+        self,
+        conn: sqlite3.Connection,
+        message_id: str,
+        include_existing: bool,
+    ) -> sqlite3.Cursor:
+        """
+        backfill 대상 message_id를 queue에 신규 적재하거나 재큐잉한다.
+
+        Args:
+            conn: SQLite 연결
+            message_id: 대상 message_id
+            include_existing: 전체 재큐잉 모드 여부
+
+        Returns:
+            INSERT/UPDATE cursor
+        """
+        cursor = conn.execute(
+            "INSERT OR IGNORE INTO mail_summary_queue (message_id, status, requested_by) VALUES (?, ?, ?)",
+            (message_id, QUEUE_STATUS_PENDING, "backfill"),
+        )
+        if cursor.rowcount > 0:
+            return cursor
+        if include_existing:
+            return self._requeue_message(conn=conn, message_id=message_id)
+        if self._has_missing_summary(conn=conn, message_id=message_id):
+            return self._requeue_message(conn=conn, message_id=message_id)
+        return cursor
+
+    def _requeue_message(self, conn: sqlite3.Connection, message_id: str) -> sqlite3.Cursor:
+        """
+        기존 queue row를 pending 상태로 재큐잉한다.
+
+        Args:
+            conn: SQLite 연결
+            message_id: 대상 message_id
+
+        Returns:
+            UPDATE cursor
+        """
+        return conn.execute(
+            "UPDATE mail_summary_queue SET status = ?, last_error = '', updated_at = CURRENT_TIMESTAMP "
+            "WHERE message_id = ?",
+            (QUEUE_STATUS_PENDING, message_id),
+        )
+
+    def _has_missing_summary(self, conn: sqlite3.Connection, message_id: str) -> bool:
+        """
+        대상 메일의 summary가 비어 있는지 조회한다.
+
+        Args:
+            conn: SQLite 연결
+            message_id: 대상 message_id
+
+        Returns:
+            summary가 비어 있으면 True
+        """
+        row = conn.execute(
+            "SELECT COALESCE(summary, '') FROM emails WHERE message_id = ? LIMIT 1",
+            (message_id,),
+        ).fetchone()
+        if row is None:
+            return False
+        return not bool(str(row[0] or "").strip())
 
     def claim_next_job(self) -> MailSummaryQueueJob | None:
         """

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 
-from app.api.search_chat_flow import (
+from app.api.search_chat_next_actions_runtime import (
     normalize_next_action_id,
     resolve_forced_next_action_query,
     should_suppress_internal_mail_evidence,

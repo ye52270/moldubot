@@ -29,3 +29,5 @@
 - 2026-03-02 (before): after_model 후처리에서 과거 턴 tool payload가 선택되어 조회 요약이 엉키는 문제를 해결하기 위해 tool payload 선택 범위/순서 보정 작업 시작.
 - 2026-03-02 (after): `agent_middlewares._extract_latest_tool_payload`가 현재 턴(직전 HumanMessage 이후) ToolMessage만 우선 사용하도록 보정해 이전 턴 조회 payload 오염을 차단.
 - 2026-03-02 (after): 현재 턴 ToolMessage가 없는 예외 케이스는 기존 동작과 호환되도록 전체 구간 최신 payload fallback을 유지.
+- [09:56] 작업 시작: HIL 승인 정책을 edit 가능한 공통 계약으로 확장하는 미들웨어 설정 작업 시작.
+- [10:20] 완료: `registry.py`의 `book_meeting_room`/`create_outlook_todo`/`create_outlook_calendar_event`에 `allowed_decisions=[approve, edit, reject]`를 적용해 수정 후 승인 경로를 허용.

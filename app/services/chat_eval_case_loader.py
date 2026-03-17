@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 import re
 from pathlib import Path
-from typing import Any
 
 from app.core.chat_eval_cases import CHAT_EVAL_CASES, ChatEvalCase
 

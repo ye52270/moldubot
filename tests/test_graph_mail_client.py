@@ -114,6 +114,50 @@ class _FakeOkResponse:
         }
 
 
+class _FakeListOkResponse:
+    """
+    Graph 최근 메일 목록 200 응답 더블.
+    """
+
+    def __init__(self) -> None:
+        """테스트용 목록 응답을 초기화한다."""
+        self.status_code = 200
+        self.text = "ok"
+        self.headers = {}
+
+    def json(self) -> dict[str, object]:
+        """
+        Graph 최근 메일 목록 payload를 반환한다.
+
+        Returns:
+            Graph value 배열 payload
+        """
+        return {
+            "value": [
+                {
+                    "id": "m-201",
+                    "subject": "첫 번째 메일",
+                    "receivedDateTime": "2026-03-17T01:00:00Z",
+                    "from": {"emailAddress": {"address": "first@example.com"}},
+                    "bodyPreview": "첫 번째 본문",
+                    "body": {"contentType": "text", "content": "첫 번째 본문"},
+                    "internetMessageId": "<m-201@example.com>",
+                    "webLink": "https://outlook.office.com/mail/read/id/m-201",
+                },
+                {
+                    "id": "m-202",
+                    "subject": "두 번째 메일",
+                    "receivedDateTime": "2026-03-16T01:00:00Z",
+                    "from": {"emailAddress": {"address": "second@example.com"}},
+                    "bodyPreview": "두 번째 본문",
+                    "body": {"contentType": "html", "content": "<div>두 번째 본문</div>"},
+                    "internetMessageId": "<m-202@example.com>",
+                    "webLink": "https://outlook.office.com/mail/read/id/m-202",
+                },
+            ]
+        }
+
+
 class GraphMailClientTest(unittest.TestCase):
     """
     GraphMailClient 동작을 검증한다.
@@ -235,6 +279,43 @@ class GraphMailClientTest(unittest.TestCase):
                     message_id="AQMkADAwATMwMAExLWE2",
                 )
         self.assertIsNone(result)
+        self.assertEqual(2, request_mock.call_count)
+        self.assertEqual(2, acquire_mock.call_count)
+
+    def test_list_recent_messages_returns_normalized_messages(self) -> None:
+        """
+        최근 메일 목록 조회는 value 배열을 GraphMailMessage 목록으로 정규화해야 한다.
+        """
+        with patch.dict(os.environ, {"MICROSOFT_APP_ID": "client-id"}, clear=False):
+            client = GraphMailClient()
+        with patch.object(client, "_acquire_access_token", return_value="token"):
+            with patch(
+                "app.integrations.microsoft_graph.mail_client.requests.get",
+                return_value=_FakeListOkResponse(),
+            ) as request_mock:
+                messages = client.list_recent_messages(limit=2)
+        self.assertEqual(2, len(messages))
+        self.assertEqual("m-201", messages[0].message_id)
+        self.assertEqual("두 번째 본문", messages[1].body_text)
+        self.assertIn("$top=2", request_mock.call_args.args[0])
+
+    def test_list_recent_messages_retries_once_on_401(self) -> None:
+        """
+        최근 메일 목록 조회도 401 발생 시 토큰 재획득 후 1회 재시도해야 한다.
+        """
+        with patch.dict(os.environ, {"MICROSOFT_APP_ID": "client-id"}, clear=False):
+            client = GraphMailClient()
+        with patch.object(
+            client,
+            "_acquire_access_token",
+            side_effect=["token-first", "token-refreshed"],
+        ) as acquire_mock:
+            with patch(
+                "app.integrations.microsoft_graph.mail_client.requests.get",
+                side_effect=[_FakeUnauthorizedResponse(), _FakeListOkResponse()],
+            ) as request_mock:
+                messages = client.list_recent_messages(limit=5)
+        self.assertEqual(2, len(messages))
         self.assertEqual(2, request_mock.call_count)
         self.assertEqual(2, acquire_mock.call_count)
 

@@ -5,7 +5,10 @@ from unittest.mock import patch
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from app.middleware.agent_middlewares import _inject_intent_decomposition_context_impl
+from app.middleware.agent_middlewares import (
+    INTENT_SYSTEM_CONTEXT_CACHE_KEY,
+    _inject_intent_decomposition_context_impl,
+)
 from app.middleware.policies import INTENT_SYSTEM_CONTEXT_PREFIX
 
 
@@ -72,6 +75,29 @@ class AgentMiddlewaresIntentInjectionTest(unittest.TestCase):
         self.assertEqual("이전 턴 질문", str(messages[0].content))
         self.assertEqual(f"{INTENT_SYSTEM_CONTEXT_PREFIX}\n- 이전 컨텍스트", str(messages[1].content))
         self.assertEqual(original_user, str(messages[2].content))
+
+    def test_uses_cached_system_context_without_reparsing(self) -> None:
+        """state 캐시가 있으면 compose 파싱 없이 system 컨텍스트를 주입해야 한다."""
+        original_user = "현재메일 요약해줘"
+        cached_system_context = f"{INTENT_SYSTEM_CONTEXT_PREFIX}\n- 캐시 컨텍스트"
+        state = {
+            "messages": [HumanMessage(content=original_user)],
+            INTENT_SYSTEM_CONTEXT_CACHE_KEY: cached_system_context,
+        }
+        with (
+            patch("app.middleware.agent_middlewares.should_inject_intent_context", return_value=True),
+            patch("app.middleware.agent_middlewares.compose_intent_system_context") as compose_mock,
+        ):
+            result = _inject_intent_decomposition_context_impl(state=state, runtime=None)
+
+        self.assertIsNone(result)
+        compose_mock.assert_not_called()
+        messages = state.get("messages", [])
+        self.assertEqual(2, len(messages))
+        self.assertIsInstance(messages[0], SystemMessage)
+        self.assertEqual(cached_system_context, str(messages[0].content))
+        self.assertIsInstance(messages[1], HumanMessage)
+        self.assertEqual(original_user, str(messages[1].content))
 
 
 if __name__ == "__main__":

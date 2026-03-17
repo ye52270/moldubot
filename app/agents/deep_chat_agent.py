@@ -6,10 +6,10 @@ from functools import lru_cache
 from typing import Any, Mapping
 
 from deepagents import create_deep_agent
-from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.types import Command
 
 from app.agents.agent_runtime_config import resolve_agent_skills_paths
+from app.agents.runtime_components import build_agent_backend, build_agent_checkpointer
 from app.agents.deep_chat_agent_utils import (
     extract_assistant_text,
     extract_interrupt_requests,
@@ -83,7 +83,7 @@ class DeepChatAgent:
         self,
         model_name: str,
         system_prompt: str,
-        checkpointer: InMemorySaver | None = None,
+        checkpointer: object | None = None,
     ) -> None:
         """
         Deep agent를 초기화한다.
@@ -92,13 +92,15 @@ class DeepChatAgent:
             model_name: OpenAI 모델 이름
             system_prompt: 에이전트 기본 시스템 프롬프트
         """
+        skills_paths = resolve_agent_skills_paths()
         self._graph = create_deep_agent(
             model=model_name,
             tools=get_agent_tools(),
             system_prompt=system_prompt,
             middleware=build_agent_middlewares(),
             subagents=get_agent_subagents(),
-            skills=resolve_agent_skills_paths() or None,
+            skills=skills_paths or None,
+            backend=build_agent_backend(skills_paths=skills_paths),
             checkpointer=checkpointer or _get_agent_checkpointer(DEFAULT_PROMPT_VARIANT),
             name="moldubot-chat-agent",
         )
@@ -118,6 +120,17 @@ class DeepChatAgent:
             "deep_agent_last_raw_model_content",
             default="",
         )
+
+    def _ensure_context_vars(self) -> None:
+        """테스트용 우회 생성(__new__) 케이스에서도 context var를 보장한다."""
+        if not hasattr(self, "_last_tool_payload_ctx"):
+            self._last_tool_payload_ctx = ContextVar("deep_agent_last_tool_payload", default={})
+        if not hasattr(self, "_last_assistant_answer_ctx"):
+            self._last_assistant_answer_ctx = ContextVar("deep_agent_last_assistant_answer", default="")
+        if not hasattr(self, "_last_raw_model_output_ctx"):
+            self._last_raw_model_output_ctx = ContextVar("deep_agent_last_raw_model_output", default="")
+        if not hasattr(self, "_last_raw_model_content_ctx"):
+            self._last_raw_model_content_ctx = ContextVar("deep_agent_last_raw_model_content", default="")
 
     def respond(self, user_message: str, thread_id: str | None = None) -> str:
         """
@@ -170,6 +183,8 @@ class DeepChatAgent:
         thread_id: str,
         approved: bool,
         confirm_token: str | None = None,
+        decision_type: str = "approve",
+        edited_action: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """
         HIL 인터럽트 대기중인 tool 호출을 승인/거절로 재개한다.
@@ -178,6 +193,8 @@ class DeepChatAgent:
             thread_id: 대화 스레드 식별자
             approved: 승인 여부
             confirm_token: 인터럽트 토큰(선택)
+            decision_type: 승인 결정 유형(`approve|edit|reject`)
+            edited_action: edit 시 적용할 action payload
 
         Returns:
             재개 실행 결과 사전
@@ -187,6 +204,8 @@ class DeepChatAgent:
             thread_id=normalized_thread_id,
             approved=approved,
             confirm_token=confirm_token,
+            decision_type=decision_type,
+            edited_action=edited_action,
         )
         if not decisions:
             return {
@@ -269,6 +288,7 @@ class DeepChatAgent:
         Returns:
             상태/응답/인터럽트 정보를 담은 결과 사전
         """
+        self._ensure_context_vars()
         self._last_tool_payload_ctx.set(
             extract_latest_tool_payload(
                 result=result,
@@ -311,6 +331,8 @@ class DeepChatAgent:
         thread_id: str,
         approved: bool,
         confirm_token: str | None,
+        decision_type: str = "approve",
+        edited_action: dict[str, Any] | None = None,
     ) -> list[dict[str, Any]]:
         """
         현재 스레드 인터럽트 상태를 읽어 resume decisions payload를 구성한다.
@@ -319,6 +341,8 @@ class DeepChatAgent:
             thread_id: 스레드 식별자
             approved: 승인 여부
             confirm_token: 인터럽트 토큰
+            decision_type: 승인 결정 유형(`approve|edit|reject`)
+            edited_action: edit 시 적용할 action payload
 
         Returns:
             Decision 목록
@@ -342,6 +366,7 @@ class DeepChatAgent:
             else:
                 return []
         decisions: list[dict[str, Any]] = []
+        normalized_decision_type = _normalize_decision_type(decision_type=decision_type, approved=approved)
         for interrupt in selected_interrupts:
             value = getattr(interrupt, "value", None)
             if not isinstance(value, dict):
@@ -350,8 +375,10 @@ class DeepChatAgent:
             if not isinstance(action_requests, list):
                 continue
             for _ in action_requests:
-                if approved:
+                if normalized_decision_type == "approve":
                     decisions.append({"type": "approve"})
+                elif normalized_decision_type == "edit" and _is_valid_edited_action(edited_action):
+                    decisions.append({"type": "edit", "edited_action": edited_action})
                 else:
                     decisions.append({"type": "reject", "message": "사용자가 요청을 취소했습니다."})
         return decisions
@@ -433,16 +460,49 @@ def _extract_raw_model_content(result: object) -> Any:
     return result.get("raw_model_content", "")
 
 
+def _normalize_decision_type(decision_type: str, approved: bool) -> str:
+    """
+    confirm decision type을 표준 값으로 정규화한다.
+
+    Args:
+        decision_type: 외부 입력 decision type
+        approved: 레거시 bool 승인값
+
+    Returns:
+        `approve|edit|reject` 중 하나
+    """
+    normalized = str(decision_type or "").strip().lower()
+    if normalized in {"approve", "edit", "reject"}:
+        return normalized
+    return "approve" if approved else "reject"
+
+
+def _is_valid_edited_action(edited_action: dict[str, Any] | None) -> bool:
+    """
+    edited action payload의 최소 유효성을 검증한다.
+
+    Args:
+        edited_action: edit 결정에 사용할 payload
+
+    Returns:
+        name/args를 모두 만족하면 True
+    """
+    if not isinstance(edited_action, dict):
+        return False
+    name = str(edited_action.get("name") or "").strip()
+    args = edited_action.get("args")
+    return bool(name) and isinstance(args, dict)
+
+
 @lru_cache(maxsize=16)
-def _get_agent_checkpointer(prompt_variant: str) -> InMemorySaver:
+def _get_agent_checkpointer(prompt_variant: str) -> object:
     """
     에이전트 전역에서 재사용할 in-memory checkpointer를 반환한다.
 
     Returns:
-        재사용 가능한 InMemorySaver 인스턴스
+        재사용 가능한 checkpointer 인스턴스
     """
-    del prompt_variant
-    return InMemorySaver()
+    return build_agent_checkpointer(cache_namespace=prompt_variant)
 
 
 @lru_cache(maxsize=8)

@@ -322,5 +322,149 @@
     "final_cost_total": 0,
     "reason": "초기 실행예산 등록",
     "thread_id": ""
+  },
+  {
+    "saved_at": "2026-03-13T09:09:32.481888+00:00",
+    "project_number": "30132215-D099",
+    "project_name": "조회 테스트 프로젝트",
+    "mode": "create",
+    "final_cost_total": 0,
+    "reason": "목록 조회 테스트",
+    "thread_id": ""
+  },
+  {
+    "saved_at": "2026-03-13T09:09:32.495058+00:00",
+    "project_number": "30132215-D014",
+    "project_name": "테스트 프로젝트",
+    "mode": "create",
+    "final_cost_total": 0,
+    "reason": "초기 실행예산 등록",
+    "thread_id": ""
+  },
+  {
+    "saved_at": "2026-03-13T09:10:47.339757+00:00",
+    "project_number": "30132215-D099",
+    "project_name": "조회 테스트 프로젝트",
+    "mode": "create",
+    "final_cost_total": 0,
+    "reason": "목록 조회 테스트",
+    "thread_id": ""
+  },
+  {
+    "saved_at": "2026-03-13T09:10:47.351093+00:00",
+    "project_number": "30132215-D014",
+    "project_name": "테스트 프로젝트",
+    "mode": "create",
+    "final_cost_total": 0,
+    "reason": "초기 실행예산 등록",
+    "thread_id": ""
+  },
+  {
+    "saved_at": "2026-03-13T13:41:45.180724+00:00",
+    "project_number": "30132215-D099",
+    "project_name": "조회 테스트 프로젝트",
+    "mode": "create",
+    "final_cost_total": 0,
+    "reason": "목록 조회 테스트",
+    "thread_id": ""
+  },
+  {
+    "saved_at": "2026-03-13T13:41:45.194587+00:00",
+    "project_number": "30132215-D014",
+    "project_name": "테스트 프로젝트",
+    "mode": "create",
+    "final_cost_total": 0,
+    "reason": "초기 실행예산 등록",
+    "thread_id": ""
+  },
+  {
+    "saved_at": "2026-03-13T13:45:02.186390+00:00",
+    "project_number": "30132215-D099",
+    "project_name": "조회 테스트 프로젝트",
+    "mode": "create",
+    "final_cost_total": 0,
+    "reason": "목록 조회 테스트",
+    "thread_id": ""
+  },
+  {
+    "saved_at": "2026-03-13T13:45:02.200000+00:00",
+    "project_number": "30132215-D014",
+    "project_name": "테스트 프로젝트",
+    "mode": "create",
+    "final_cost_total": 0,
+    "reason": "초기 실행예산 등록",
+    "thread_id": ""
+  },
+  {
+    "saved_at": "2026-03-13T13:46:03.646103+00:00",
+    "project_number": "30132215-D099",
+    "project_name": "조회 테스트 프로젝트",
+    "mode": "create",
+    "final_cost_total": 0,
+    "reason": "목록 조회 테스트",
+    "thread_id": ""
+  },
+  {
+    "saved_at": "2026-03-13T13:46:03.659187+00:00",
+    "project_number": "30132215-D014",
+    "project_name": "테스트 프로젝트",
+    "mode": "create",
+    "final_cost_total": 0,
+    "reason": "초기 실행예산 등록",
+    "thread_id": ""
+  },
+  {
+    "saved_at": "2026-03-13T13:57:27.288708+00:00",
+    "project_number": "30132215-D099",
+    "project_name": "조회 테스트 프로젝트",
+    "mode": "create",
+    "final_cost_total": 0,
+    "reason": "목록 조회 테스트",
+    "thread_id": ""
+  },
+  {
+    "saved_at": "2026-03-13T13:57:27.303824+00:00",
+    "project_number": "30132215-D014",
+    "project_name": "테스트 프로젝트",
+    "mode": "create",
+    "final_cost_total": 0,
+    "reason": "초기 실행예산 등록",
+    "thread_id": ""
+  },
+  {
+    "saved_at": "2026-03-13T13:59:59.690419+00:00",
+    "project_number": "30132215-D099",
+    "project_name": "조회 테스트 프로젝트",
+    "mode": "create",
+    "final_cost_total": 0,
+    "reason": "목록 조회 테스트",
+    "thread_id": ""
+  },
+  {
+    "saved_at": "2026-03-13T13:59:59.703266+00:00",
+    "project_number": "30132215-D014",
+    "project_name": "테스트 프로젝트",
+    "mode": "create",
+    "final_cost_total": 0,
+    "reason": "초기 실행예산 등록",
+    "thread_id": ""
+  },
+  {
+    "saved_at": "2026-03-13T14:00:35.967835+00:00",
+    "project_number": "30132215-D099",
+    "project_name": "조회 테스트 프로젝트",
+    "mode": "create",
+    "final_cost_total": 0,
+    "reason": "목록 조회 테스트",
+    "thread_id": ""
+  },
+  {
+    "saved_at": "2026-03-13T14:00:35.981583+00:00",
+    "project_number": "30132215-D014",
+    "project_name": "테스트 프로젝트",
+    "mode": "create",
+    "final_cost_total": 0,
+    "reason": "초기 실행예산 등록",
+    "thread_id": ""
   }
 ]

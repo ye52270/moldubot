@@ -2,11 +2,14 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
 from dotenv import load_dotenv
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
 load_dotenv(dotenv_path=ROOT_DIR / ".env")
 
 from app.core.logging_config import configure_logging, get_logger

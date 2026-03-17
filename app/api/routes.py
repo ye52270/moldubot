@@ -39,16 +39,6 @@ def addin_manifest(request: Request) -> Response:
     return Response(content=xml, media_type="application/xml")
 
 
-@router.get("/search/chat/runtime-config")
-def search_chat_runtime_config() -> dict[str, int]:
-    """채팅 런타임 고정 설정값을 반환한다."""
-    return {
-        "sticky_current_mail_ttl_ms": 10 * 60 * 1000,
-        "sticky_current_mail_max_turns": 4,
-        "followup_state_ttl_sec": 600,
-    }
-
-
 @router.post("/search/chat")
 def search_chat(payload: ChatRequest) -> dict[str, Any]:
     """채팅 요청을 처리하고 deep agent 응답을 반환한다."""

@@ -158,3 +158,7 @@
 - 2026-03-05 (before): `major_point_evidence`를 웹출처 기반에서 벡터 유사 메일 근거(`related_mails`) 기반으로 전환하는 API 메타데이터 리팩터링 작업 시작.
 - 2026-03-05 (after): `build_major_point_evidence` 계약을 `related_mails` 중심으로 개편하고, `search_chat_flow`에서 포인트별 유사 메일 검색 보강(`_enrich_major_point_related_mails`)을 추가.
 - 2026-03-05 (after): 주요내용 근거 메타데이터에서 웹출처 주입 경로를 제거해 사내 메일 근거 중심으로 단순화.
+- [09:56] 작업 시작: HIL confirm을 edit 가능한 공통 승인 계약으로 확장하는 API 작업 시작.
+- [10:20] 완료: `ConfirmRequest`에 `decision_type`/`edited_action`을 추가하고 `bootstrap_routes.py` confirm 경로가 `approve|edit|reject`를 정규화해 agent resume 및 응답 메타데이터에 반영하도록 수정.
+- [2026-03-17 15:32] 작업 시작: pull 기반 최근 메일 sync를 외부에서 호출할 수 있도록 `bootstrap_ops_routes.py`에 관리용 엔드포인트 추가 착수.
+- [2026-03-17 15:36] 완료: `/ops/mail-sync/recent` POST 엔드포인트를 추가해 dry-run과 실제 `MailSyncService` 실행 결과를 JSON으로 반환하도록 구성.

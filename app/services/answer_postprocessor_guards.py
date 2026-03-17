@@ -55,12 +55,12 @@ def render_forced_section_response(user_message: str, contract: LLMResponseContr
     Returns:
         강제 섹션 렌더링 문자열. 대상이 아니면 빈 문자열
     """
-    if is_current_mail_cause_analysis_request(user_message=user_message):
-        return _render_current_mail_cause_analysis(user_message=user_message, contract=contract)
-    if is_current_mail_solution_request(user_message=user_message):
-        return _render_current_mail_solution_checklist(contract=contract)
     if _is_core_action_conclusion_report_request(user_message=user_message):
         return _render_core_action_conclusion_report(contract=contract)
+    if is_current_mail_solution_request(user_message=user_message):
+        return _render_current_mail_solution_checklist(contract=contract)
+    if is_current_mail_cause_analysis_request(user_message=user_message):
+        return _render_current_mail_cause_analysis(user_message=user_message, contract=contract)
     if _is_schedule_owner_action_request(user_message=user_message):
         return _render_schedule_owner_action(contract=contract)
     if _is_action_items_request(user_message=user_message):
@@ -210,10 +210,34 @@ def _render_current_mail_cause_analysis(user_message: str, contract: LLMResponse
     Returns:
         원인 분석 섹션 문자열
     """
-    sections = resolve_current_mail_issue_sections(user_message=user_message)
+    sections = _resolve_forced_issue_sections(user_message=user_message)
+    if not sections:
+        sections = resolve_current_mail_issue_sections(user_message=user_message)
     if not sections:
         sections = ("cause", "impact", "response")
     return render_issue_analysis_sections(contract=contract, sections=sections)
+
+
+def _resolve_forced_issue_sections(user_message: str) -> tuple[str, ...]:
+    """
+    후처리 렌더 단계에서 사용할 현재메일 이슈 섹션 강제 규칙을 계산한다.
+
+    Args:
+        user_message: 사용자 입력 원문
+
+    Returns:
+        강제 섹션 튜플. 미적용 시 빈 튜플
+    """
+    compact = str(user_message or "").replace(" ", "")
+    if "원인" not in compact:
+        return ()
+    has_impact_token = "영향" in compact
+    has_response_token = any(token in compact for token in ("대응", "해결", "방안", "조치"))
+    if has_response_token and not has_impact_token:
+        return ("cause", "response")
+    if not has_response_token and not has_impact_token:
+        return ("cause",)
+    return ()
 
 
 def _render_current_mail_solution_checklist(contract: LLMResponseContract) -> str:

@@ -146,6 +146,114 @@ class BootstrapSearchChatConfirmTest(unittest.TestCase):
         self.assertEqual(1, len(response["metadata"]["next_actions"]))
         self.assertEqual("search_related_mails", response["metadata"]["next_actions"][0]["action_id"])
 
+    def test_confirm_uses_contract_suggested_actions_before_recommender(self) -> None:
+        """confirm 경로는 raw_model_content 계약의 suggested_action_ids를 우선 사용해야 한다."""
+        with (
+            patch("app.api.bootstrap_routes.get_deep_chat_agent") as get_agent,
+            patch("app.api.bootstrap_routes.recommend_next_actions") as recommend,
+        ):
+            agent = get_agent.return_value
+            agent.resume_pending_actions.return_value = {
+                "status": "completed",
+                "thread_id": "thread-4a",
+                "answer": "완료",
+                "interrupts": [],
+            }
+            agent.get_last_tool_payload.return_value = {
+                "action": "create_outlook_todo",
+                "task": {
+                    "id": "task-4a",
+                    "web_link": "https://outlook.live.com/tasks/item/task-4a",
+                },
+            }
+            agent.get_last_raw_model_content.return_value = (
+                '{"format_type":"general","answer":"완료","suggested_action_ids":["create_todo"]}'
+            )
+            response = search_chat_confirm(
+                payload=ConfirmRequest(
+                    thread_id="thread-4a",
+                    approved=True,
+                    confirm_token="interrupt-4a",
+                )
+            )
+
+        self.assertEqual("completed", response["status"])
+        self.assertEqual("create_todo", response["metadata"]["next_actions"][0]["action_id"])
+        recommend.assert_not_called()
+
+    def test_confirm_uses_freeform_action_tag_before_recommender(self) -> None:
+        """confirm 경로는 freeform 메타 태그 action_id도 추천기 폴백보다 우선해야 한다."""
+        with (
+            patch("app.api.bootstrap_routes.get_deep_chat_agent") as get_agent,
+            patch("app.api.bootstrap_routes.recommend_next_actions") as recommend,
+        ):
+            agent = get_agent.return_value
+            agent.resume_pending_actions.return_value = {
+                "status": "completed",
+                "thread_id": "thread-4a-tag",
+                "answer": "완료",
+                "interrupts": [],
+            }
+            agent.get_last_tool_payload.return_value = {
+                "action": "create_outlook_todo",
+                "task": {
+                    "id": "task-4a-tag",
+                    "web_link": "https://outlook.live.com/tasks/item/task-4a-tag",
+                },
+            }
+            agent.get_last_raw_model_content.return_value = "완료\n[[suggested_action_ids:create_todo]]"
+            response = search_chat_confirm(
+                payload=ConfirmRequest(
+                    thread_id="thread-4a-tag",
+                    approved=True,
+                    confirm_token="interrupt-4a-tag",
+                )
+            )
+
+        self.assertEqual("completed", response["status"])
+        self.assertEqual("create_todo", response["metadata"]["next_actions"][0]["action_id"])
+        recommend.assert_not_called()
+
+    def test_confirm_fallback_forces_score_only_recommender(self) -> None:
+        """계약 액션이 없으면 confirm 폴백 추천기는 score-only 옵션으로 호출되어야 한다."""
+        with (
+            patch("app.api.bootstrap_routes.get_deep_chat_agent") as get_agent,
+            patch("app.api.bootstrap_routes.recommend_next_actions") as recommend,
+        ):
+            agent = get_agent.return_value
+            agent.resume_pending_actions.return_value = {
+                "status": "completed",
+                "thread_id": "thread-4b",
+                "answer": "완료",
+                "interrupts": [],
+            }
+            agent.get_last_tool_payload.return_value = {
+                "action": "create_outlook_todo",
+                "task": {"id": "task-4b"},
+            }
+            agent.get_last_raw_model_content.return_value = "완료"
+            recommend.return_value = [
+                {
+                    "action_id": "search_related_mails",
+                    "title": "관련 메일 추가 조회",
+                    "description": "동일 이슈 메일 조회",
+                    "query": "이 주제 관련 메일 최근순으로 5개 조회해줘",
+                    "priority": "high",
+                }
+            ]
+            response = search_chat_confirm(
+                payload=ConfirmRequest(
+                    thread_id="thread-4b",
+                    approved=True,
+                    confirm_token="interrupt-4b",
+                )
+            )
+
+        self.assertEqual("completed", response["status"])
+        kwargs = recommend.call_args.kwargs
+        self.assertEqual("score", kwargs.get("selector_mode_override"))
+        self.assertFalse(bool(kwargs.get("allow_embeddings")))
+
     def test_returns_failed_with_tool_reason_when_approved_tool_execution_failed(self) -> None:
         """승인 이후 tool 실패 payload가 오면 failed 상태와 실패 사유를 응답해야 한다."""
         with patch("app.api.bootstrap_routes.get_deep_chat_agent") as get_agent:

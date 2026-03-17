@@ -1,26 +1,27 @@
 from __future__ import annotations
 
-import math
 import os
 import re
-from functools import lru_cache
 from typing import Any
 
-from openai import AzureOpenAI, OpenAIError
-
-from app.core.azure_openai_client import get_azure_openai_client, has_azure_openai_config, normalize_azure_deployment_name
+from app.core.llm_runtime import invoke_json_object, is_model_provider_configured, resolve_env_model
 from app.core.logging_config import get_logger
 from app.services.next_action_recommender_domains import (
     ACTION_DOMAINS,
     CODE_ANALYSIS_ACTION_ID,
     CODE_EVIDENCE_PATTERNS,
-    EMBEDDING_MODEL,
     MAX_EMBEDDING_INPUT_CHARS,
     MAX_NEXT_ACTIONS,
     ActionDomain,
 )
 
 logger = get_logger(__name__)
+DEFAULT_ACTION_SELECTOR_MODE = "llm"
+ACTION_SELECTOR_MODE_ENV = "MOLDUBOT_ACTION_SELECTOR_MODE"
+ACTION_SELECTOR_MODEL_ENV = "MOLDUBOT_ACTION_SELECTOR_MODEL"
+DEFAULT_ACTION_SELECTOR_MODEL = "gpt-4o-mini"
+ACTION_SELECTOR_TIMEOUT_SEC = 12
+ACTION_SELECTOR_CANDIDATE_LIMIT = 6
 
 
 def recommend_next_actions(
@@ -29,6 +30,8 @@ def recommend_next_actions(
     tool_payload: dict[str, Any] | None = None,
     intent_task_type: str = "",
     intent_output_format: str = "",
+    selector_mode_override: str | None = None,
+    allow_embeddings: bool = True,
 ) -> list[dict[str, str]]:
     """
     메일/응답 맥락에 가장 유사한 실행 가능 도메인 액션 Top3를 추천한다.
@@ -39,10 +42,14 @@ def recommend_next_actions(
         tool_payload: 마지막 tool payload
         intent_task_type: 의도 task type
         intent_output_format: 의도 output format
+        selector_mode_override: 추천 모드 강제값(`llm`/`score`)
+        allow_embeddings: 임베딩 유사도 계산 허용 여부
 
     Returns:
         UI 표시용 `next_actions` 목록
     """
+    _ = allow_embeddings  # backward-compatible 인자 유지
+    selector_mode = _resolve_selector_mode(override=selector_mode_override)
     payload = tool_payload if isinstance(tool_payload, dict) else {}
     context = _build_context_text(
         user_message=user_message,
@@ -55,7 +62,6 @@ def recommend_next_actions(
     query_tokens = _tokenize(text=user_message)
     recent_tool_action = str(payload.get("action") or "").strip().lower()
     current_mail_available = _is_current_mail_available(tool_payload=payload)
-    embedding_similarities = _resolve_embedding_similarities(context=context)
 
     scored: list[tuple[float, ActionDomain]] = []
     for domain in ACTION_DOMAINS:
@@ -72,15 +78,185 @@ def recommend_next_actions(
             recent_tool_action=recent_tool_action,
             intent_task_type=intent_task_type,
             intent_output_format=intent_output_format,
-            embedding_similarity=embedding_similarities.get(domain.action_id),
         )
         if score <= 0:
             continue
         scored.append((score, domain))
 
     scored.sort(key=lambda item: item[0], reverse=True)
+    if not scored:
+        return []
+
+    if selector_mode == "llm":
+        llm_selected = _select_actions_with_llm(
+            scored_domains=scored,
+            user_message=user_message,
+            answer=answer,
+            tool_payload=payload,
+            intent_task_type=intent_task_type,
+            intent_output_format=intent_output_format,
+        )
+        if llm_selected:
+            return llm_selected
+
     top_domains = [item[1] for item in scored[:MAX_NEXT_ACTIONS]]
     return [_to_ui_action(domain=domain, score=scored[index][0]) for index, domain in enumerate(top_domains)]
+
+
+def resolve_next_actions_from_action_ids(
+    action_ids: list[str],
+    tool_payload: dict[str, Any] | None = None,
+) -> list[dict[str, str]]:
+    """
+    LLM이 고른 action_id 목록을 UI 카드 계약으로 변환한다.
+
+    Args:
+        action_ids: LLM 제안 action_id 목록
+        tool_payload: 현재 툴 payload
+
+    Returns:
+        UI 표시용 next action 목록
+    """
+    payload = tool_payload if isinstance(tool_payload, dict) else {}
+    current_mail_available = _is_current_mail_available(tool_payload=payload)
+    selected_ids = _normalize_selected_action_ids(raw=action_ids)
+    if not selected_ids:
+        return []
+    domain_by_id = {domain.action_id: domain for domain in ACTION_DOMAINS}
+    actions: list[dict[str, str]] = []
+    for action_id in selected_ids:
+        domain = domain_by_id.get(action_id)
+        if domain is None:
+            continue
+        if not _is_domain_enabled(domain=domain):
+            continue
+        if domain.requires_current_mail and not current_mail_available:
+            continue
+        if not _is_domain_eligible(domain=domain, tool_payload=payload):
+            continue
+        actions.append(_to_ui_action(domain=domain, score=0.58))
+        if len(actions) >= MAX_NEXT_ACTIONS:
+            break
+    return actions
+
+
+def _resolve_selector_mode(override: str | None = None) -> str:
+    """
+    후속 액션 추천기 선택 모드를 해석한다.
+
+    Args:
+        override: 런타임 강제 모드
+
+    Returns:
+        `llm` 또는 `score`
+    """
+    if override is not None:
+        raw = str(override).strip().lower()
+    else:
+        raw = str(os.getenv(ACTION_SELECTOR_MODE_ENV, DEFAULT_ACTION_SELECTOR_MODE)).strip().lower()
+    if raw in {"llm", "score"}:
+        return raw
+    return DEFAULT_ACTION_SELECTOR_MODE
+
+
+def _select_actions_with_llm(
+    scored_domains: list[tuple[float, ActionDomain]],
+    user_message: str,
+    answer: str,
+    tool_payload: dict[str, Any],
+    intent_task_type: str,
+    intent_output_format: str,
+) -> list[dict[str, str]]:
+    """
+    점수 기반 후보군에서 LLM이 최종 1~3개 액션을 선택하도록 실행한다.
+
+    Args:
+        scored_domains: 점수순 도메인 목록
+        user_message: 사용자 질의 원문
+        answer: 최종 답변
+        tool_payload: 도구 payload
+        intent_task_type: 의도 task type
+        intent_output_format: 의도 output format
+
+    Returns:
+        UI 표시용 next action 목록. 실패 시 빈 배열
+    """
+    candidate_pairs = scored_domains[:ACTION_SELECTOR_CANDIDATE_LIMIT]
+    if not candidate_pairs:
+        return []
+    model_name = resolve_env_model(
+        primary_env=ACTION_SELECTOR_MODEL_ENV,
+        fallback_envs=("MOLDUBOT_AGENT_MODEL", "DEFAULT_CHAT_MODEL"),
+        default_model=DEFAULT_ACTION_SELECTOR_MODEL,
+    )
+    if not is_model_provider_configured(model_name=model_name):
+        return []
+    candidate_lines: list[str] = []
+    for index, (score, domain) in enumerate(candidate_pairs, start=1):
+        candidate_lines.append(
+            f"{index}. action_id={domain.action_id} | title={domain.title} | desc={domain.description} | score={score:.3f}"
+        )
+    system_prompt = (
+        "너는 후속작업 카드 선택기다. 후보 action_id 중에서 사용자에게 유용한 1~3개만 고른다.\n"
+        "반드시 JSON 객체 1개만 출력한다. 스키마: {\"action_ids\":[\"id1\",\"id2\"]}\n"
+        "규칙: 후보에 없는 action_id 금지, 중복 금지, 최대 3개."
+    )
+    user_prompt = (
+        f"[user_message]\n{str(user_message or '').strip()}\n\n"
+        f"[answer]\n{str(answer or '').strip()[:1200]}\n\n"
+        f"[intent]\n{intent_task_type}/{intent_output_format}\n\n"
+        f"[tool_action]\n{str(tool_payload.get('action') or '').strip()}\n\n"
+        f"[candidates]\n" + "\n".join(candidate_lines)
+    )
+    try:
+        llm_json = invoke_json_object(
+            model_name=model_name,
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            timeout_sec=ACTION_SELECTOR_TIMEOUT_SEC,
+            temperature=0.0,
+        )
+    except (ValueError, RuntimeError, TypeError) as exc:
+        logger.warning("next_action_recommender.selector_failed: %s", exc)
+        return []
+
+    selected_action_ids = _normalize_selected_action_ids(raw=llm_json.get("action_ids"))
+    selected_by_id: dict[str, tuple[float, ActionDomain]] = {
+        domain.action_id: (score, domain) for score, domain in candidate_pairs
+    }
+    selected_actions: list[dict[str, str]] = []
+    for action_id in selected_action_ids:
+        pair = selected_by_id.get(action_id)
+        if pair is None:
+            continue
+        score, domain = pair
+        selected_actions.append(_to_ui_action(domain=domain, score=score))
+        if len(selected_actions) >= MAX_NEXT_ACTIONS:
+            break
+    return selected_actions
+
+
+def _normalize_selected_action_ids(raw: object) -> list[str]:
+    """
+    LLM 응답의 action_ids를 문자열 리스트로 정규화한다.
+
+    Args:
+        raw: 원본 action_ids 값
+
+    Returns:
+        중복 제거된 action_id 목록
+    """
+    if not isinstance(raw, list):
+        return []
+    normalized: list[str] = []
+    seen: set[str] = set()
+    for item in raw:
+        action_id = str(item or "").strip().lower()
+        if not action_id or action_id in seen:
+            continue
+        seen.add(action_id)
+        normalized.append(action_id)
+    return normalized[:MAX_NEXT_ACTIONS]
 
 
 def _is_domain_eligible(domain: ActionDomain, tool_payload: dict[str, Any]) -> bool:
@@ -238,7 +414,6 @@ def _score_domain(
     recent_tool_action: str,
     intent_task_type: str,
     intent_output_format: str,
-    embedding_similarity: float | None,
 ) -> float:
     """
     도메인 적합도를 하이브리드 방식으로 계산한다.
@@ -250,7 +425,6 @@ def _score_domain(
         recent_tool_action: 최근 tool action
         intent_task_type: 의도 task type
         intent_output_format: 의도 output format
-        embedding_similarity: 선택적 임베딩 유사도
 
     Returns:
         최종 점수
@@ -275,8 +449,7 @@ def _score_domain(
     if any(keyword in " ".join(context_tokens) for keyword in domain.keywords):
         keyword_bonus = 0.12
 
-    semantic_score = embedding_similarity if embedding_similarity is not None else 0.0
-    base = (lexical_overlap * 0.48) + (query_overlap * 0.24) + (semantic_score * 0.28)
+    base = (lexical_overlap * 0.62) + (query_overlap * 0.38)
     return round(base + intent_bonus + tool_bonus + keyword_bonus, 4)
 
 
@@ -320,114 +493,3 @@ def _to_ui_action(domain: ActionDomain, score: float) -> dict[str, str]:
         "query": domain.query_template,
         "priority": priority,
     }
-
-
-def _should_use_embeddings() -> bool:
-    """
-    임베딩 스코어 사용 여부를 확인한다.
-
-    Returns:
-        임베딩 사용 가능하면 True
-    """
-    use_flag = str(os.getenv("MOLDUBOT_ACTION_USE_EMBEDDING", "1")).strip().lower()
-    if use_flag in {"0", "false", "off", "no"}:
-        return False
-    return has_azure_openai_config()
-
-
-def _resolve_embedding_similarities(context: str) -> dict[str, float]:
-    """
-    컨텍스트와 액션 도메인 간 임베딩 유사도를 계산한다.
-
-    Args:
-        context: 추천 문맥 텍스트
-
-    Returns:
-        action_id별 유사도 맵
-    """
-    if not _should_use_embeddings():
-        return {}
-    safe_context = str(context or "").strip()
-    if not safe_context:
-        return {}
-
-    domain_texts = [f"{d.title}\n{d.description}\n{' '.join(d.keywords)}" for d in ACTION_DOMAINS]
-    try:
-        deployment = _resolve_embedding_deployment()
-        client = _get_embedding_client()
-        domain_vectors = _get_domain_embeddings(domain_texts=tuple(domain_texts), deployment=deployment)
-        query_embedding = client.embeddings.create(
-            model=deployment,
-            input=safe_context,
-        ).data[0].embedding
-    except OpenAIError as exc:
-        logger.warning("next_action_recommender.embedding_failed: %s", exc)
-        return {}
-
-    similarities: dict[str, float] = {}
-    for index, domain in enumerate(ACTION_DOMAINS):
-        if index >= len(domain_vectors):
-            continue
-        similarities[domain.action_id] = _cosine_similarity(query_embedding, domain_vectors[index])
-    return similarities
-
-
-@lru_cache(maxsize=1)
-def _get_domain_embeddings(domain_texts: tuple[str, ...], deployment: str) -> tuple[list[float], ...]:
-    """
-    도메인 설명 임베딩을 캐시 조회/생성한다.
-
-    Args:
-        domain_texts: 도메인 설명 텍스트 목록
-        deployment: Azure 임베딩 배포명
-
-    Returns:
-        도메인 임베딩 튜플
-    """
-    client = _get_embedding_client()
-    response = client.embeddings.create(model=deployment, input=list(domain_texts))
-    return tuple(item.embedding for item in response.data)
-
-
-@lru_cache(maxsize=1)
-def _get_embedding_client() -> AzureOpenAI:
-    """
-    next_actions 임베딩 계산용 Azure OpenAI 클라이언트를 반환한다.
-
-    Returns:
-        Azure OpenAI SDK 클라이언트
-    """
-    return get_azure_openai_client(timeout_sec=45)
-
-
-def _resolve_embedding_deployment() -> str:
-    """
-    임베딩 호출에 사용할 Azure 배포명을 해석한다.
-
-    Returns:
-        Azure 임베딩 배포명
-    """
-    raw = str(os.getenv("AZURE_OPENAI_EMBEDDING_DEPLOYMENT", EMBEDDING_MODEL)).strip()
-    return normalize_azure_deployment_name(model_name=raw, default_deployment=EMBEDDING_MODEL)
-
-
-def _cosine_similarity(vector_a: list[float], vector_b: list[float]) -> float:
-    """
-    두 벡터의 코사인 유사도를 계산한다.
-
-    Args:
-        vector_a: 벡터 A
-        vector_b: 벡터 B
-
-    Returns:
-        코사인 유사도(0~1)
-    """
-    if not vector_a or not vector_b or len(vector_a) != len(vector_b):
-        return 0.0
-    dot = sum(a * b for a, b in zip(vector_a, vector_b))
-    norm_a = math.sqrt(sum(a * a for a in vector_a))
-    norm_b = math.sqrt(sum(b * b for b in vector_b))
-    if norm_a == 0 or norm_b == 0:
-        return 0.0
-    raw = dot / (norm_a * norm_b)
-    return max(0.0, min(1.0, (raw + 1.0) / 2.0))

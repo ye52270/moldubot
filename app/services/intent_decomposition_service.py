@@ -91,21 +91,3 @@ def parse_intent_decomposition_safely(
         logger.warning("intent 구조분해 파싱 실패: %s", exc)
         return None
 
-
-def parse_intent_with_scope_label(user_message: str, scope_label: str) -> IntentDecomposition:
-    """
-    scope 라벨 namespace를 반영해 intent parser를 호출한다.
-
-    Args:
-        user_message: scope prefix 제거된 사용자 질의
-        scope_label: 주입된 scope 라벨
-
-    Returns:
-        intent 구조분해 결과
-    """
-    parser = get_intent_parser()
-    parse_kwargs = build_intent_namespace_kwargs(scope_label=scope_label)
-    try:
-        return parser.parse(user_message=user_message, **parse_kwargs)
-    except TypeError:
-        return parser.parse(user_message=user_message)

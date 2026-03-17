@@ -3,8 +3,7 @@ from __future__ import annotations
 import unittest
 from unittest.mock import patch
 
-from app.services.next_action_recommender import recommend_next_actions
-from app.services.next_action_recommender_engine import _get_domain_embeddings, _resolve_embedding_deployment
+from app.services.next_action_recommender import recommend_next_actions, resolve_next_actions_from_action_ids
 
 
 class NextActionRecommenderTest(unittest.TestCase):
@@ -180,42 +179,102 @@ class NextActionRecommenderTest(unittest.TestCase):
         titles = [item.get("title", "") for item in result]
         self.assertIn("코드 스니펫 분석", titles)
 
-    @patch.dict("os.environ", {"AZURE_OPENAI_EMBEDDING_DEPLOYMENT": "text-embedding-3-large"}, clear=False)
-    def test_resolve_embedding_deployment_prefers_azure_embedding_env(self) -> None:
+    @patch("app.services.next_action_recommender_engine.resolve_env_model", return_value="azure_openai:gpt-4o-mini")
+    @patch("app.services.next_action_recommender_engine.is_model_provider_configured", return_value=True)
+    @patch(
+        "app.services.next_action_recommender_engine.invoke_json_object",
+        return_value={"action_ids": ["create_todo", "draft_reply"]},
+    )
+    def test_llm_selector_picks_actions_from_allowlist(
+        self,
+        invoke_mock,
+        _configured_mock,
+        _model_mock,
+    ) -> None:
         """
-        임베딩 배포명은 AZURE_OPENAI_EMBEDDING_DEPLOYMENT 값을 우선 사용해야 한다.
+        LLM selector 모드에서는 후보군 action_id만 1~3개 선택해 반환해야 한다.
         """
-        deployment = _resolve_embedding_deployment()
-        self.assertEqual("text-embedding-3-large", deployment)
+        with patch.dict("os.environ", {"MOLDUBOT_ACTION_SELECTOR_MODE": "llm"}, clear=False):
+            result = recommend_next_actions(
+                user_message="현재메일 요약해줘",
+                answer="회의 후속 조치와 회신이 필요합니다.",
+                tool_payload={
+                    "action": "current_mail",
+                    "mail_context": {"message_id": "m-llm-1", "subject": "조치 요청"},
+                },
+                intent_task_type="summary",
+                intent_output_format="general",
+            )
 
-    def test_domain_embedding_cache_is_separated_by_deployment(self) -> None:
+        action_ids = [item.get("action_id", "") for item in result]
+        self.assertIn("create_todo", action_ids)
+        self.assertIn("draft_reply", action_ids)
+        self.assertLessEqual(len(result), 3)
+        invoke_mock.assert_called_once()
+
+    @patch("app.services.next_action_recommender_engine.resolve_env_model", return_value="azure_openai:gpt-4o-mini")
+    @patch("app.services.next_action_recommender_engine.is_model_provider_configured", return_value=True)
+    @patch(
+        "app.services.next_action_recommender_engine.invoke_json_object",
+        return_value={"action_ids": ["not_allowed_id"]},
+    )
+    def test_llm_selector_falls_back_to_scored_actions_when_invalid_selection(
+        self,
+        _invoke_mock,
+        _configured_mock,
+        _model_mock,
+    ) -> None:
         """
-        임베딩 캐시는 deployment가 다르면 분리되어야 한다.
+        LLM이 후보 외 action_id를 반환하면 점수기반 결과로 폴백해야 한다.
         """
-        _get_domain_embeddings.cache_clear()
+        with patch.dict(
+            "os.environ",
+            {"MOLDUBOT_ACTION_SELECTOR_MODE": "llm", "MOLDUBOT_ACTION_USE_EMBEDDING": "0"},
+            clear=False,
+        ):
+            result = recommend_next_actions(
+                user_message="현재메일 요약해줘",
+                answer="회의 일정 조율과 회신 초안이 필요합니다.",
+                tool_payload={
+                    "action": "current_mail",
+                    "mail_context": {"message_id": "m-llm-2", "subject": "회의 요청"},
+                },
+                intent_task_type="summary",
+                intent_output_format="general",
+            )
 
-        class _FakeEmbeddings:
-            def __init__(self) -> None:
-                self.calls: list[str] = []
+        self.assertGreaterEqual(len(result), 1)
 
-            def create(self, model: str, input: list[str]):
-                self.calls.append(model)
-                class _Item:
-                    embedding = [0.1, 0.2]
-                class _Response:
-                    data = [_Item()]
-                return _Response()
+    @patch.dict("os.environ", {"MOLDUBOT_ACTION_ENABLE_MEETING_ROOM": "1"}, clear=False)
+    def test_resolve_next_actions_from_action_ids_returns_allowlisted_ui_cards(self) -> None:
+        """
+        action_id 목록은 유효/활성 도메인만 UI 카드로 변환해야 한다.
+        """
+        result = resolve_next_actions_from_action_ids(
+            action_ids=["create_todo", "BOOK_MEETING_ROOM", "unknown_action"],
+            tool_payload={"action": "current_mail", "mail_context": {"message_id": "m-raw-1"}},
+        )
 
-        class _FakeClient:
-            def __init__(self) -> None:
-                self.embeddings = _FakeEmbeddings()
+        action_ids = [item.get("action_id", "") for item in result]
+        self.assertIn("create_todo", action_ids)
+        self.assertIn("book_meeting_room", action_ids)
+        self.assertNotIn("unknown_action", action_ids)
+        self.assertLessEqual(len(result), 3)
 
-        fake_client = _FakeClient()
-        with patch("app.services.next_action_recommender_engine._get_embedding_client", return_value=fake_client):
-            _get_domain_embeddings(domain_texts=("domain-a",), deployment="text-embedding-3-small")
-            _get_domain_embeddings(domain_texts=("domain-a",), deployment="text-embedding-3-large")
+    @patch.dict("os.environ", {"MOLDUBOT_ACTION_ENABLE_MEETING_ROOM": "0"}, clear=False)
+    def test_resolve_next_actions_from_action_ids_filters_disabled_or_missing_context(self) -> None:
+        """
+        비활성 기능 또는 current_mail 컨텍스트가 없는 액션은 제외해야 한다.
+        """
+        result = resolve_next_actions_from_action_ids(
+            action_ids=["book_meeting_room", "create_todo", "web_search"],
+            tool_payload={"action": "mail_search", "count": 2},
+        )
 
-        self.assertEqual(["text-embedding-3-small", "text-embedding-3-large"], fake_client.embeddings.calls)
+        action_ids = [item.get("action_id", "") for item in result]
+        self.assertNotIn("book_meeting_room", action_ids)
+        self.assertNotIn("create_todo", action_ids)
+        self.assertIn("web_search", action_ids)
 
 
 if __name__ == "__main__":
